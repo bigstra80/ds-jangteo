@@ -858,21 +858,23 @@ export default function ProductManager() {
       `}</style>
 
       <div style={topRowStyle} className="pm-top-row">
-        <div>
-          <h2 style={titleStyle}>👕 상품관리</h2>
-          <p style={subtitleStyle}>
-            상품과 공급업체·SKU를 한곳에서 관리합니다.
-          </p>
-        </div>
+        <div style={topLeftAreaStyle}>
+          <button
+            type="button"
+            onClick={openCreateForm}
+            style={primaryButtonStyle}
+            className="pm-primary-button"
+          >
+            {showProductForm ? "닫기" : "+ 상품등록"}
+          </button>
 
-        <button
-          type="button"
-          onClick={openCreateForm}
-          style={primaryButtonStyle}
-          className="pm-primary-button"
-        >
-          {showProductForm ? "닫기" : "+ 상품등록"}
-        </button>
+          <div>
+            <h2 style={titleStyle}>👕 상품관리</h2>
+            <p style={subtitleStyle}>
+              상품과 공급업체·SKU를 한곳에서 관리합니다.
+            </p>
+          </div>
+        </div>
       </div>
 
       {showProductForm && (
@@ -1305,28 +1307,6 @@ export default function ProductManager() {
                     >
                       수정
                     </button>
-
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => deleteProduct(product)}
-                        disabled={deletingId === product.id}
-                        style={deleteButtonStyle}
-                      >
-                        {deletingId === product.id ? "삭제 중..." : "삭제"}
-                      </button>
-                    )}
-
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => forceDeleteProduct(product)}
-                        disabled={forceDeletingId === product.id}
-                        style={forceDeleteButtonStyle}
-                      >
-                        {forceDeletingId === product.id ? "삭제 중..." : "강제삭제"}
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -1584,10 +1564,17 @@ const pageStyle: React.CSSProperties = {
 
 const topRowStyle: React.CSSProperties = {
   display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
+  alignItems: "flex-start",
+  justifyContent: "flex-start",
   gap: "20px",
   marginBottom: "20px",
+};
+
+const topLeftAreaStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "14px",
 };
 
 const titleStyle: React.CSSProperties = {
@@ -2067,13 +2054,16 @@ const actionBoxStyle: React.CSSProperties = {
 };
 
 const skuButtonStyle: React.CSSProperties = {
-  padding: "5px 8px",
+  width: "44px",
+  height: "28px",
+  padding: "0 6px",
   borderRadius: "6px",
   border: "none",
   background: "#2563eb",
   color: "#ffffff",
-  fontWeight: 700,
+  fontWeight: 800,
   fontSize: "11px",
+  lineHeight: "28px",
   cursor: "pointer",
   whiteSpace: "nowrap",
 };
