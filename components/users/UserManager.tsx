@@ -8,6 +8,7 @@ const MENUS = [
   ["customer-settlement", "거래처 정산·미수금"],
   ["supplier-settlement", "공급업체 정산"],
   ["broker-purchases", "업체별 매입목록"],
+  ["customer-deliveries", "거래처별 납품목록"],
   ["customer-prices", "거래처별 판매단가"],
   ["band-import", "네이버 밴드 상품수집"],
   ["suppliers", "공급업체 관리"],
