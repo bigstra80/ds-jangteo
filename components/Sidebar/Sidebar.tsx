@@ -175,6 +175,21 @@ export default function Sidebar() {
         </Link>
       )}
 
+{canAccess("wholesale-ledger") && (
+        <Link
+          href="/customer-deliveries"
+          style={{
+            ...menuLinkStyle,
+            ...(isActive("/customer-deliveries")
+              ? activeMenuStyle
+              : {}),
+          }}
+        >
+          <span style={iconStyle}>🚚</span>
+          <span className="sidebar-text">거래처별 납품목록</span>
+        </Link>
+      )}
+
 {canAccess("customer-prices") && (
         <Link
           href="/customer-prices"
