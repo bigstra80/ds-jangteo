@@ -1307,6 +1307,18 @@ export default function ProductManager() {
                     >
                       수정
                     </button>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => deleteProduct(product)}
+                        disabled={deletingId === product.id}
+                        style={deleteButtonStyle}
+                      >
+                        {deletingId === product.id ? "삭제 중..." : "삭제"}
+                      </button>
+                    )}
+
                   </div>
                 </div>
 

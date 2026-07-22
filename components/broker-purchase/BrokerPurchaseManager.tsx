@@ -201,18 +201,7 @@ export default function BrokerPurchaseManager() {
       </div>
 
       <div style={summaryGridStyle}>
-        <SummaryCard
-          label="업체 수"
-          value={`${groupedBySupplier.length.toLocaleString()}곳`}
-        />
-        <SummaryCard
-          label="총 매입 수량"
-          value={`${totalQuantity.toLocaleString()}개`}
-        />
-        <SummaryCard
-          label="총 매입금액"
-          value={isAdmin ? `${money(totalPurchaseAmount)}원` : "***"}
-        />
+       
       </div>
 
       <div style={toolbarStyle}>
@@ -417,11 +406,14 @@ const toolbarStyle: React.CSSProperties = {
 };
 
 const searchStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: "620px",
-  padding: "12px 14px",
+  width: "320px",
+  minWidth: "220px",
+  height: "48px",
   border: "1px solid #cbd5e1",
-  borderRadius: "8px",
+  borderRadius: "10px",
+  padding: "0 16px",
+  fontSize: "15px",
+  boxSizing: "border-box",
 };
 
 const dateFilterStyle: React.CSSProperties = {

@@ -189,18 +189,7 @@ export default function CustomerDeliveryManager() {
       </div>
 
       <div style={summaryGridStyle}>
-        <SummaryCard
-          label="거래처 수"
-          value={`${groupedByCustomer.length.toLocaleString()}곳`}
-        />
-        <SummaryCard
-          label="총 납품 수량"
-          value={`${totalQuantity.toLocaleString()}개`}
-        />
-        <SummaryCard
-          label="총 판매금액"
-          value={`${money(totalSaleAmount)}원`}
-        />
+        
       </div>
 
       <div style={toolbarStyle}>
@@ -410,8 +399,8 @@ const toolbarStyle: React.CSSProperties = {
 };
 
 const searchStyle: React.CSSProperties = {
-  flex: "1 1 460px",
-  minWidth: "280px",
+  width: "320px",
+  minWidth: "220px",
   height: "48px",
   border: "1px solid #cbd5e1",
   borderRadius: "10px",

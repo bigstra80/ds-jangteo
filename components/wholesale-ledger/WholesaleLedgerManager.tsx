@@ -246,8 +246,8 @@ export default function WholesaleLedgerManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [keyword, setKeyword] = useState("");
-  const [statusFilter, setStatusFilter] = useState("전체");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const [productOptions, setProductOptions] = useState<SearchOption[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<SearchOption[]>([]);
@@ -258,24 +258,6 @@ export default function WholesaleLedgerManager() {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [selectedDeliveryCustomerId, setSelectedDeliveryCustomerId] = useState<string>("");
   const [selectedCustomerUnitPrice, setSelectedCustomerUnitPrice] = useState(0);
-
-  async function loadCurrentUser() {
-    try {
-      const response = await fetch("/api/auth/me", {
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        setIsAdmin(false);
-        return;
-      }
-
-      const data = await response.json();
-      setIsAdmin(data?.user?.role === "ADMIN");
-    } catch {
-      setIsAdmin(false);
-    }
-  }
 
   async function loadRows() {
     setLoading(true);
@@ -312,7 +294,6 @@ export default function WholesaleLedgerManager() {
   }
 
   useEffect(() => {
-    loadCurrentUser();
     loadRows();
     loadSearchOptions();
   }, []);
@@ -321,10 +302,20 @@ export default function WholesaleLedgerManager() {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
     return rows.filter((row) => {
-      const matchesStatus =
-        statusFilter === "전체" || row.settlementStatus === statusFilter;
+      const rowDate = new Date(row.transactionDate);
 
-      if (!matchesStatus) return false;
+      if (Number.isNaN(rowDate.getTime())) return false;
+
+      if (startDate) {
+        const start = new Date(`${startDate}T00:00:00`);
+        if (rowDate < start) return false;
+      }
+
+      if (endDate) {
+        const end = new Date(`${endDate}T23:59:59.999`);
+        if (rowDate > end) return false;
+      }
+
       if (!normalizedKeyword) return true;
 
       return [
@@ -336,7 +327,7 @@ export default function WholesaleLedgerManager() {
         row.memo || "",
       ].some((value) => value.toLowerCase().includes(normalizedKeyword));
     });
-  }, [rows, keyword, statusFilter]);
+  }, [rows, keyword, startDate, endDate]);
 
   const summary = useMemo(() => {
     return filteredRows.reduce(
@@ -892,15 +883,11 @@ export default function WholesaleLedgerManager() {
           </Field>
 
           <Field label="단가">
-            {isAdmin ? (
-              <WonInput
-                value={form.purchaseAmount}
-                onChange={(value) => changeForm("purchaseAmount", value)}
-                placeholder="직접 입력"
-              />
-            ) : (
-              <input type="text" value="***" readOnly style={inputStyle} />
-            )}
+            <WonInput
+              value={form.purchaseAmount}
+              onChange={(value) => changeForm("purchaseAmount", value)}
+              placeholder="직접 입력"
+            />
           </Field>
 
           <Field label="판매금액">
@@ -967,16 +954,40 @@ export default function WholesaleLedgerManager() {
           style={searchStyle}
         />
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={filterStyle}
-        >
-          <option>전체</option>
-          <option>미정산</option>
-          <option>일부정산</option>
-          <option>정산완료</option>
-        </select>
+        <div style={dateFilterStyle}>
+          <label style={dateLabelStyle}>
+            시작일
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={dateInputStyle}
+            />
+          </label>
+
+          <span style={dateSeparatorStyle}>~</span>
+
+          <label style={dateLabelStyle}>
+            종료일
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={dateInputStyle}
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
+            style={resetButtonStyle}
+          >
+            날짜 초기화
+          </button>
+        </div>
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
@@ -1056,7 +1067,7 @@ export default function WholesaleLedgerManager() {
                     </td>
                     <td style={centerTdStyle}>{money(row.quantity)}</td>
                     <td style={tdStyle}>{row.supplierName || "-"}</td>
-                    <td style={numberTdStyle}>{isAdmin ? `${money(row.purchaseAmount)}원` : "***"}</td>
+                    <td style={numberTdStyle}>{money(row.purchaseAmount)}원</td>
                     <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                     <td style={tdStyle}>{row.customerName || "-"}</td>
                     <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
@@ -1066,7 +1077,7 @@ export default function WholesaleLedgerManager() {
                       fontWeight: 900,
                       color: profit >= 0 ? "#166534" : "#b91c1c",
                     }}>
-                      {isAdmin ? `${money(profit)}원` : "***"}
+                      {money(profit)}원
                     </td>
                     <td style={tdStyle}>{row.memo || "-"}</td>
                     <td style={centerTdStyle}>
@@ -1074,11 +1085,9 @@ export default function WholesaleLedgerManager() {
                         <button onClick={() => startEdit(row)} style={editButtonStyle}>
                           수정
                         </button>
-                        {isAdmin && (
-                          <button onClick={() => removeRow(row.id)} style={deleteButtonStyle}>
-                            삭제
-                          </button>
-                        )}
+                        <button onClick={() => removeRow(row.id)} style={deleteButtonStyle}>
+                          삭제
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1483,28 +1492,64 @@ const cancelButtonStyle: React.CSSProperties = {
 
 const toolbarStyle: React.CSSProperties = {
   display: "flex",
-  gap: "10px",
+  flexWrap: "wrap",
+  gap: "12px",
   marginTop: "0",
   marginBottom: "12px",
-  alignItems: "center",
+  alignItems: "flex-end",
 };
 
 const searchStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: "560px",
-  minWidth: 0,
+  width: "320px",
+  minWidth: "220px",
+  height: "48px",
   border: "1px solid #cbd5e1",
-  borderRadius: "9px",
-  padding: "10px 12px",
+  borderRadius: "10px",
+  padding: "0 16px",
+  fontSize: "15px",
+  boxSizing: "border-box",
 };
 
-const filterStyle: React.CSSProperties = {
-  width: "130px",
-  minWidth: "130px",
+const dateFilterStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "flex-end",
+  gap: "8px",
+};
+
+const dateLabelStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "5px",
+  color: "#475569",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const dateInputStyle: React.CSSProperties = {
+  minWidth: "145px",
+  height: "48px",
+  padding: "0 12px",
   border: "1px solid #cbd5e1",
-  borderRadius: "9px",
-  padding: "10px",
+  borderRadius: "10px",
   background: "white",
+  boxSizing: "border-box",
+};
+
+const dateSeparatorStyle: React.CSSProperties = {
+  paddingBottom: "15px",
+  color: "#64748b",
+};
+
+const resetButtonStyle: React.CSSProperties = {
+  height: "48px",
+  padding: "0 14px",
+  border: "1px solid #cbd5e1",
+  borderRadius: "10px",
+  background: "white",
+  color: "#334155",
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 const tableWrapStyle: React.CSSProperties = {
