@@ -40,9 +40,36 @@ function normalizeProductType(value: unknown) {
   return value === "BROKER" ? "BROKER" : "DIRECT";
 }
 
+function hidePurchaseCostsForStaff<T extends {
+  cost?: number | null;
+  cost2?: number | null;
+  cost3?: number | null;
+}>(product: T, isAdmin: boolean): T {
+  if (isAdmin) {
+    return product;
+  }
+
+  return {
+    ...product,
+    cost: null,
+    cost2: null,
+    cost3: null,
+  };
+}
+
 // 상품 등록
 export async function POST(request: Request) {
   try {
+    const sessionUser = await getCurrentSessionUser();
+
+    if (!sessionUser) {
+      return NextResponse.json(
+        { message: "로그인이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
+    const isAdmin = sessionUser.role === "ADMIN";
     const body = await request.json();
 
     const productType = normalizeProductType(body.productType);
@@ -103,9 +130,9 @@ export async function POST(request: Request) {
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
         sizes: String(body.sizes || "").trim(),
-        cost: nullableNumber(body.cost),
-        cost2: nullableNumber(body.cost2),
-        cost3: nullableNumber(body.cost3),
+        cost: isAdmin ? nullableNumber(body.cost) : null,
+        cost2: isAdmin ? nullableNumber(body.cost2) : null,
+        cost3: isAdmin ? nullableNumber(body.cost3) : null,
         price: nullableNumber(body.price),
         imageUrl: nullableText(body.imageUrl),
 
@@ -139,7 +166,9 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(product);
+    return NextResponse.json(
+      hidePurchaseCostsForStaff(product, isAdmin)
+    );
   } catch (error) {
     console.error("상품 등록 오류:", error);
 
@@ -158,6 +187,17 @@ export async function POST(request: Request) {
 // 상품 조회
 export async function GET() {
   try {
+    const sessionUser = await getCurrentSessionUser();
+
+    if (!sessionUser) {
+      return NextResponse.json(
+        { message: "로그인이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
+    const isAdmin = sessionUser.role === "ADMIN";
+
     const products = await prisma.product.findMany({
       orderBy: {
         id: "desc",
@@ -171,7 +211,11 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(products);
+    return NextResponse.json(
+      products.map((product) =>
+        hidePurchaseCostsForStaff(product, isAdmin)
+      )
+    );
   } catch (error) {
     console.error("상품 조회 오류:", error);
 
@@ -189,6 +233,16 @@ export async function GET() {
 // 상품 수정
 export async function PUT(request: Request) {
   try {
+    const sessionUser = await getCurrentSessionUser();
+
+    if (!sessionUser) {
+      return NextResponse.json(
+        { message: "로그인이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
+    const isAdmin = sessionUser.role === "ADMIN";
     const body = await request.json();
     const productId = Number(body.id);
 
@@ -247,6 +301,24 @@ export async function PUT(request: Request) {
 
     const productCode = String(body.code || "").trim();
 
+    const existingProduct = await prisma.product.findUnique({
+      where: {
+        id: productId,
+      },
+      select: {
+        cost: true,
+        cost2: true,
+        cost3: true,
+      },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { message: "상품을 찾을 수 없습니다." },
+        { status: 404 }
+      );
+    }
+
     const newSkuCodes = colors.flatMap((color) =>
       sizes.map((size) => makeSkuCode(productCode, color, size))
     );
@@ -279,9 +351,9 @@ export async function PUT(request: Request) {
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
         sizes: String(body.sizes || "").trim(),
-        cost: nullableNumber(body.cost),
-        cost2: nullableNumber(body.cost2),
-        cost3: nullableNumber(body.cost3),
+        cost: isAdmin ? nullableNumber(body.cost) : existingProduct.cost,
+        cost2: isAdmin ? nullableNumber(body.cost2) : existingProduct.cost2,
+        cost3: isAdmin ? nullableNumber(body.cost3) : existingProduct.cost3,
         price: nullableNumber(body.price),
         imageUrl: nullableText(body.imageUrl),
 
@@ -335,7 +407,11 @@ export async function PUT(request: Request) {
       },
     });
 
-    return NextResponse.json(product);
+    return NextResponse.json(
+      product
+        ? hidePurchaseCostsForStaff(product, isAdmin)
+        : product
+    );
   } catch (error) {
     console.error("상품 수정 오류:", error);
 

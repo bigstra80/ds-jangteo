@@ -978,13 +978,15 @@ export default function ProductManager() {
                 onChange={(value) => updateForm("supplierId", value)}
               />
 
-              <Field
-                label="매입단가 1"
-                value={form.cost}
-                onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
-                placeholder="0"
-                inputMode="numeric"
-              />
+              {isAdmin && (
+                <Field
+                  label="매입단가 1"
+                  value={form.cost}
+                  onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
+                  placeholder="0"
+                  inputMode="numeric"
+                />
+              )}
 
               <SupplierSearchBox
                 label="공급업체 2"
@@ -993,13 +995,15 @@ export default function ProductManager() {
                 onChange={(value) => updateForm("supplier2Id", value)}
               />
 
-              <Field
-                label="매입단가 2"
-                value={form.cost2}
-                onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
-                placeholder="0"
-                inputMode="numeric"
-              />
+              {isAdmin && (
+                <Field
+                  label="매입단가 2"
+                  value={form.cost2}
+                  onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
+                  placeholder="0"
+                  inputMode="numeric"
+                />
+              )}
 
               <SupplierSearchBox
                 label="공급업체 3"
@@ -1008,13 +1012,15 @@ export default function ProductManager() {
                 onChange={(value) => updateForm("supplier3Id", value)}
               />
 
-              <Field
-                label="매입단가 3"
-                value={form.cost3}
-                onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
-                placeholder="0"
-                inputMode="numeric"
-              />
+              {isAdmin && (
+                <Field
+                  label="매입단가 3"
+                  value={form.cost3}
+                  onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
+                  placeholder="0"
+                  inputMode="numeric"
+                />
+              )}
 
               <Field
                 label="상품명"
@@ -1274,10 +1280,12 @@ export default function ProductManager() {
                           .join(" / ") || "-"}
                       </strong>
                     </div>
-                    <div style={summaryLineStyle}>
-                      <span>단가</span>
-                      <strong>{(product.cost || 0).toLocaleString()}원</strong>
-                    </div>
+                    {isAdmin && (
+                      <div style={summaryLineStyle}>
+                        <span>단가</span>
+                        <strong>{(product.cost || 0).toLocaleString()}원</strong>
+                      </div>
+                    )}
                   </div>
 
                   {/* 버튼 */}
