@@ -971,21 +971,12 @@ export default function ProductManager() {
                 placeholder="공급업체에서 사용하는 상품명"
               />
 
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>공급업체 1</span>
-                <select
-                  value={form.supplierId}
-                  onChange={(event) => updateForm("supplierId", event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">공급업체 선택</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.code} · {supplier.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SupplierSearchSelect
+                label="공급업체 1"
+                suppliers={suppliers}
+                value={form.supplierId}
+                onChange={(value) => updateForm("supplierId", value)}
+              />
 
               <Field
                 label="매입단가 1"
@@ -995,21 +986,12 @@ export default function ProductManager() {
                 inputMode="numeric"
               />
 
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>공급업체 2</span>
-                <select
-                  value={form.supplier2Id}
-                  onChange={(event) => updateForm("supplier2Id", event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">공급업체 선택</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.code} · {supplier.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SupplierSearchSelect
+                label="공급업체 2"
+                suppliers={suppliers}
+                value={form.supplier2Id}
+                onChange={(value) => updateForm("supplier2Id", value)}
+              />
 
               <Field
                 label="매입단가 2"
@@ -1019,21 +1001,12 @@ export default function ProductManager() {
                 inputMode="numeric"
               />
 
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>공급업체 3</span>
-                <select
-                  value={form.supplier3Id}
-                  onChange={(event) => updateForm("supplier3Id", event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">공급업체 선택</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.code} · {supplier.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SupplierSearchSelect
+                label="공급업체 3"
+                suppliers={suppliers}
+                value={form.supplier3Id}
+                onChange={(value) => updateForm("supplier3Id", value)}
+              />
 
               <Field
                 label="매입단가 3"
@@ -1426,6 +1399,128 @@ export default function ProductManager() {
   );
 }
 
+function SupplierSearchSelect({
+  label,
+  suppliers,
+  value,
+  onChange,
+}: {
+  label: string;
+  suppliers: Supplier[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const selectedSupplier = suppliers.find(
+    (supplier) => String(supplier.id) === value
+  );
+
+  useEffect(() => {
+    if (selectedSupplier) {
+      setQuery(`${selectedSupplier.code} · ${selectedSupplier.name}`);
+    } else if (!value) {
+      setQuery("");
+    }
+  }, [selectedSupplier, value]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredSuppliers = suppliers.filter((supplier) => {
+    if (!normalizedQuery) return true;
+
+    return (
+      supplier.code.toLowerCase().includes(normalizedQuery) ||
+      supplier.name.toLowerCase().includes(normalizedQuery) ||
+      `${supplier.code} ${supplier.name}`
+        .toLowerCase()
+        .includes(normalizedQuery)
+    );
+  });
+
+  function selectSupplier(supplier: Supplier) {
+    onChange(String(supplier.id));
+    setQuery(`${supplier.code} · ${supplier.name}`);
+    setOpen(false);
+  }
+
+  function handleChange(nextQuery: string) {
+    setQuery(nextQuery);
+    setOpen(true);
+
+    if (
+      selectedSupplier &&
+      nextQuery !== `${selectedSupplier.code} · ${selectedSupplier.name}`
+    ) {
+      onChange("");
+    }
+  }
+
+  return (
+    <label style={fieldStyle}>
+      <span style={fieldLabelStyle}>{label}</span>
+
+      <div style={supplierSearchWrapStyle}>
+        <input
+          value={query}
+          onChange={(event) => handleChange(event.target.value)}
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            window.setTimeout(() => setOpen(false), 150);
+          }}
+          placeholder="공급업체 코드 또는 이름 검색"
+          autoComplete="off"
+          style={inputStyle}
+        />
+
+        {query && (
+          <button
+            type="button"
+            aria-label={`${label} 선택 해제`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              setQuery("");
+              onChange("");
+              setOpen(true);
+            }}
+            style={supplierClearButtonStyle}
+          >
+            ×
+          </button>
+        )}
+
+        {open && (
+          <div style={supplierDropdownStyle}>
+            {filteredSuppliers.length > 0 ? (
+              filteredSuppliers.slice(0, 50).map((supplier) => {
+                const isSelected = String(supplier.id) === value;
+
+                return (
+                  <button
+                    key={supplier.id}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectSupplier(supplier)}
+                    style={{
+                      ...supplierOptionStyle,
+                      ...(isSelected ? supplierOptionSelectedStyle : {}),
+                    }}
+                  >
+                    <strong>{supplier.code}</strong>
+                    <span style={supplierOptionNameStyle}>{supplier.name}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <div style={supplierEmptyStyle}>검색 결과가 없습니다.</div>
+            )}
+          </div>
+        )}
+      </div>
+    </label>
+  );
+}
+
 function Field({
   label,
   value,
@@ -1605,6 +1700,71 @@ const formGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "14px",
+};
+
+const supplierSearchWrapStyle: React.CSSProperties = {
+  position: "relative",
+};
+
+const supplierClearButtonStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  right: "10px",
+  transform: "translateY(-50%)",
+  width: "26px",
+  height: "26px",
+  border: "none",
+  borderRadius: "50%",
+  background: "transparent",
+  color: "#64748b",
+  fontSize: "20px",
+  lineHeight: "24px",
+  cursor: "pointer",
+  zIndex: 3,
+};
+
+const supplierDropdownStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 4px)",
+  left: 0,
+  right: 0,
+  zIndex: 50,
+  maxHeight: "240px",
+  overflowY: "auto",
+  border: "1px solid #cbd5e1",
+  borderRadius: "8px",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 10px 25px rgba(15, 23, 42, 0.16)",
+};
+
+const supplierOptionStyle: React.CSSProperties = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "10px 12px",
+  border: "none",
+  borderBottom: "1px solid #f1f5f9",
+  backgroundColor: "#ffffff",
+  color: "#0f172a",
+  textAlign: "left",
+  cursor: "pointer",
+  fontSize: "13px",
+};
+
+const supplierOptionSelectedStyle: React.CSSProperties = {
+  backgroundColor: "#eff6ff",
+};
+
+const supplierOptionNameStyle: React.CSSProperties = {
+  color: "#475569",
+};
+
+const supplierEmptyStyle: React.CSSProperties = {
+  padding: "14px 12px",
+  color: "#94a3b8",
+  fontSize: "13px",
+  textAlign: "center",
 };
 
 const fieldStyle: React.CSSProperties = {
