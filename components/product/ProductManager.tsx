@@ -971,7 +971,7 @@ export default function ProductManager() {
                 placeholder="공급업체에서 사용하는 상품명"
               />
 
-              <SupplierSearchSelect
+              <SupplierSearchBox
                 label="공급업체 1"
                 suppliers={suppliers}
                 value={form.supplierId}
@@ -986,7 +986,7 @@ export default function ProductManager() {
                 inputMode="numeric"
               />
 
-              <SupplierSearchSelect
+              <SupplierSearchBox
                 label="공급업체 2"
                 suppliers={suppliers}
                 value={form.supplier2Id}
@@ -1001,7 +1001,7 @@ export default function ProductManager() {
                 inputMode="numeric"
               />
 
-              <SupplierSearchSelect
+              <SupplierSearchBox
                 label="공급업체 3"
                 suppliers={suppliers}
                 value={form.supplier3Id}
@@ -1399,7 +1399,7 @@ export default function ProductManager() {
   );
 }
 
-function SupplierSearchSelect({
+function SupplierSearchBox({
   label,
   suppliers,
   value,
@@ -1410,47 +1410,45 @@ function SupplierSearchSelect({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
   const selectedSupplier = suppliers.find(
-    (supplier) => String(supplier.id) === value
+    (supplier) => String(supplier.id) === String(value)
   );
 
   useEffect(() => {
     if (selectedSupplier) {
-      setQuery(`${selectedSupplier.code} · ${selectedSupplier.name}`);
+      setSearchText(`${selectedSupplier.code} · ${selectedSupplier.name}`);
     } else if (!value) {
-      setQuery("");
+      setSearchText("");
     }
   }, [selectedSupplier, value]);
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredSuppliers = suppliers.filter((supplier) => {
-    if (!normalizedQuery) return true;
+  const keyword = searchText.trim().toLowerCase();
 
-    return (
-      supplier.code.toLowerCase().includes(normalizedQuery) ||
-      supplier.name.toLowerCase().includes(normalizedQuery) ||
-      `${supplier.code} ${supplier.name}`
-        .toLowerCase()
-        .includes(normalizedQuery)
-    );
+  const visibleSuppliers = suppliers.filter((supplier) => {
+    if (!keyword) return true;
+
+    const code = supplier.code.toLowerCase();
+    const name = supplier.name.toLowerCase();
+    return code.includes(keyword) || name.includes(keyword);
   });
 
-  function selectSupplier(supplier: Supplier) {
+  function chooseSupplier(supplier: Supplier) {
     onChange(String(supplier.id));
-    setQuery(`${supplier.code} · ${supplier.name}`);
-    setOpen(false);
+    setSearchText(`${supplier.code} · ${supplier.name}`);
+    setIsOpen(false);
   }
 
-  function handleChange(nextQuery: string) {
-    setQuery(nextQuery);
-    setOpen(true);
+  function changeSearchText(nextValue: string) {
+    setSearchText(nextValue);
+    setIsOpen(true);
 
+    // 선택된 업체명을 직접 수정하기 시작하면 기존 선택을 해제합니다.
     if (
       selectedSupplier &&
-      nextQuery !== `${selectedSupplier.code} · ${selectedSupplier.name}`
+      nextValue !== `${selectedSupplier.code} · ${selectedSupplier.name}`
     ) {
       onChange("");
     }
@@ -1460,59 +1458,63 @@ function SupplierSearchSelect({
     <label style={fieldStyle}>
       <span style={fieldLabelStyle}>{label}</span>
 
-      <div style={supplierSearchWrapStyle}>
+      <div style={supplierSearchContainerStyle}>
         <input
-          value={query}
-          onChange={(event) => handleChange(event.target.value)}
-          onFocus={() => setOpen(true)}
+          type="text"
+          value={searchText}
+          onChange={(event) => changeSearchText(event.target.value)}
+          onFocus={() => setIsOpen(true)}
           onBlur={() => {
-            window.setTimeout(() => setOpen(false), 150);
+            window.setTimeout(() => setIsOpen(false), 180);
           }}
-          placeholder="공급업체 코드 또는 이름 검색"
+          placeholder="공급업체 코드 또는 이름을 직접 입력하여 검색"
           autoComplete="off"
-          style={inputStyle}
+          style={{
+            ...inputStyle,
+            paddingRight: "42px",
+          }}
         />
 
-        {query && (
+        {searchText && (
           <button
             type="button"
-            aria-label={`${label} 선택 해제`}
+            title="선택 해제"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
-              setQuery("");
+              setSearchText("");
               onChange("");
-              setOpen(true);
+              setIsOpen(true);
             }}
-            style={supplierClearButtonStyle}
+            style={supplierSearchClearStyle}
           >
             ×
           </button>
         )}
 
-        {open && (
-          <div style={supplierDropdownStyle}>
-            {filteredSuppliers.length > 0 ? (
-              filteredSuppliers.slice(0, 50).map((supplier) => {
-                const isSelected = String(supplier.id) === value;
-
-                return (
-                  <button
-                    key={supplier.id}
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => selectSupplier(supplier)}
-                    style={{
-                      ...supplierOptionStyle,
-                      ...(isSelected ? supplierOptionSelectedStyle : {}),
-                    }}
-                  >
-                    <strong>{supplier.code}</strong>
-                    <span style={supplierOptionNameStyle}>{supplier.name}</span>
-                  </button>
-                );
-              })
+        {isOpen && (
+          <div style={supplierSearchDropdownStyle}>
+            {visibleSuppliers.length === 0 ? (
+              <div style={supplierSearchEmptyStyle}>
+                검색되는 공급업체가 없습니다.
+              </div>
             ) : (
-              <div style={supplierEmptyStyle}>검색 결과가 없습니다.</div>
+              visibleSuppliers.slice(0, 100).map((supplier) => (
+                <button
+                  key={supplier.id}
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => chooseSupplier(supplier)}
+                  style={{
+                    ...supplierSearchOptionStyle,
+                    ...(String(supplier.id) === String(value)
+                      ? supplierSearchSelectedOptionStyle
+                      : {}),
+                  }}
+                >
+                  <span style={{ fontWeight: 700 }}>{supplier.code}</span>
+                  <span style={{ color: "#475569" }}>{supplier.name}</span>
+                </button>
+              ))
             )}
           </div>
         )}
@@ -1702,65 +1704,60 @@ const formGridStyle: React.CSSProperties = {
   gap: "14px",
 };
 
-const supplierSearchWrapStyle: React.CSSProperties = {
+const supplierSearchContainerStyle: React.CSSProperties = {
   position: "relative",
 };
 
-const supplierClearButtonStyle: React.CSSProperties = {
+const supplierSearchClearStyle: React.CSSProperties = {
   position: "absolute",
-  top: "50%",
   right: "10px",
+  top: "50%",
   transform: "translateY(-50%)",
-  width: "26px",
-  height: "26px",
+  width: "28px",
+  height: "28px",
   border: "none",
-  borderRadius: "50%",
   background: "transparent",
   color: "#64748b",
   fontSize: "20px",
-  lineHeight: "24px",
+  lineHeight: 1,
   cursor: "pointer",
   zIndex: 3,
 };
 
-const supplierDropdownStyle: React.CSSProperties = {
+const supplierSearchDropdownStyle: React.CSSProperties = {
   position: "absolute",
-  top: "calc(100% + 4px)",
   left: 0,
   right: 0,
-  zIndex: 50,
-  maxHeight: "240px",
+  top: "calc(100% + 4px)",
+  zIndex: 100,
+  maxHeight: "260px",
   overflowY: "auto",
   border: "1px solid #cbd5e1",
   borderRadius: "8px",
   backgroundColor: "#ffffff",
-  boxShadow: "0 10px 25px rgba(15, 23, 42, 0.16)",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.16)",
 };
 
-const supplierOptionStyle: React.CSSProperties = {
+const supplierSearchOptionStyle: React.CSSProperties = {
   width: "100%",
   display: "flex",
-  alignItems: "center",
   gap: "8px",
-  padding: "10px 12px",
+  alignItems: "center",
+  padding: "11px 12px",
   border: "none",
   borderBottom: "1px solid #f1f5f9",
   backgroundColor: "#ffffff",
   color: "#0f172a",
   textAlign: "left",
-  cursor: "pointer",
   fontSize: "13px",
+  cursor: "pointer",
 };
 
-const supplierOptionSelectedStyle: React.CSSProperties = {
+const supplierSearchSelectedOptionStyle: React.CSSProperties = {
   backgroundColor: "#eff6ff",
 };
 
-const supplierOptionNameStyle: React.CSSProperties = {
-  color: "#475569",
-};
-
-const supplierEmptyStyle: React.CSSProperties = {
+const supplierSearchEmptyStyle: React.CSSProperties = {
   padding: "14px 12px",
   color: "#94a3b8",
   fontSize: "13px",
