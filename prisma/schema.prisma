@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Product {
@@ -13,7 +13,7 @@ model Product {
   name              String
   brand             String?
   category          String?
-  colors             String?
+  colors            String?
   sizes              String?
   cost              Int?
   cost2             Int?
@@ -152,9 +152,9 @@ model Supplier {
   memo                   String?
   isActive               Boolean                 @default(true)
 
-  products               Product[]                @relation("ProductSupplier1")
-  products2              Product[]                @relation("ProductSupplier2")
-  products3              Product[]                @relation("ProductSupplier3")
+  products               Product[]               @relation("ProductSupplier1")
+  products2              Product[]               @relation("ProductSupplier2")
+  products3              Product[]               @relation("ProductSupplier3")
   purchases              Purchase[]
   purchaseOrders         PurchaseOrder[]
   brokerPurchaseRequests BrokerPurchaseRequest[]
@@ -163,7 +163,6 @@ model Supplier {
   updatedAt              DateTime                @updatedAt
 }
 
-// 중도매 상품 주문 시 자동 생성되는 공급업체별 매입 필요 내역
 model BrokerPurchaseRequest {
   id           Int        @id @default(autoincrement())
   orderId      Int
@@ -248,23 +247,21 @@ model User {
   updatedAt    DateTime @updatedAt
 }
 
-
-// 도매 거래관리 한 줄 장부
 model WholesaleLedger {
-  id               Int      @id @default(autoincrement())
-  transactionDate  DateTime @default(now())
-  productName      String
-  quantity         Int      @default(1)
-  supplierName     String?
+  id                  Int      @id @default(autoincrement())
+  transactionDate     DateTime @default(now())
+  productName         String
+  quantity            Int      @default(1)
+  supplierName        String?
   purchaseAmount      Int      @default(0)
   deliveryCompanyName String?
   customerName        String?
   saleAmount          Int      @default(0)
   shippingFee         Int      @default(0)
-  settlementStatus String   @default("미정산")
-  memo             String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  settlementStatus    String   @default("미정산")
+  memo                String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([transactionDate])
   @@index([settlementStatus])
