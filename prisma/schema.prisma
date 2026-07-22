@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Product {
+  id                Int          @id @default(autoincrement())
+  code              String       @unique
+  name              String
+  brand             String?
+  category          String?
+  colors             String?
+  sizes              String?
+  cost              Int?
+  cost2             Int?
+  cost3             Int?
+  price             Int?
+  imageUrl          String?
+
+  // DIRECT = 직접 매입 후 재고 보유
+  // BROKER = 주문 발생 후 공급업체에서 매입
+  productType       String       @default("DIRECT")
+
+  sourceProductName String?
+
+  // 네이버 밴드 연동용
+  bandPostId        String?      @unique
+  bandPostUrl       String?
+  isBandImported    Boolean      @default(false)
+
+  supplierId        Int?
+  supplier          Supplier?    @relation("ProductSupplier1", fields: [supplierId], references: [id])
+  supplier2Id       Int?
+  supplier2         Supplier?    @relation("ProductSupplier2", fields: [supplier2Id], references: [id])
+  supplier3Id       Int?
+  supplier3         Supplier?    @relation("ProductSupplier3", fields: [supplier3Id], references: [id])
+
+  skus              ProductSku[]
+  customerPrices    CustomerProductPrice[]
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model ProductSku {
+  id                     Int                     @id @default(autoincrement())
+  sku                    String                  @unique
+  color                  String
+  size                   String
+  stock                  Int                     @default(0)
+  safetyStock            Int                     @default(5)
+  productId              Int
+  product                Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockMovements         StockMovement[]
+  orderItems             OrderItem[]
+  purchaseItems          PurchaseItem[]
+  purchaseOrderItems     PurchaseOrderItem[]
+  brokerPurchaseRequests BrokerPurchaseRequest[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+}
+
+model StockMovement {
+  id           Int        @id @default(autoincrement())
+  type         String
+  quantity     Int
+  beforeStock  Int
+  afterStock   Int
+  memo         String?
+  productSkuId Int
+  productSku   ProductSku @relation(fields: [productSkuId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+}
+
+model Customer {
+  id            Int                    @id @default(autoincrement())
+  code          String                 @unique
+  name          String
+  phone         String?
+  email         String?
+  address       String?
+  memo          String?
+  isActive      Boolean                @default(true)
+  orders        Order[]
+  productPrices CustomerProductPrice[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+}
+
+model CustomerProductPrice {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  productId  Int
+  price      Int
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, productId])
+}
+
+model Order {
+  id                     Int                     @id @default(autoincrement())
+  orderNumber            String                  @unique
+  channel                String
+  customerId             Int?
+  customer               Customer?               @relation(fields: [customerId], references: [id])
+  customerName           String?
+  status                 String                  @default("출고완료")
+  memo                   String?
+  courier                String?
+  trackingNumber         String?
+  deliveryStatus         String                  @default("송장대기")
+  items                  OrderItem[]
+  brokerPurchaseRequests BrokerPurchaseRequest[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+}
+
+model OrderItem {
+  id           Int        @id @default(autoincrement())
+  quantity     Int
+  price        Int?
+  cost         Int?
+  orderId      Int
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productSkuId Int
+  productSku   ProductSku @relation(fields: [productSkuId], references: [id])
+}
+
+model Supplier {
+  id                     Int                     @id @default(autoincrement())
+  code                   String                  @unique
+  name                   String
+  businessNumber         String?
+  representative         String?
+  phone                  String?
+  email                  String?
+  address                String?
+  contactName            String?
+  contactPhone           String?
+  bankName               String?
+  bankAccount            String?
+  accountHolder          String?
+  memo                   String?
+  isActive               Boolean                 @default(true)
+
+  products               Product[]                @relation("ProductSupplier1")
+  products2              Product[]                @relation("ProductSupplier2")
+  products3              Product[]                @relation("ProductSupplier3")
+  purchases              Purchase[]
+  purchaseOrders         PurchaseOrder[]
+  brokerPurchaseRequests BrokerPurchaseRequest[]
+
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+}
+
+// 중도매 상품 주문 시 자동 생성되는 공급업체별 매입 필요 내역
+model BrokerPurchaseRequest {
+  id           Int        @id @default(autoincrement())
+  orderId      Int
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  supplierId   Int
+  supplier     Supplier   @relation(fields: [supplierId], references: [id])
+
+  productSkuId Int
+  productSku   ProductSku @relation(fields: [productSkuId], references: [id])
+
+  quantity     Int
+  unitCost     Int        @default(0)
+  status       String     @default("매입대기")
+  memo         String?
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([supplierId, status])
+  @@index([orderId])
+}
+
+model Purchase {
+  id             Int            @id @default(autoincrement())
+  purchaseNumber String         @unique
+  supplierId     Int
+  supplier       Supplier       @relation(fields: [supplierId], references: [id])
+  status         String         @default("매입중")
+  totalAmount    Int            @default(0)
+  memo           String?
+  items          PurchaseItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id           Int        @id @default(autoincrement())
+  purchaseId   Int
+  purchase     Purchase   @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productSkuId Int
+  productSku   ProductSku @relation(fields: [productSkuId], references: [id])
+  quantity     Int
+  unitCost     Int
+  amount       Int
+}
+
+model PurchaseOrder {
+  id                  Int                 @id @default(autoincrement())
+  purchaseOrderNumber String              @unique
+  supplierId          Int
+  supplier            Supplier            @relation(fields: [supplierId], references: [id])
+  status              String              @default("발주대기")
+  expectedDate        DateTime?
+  totalAmount         Int                 @default(0)
+  memo                String?
+  items               PurchaseOrderItem[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productSkuId    Int
+  productSku      ProductSku    @relation(fields: [productSkuId], references: [id])
+  quantity        Int
+  unitCost        Int
+  amount          Int
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("STAFF")
+  permissions  String   @default("[]")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
+// 도매 거래관리 한 줄 장부
+model WholesaleLedger {
+  id               Int      @id @default(autoincrement())
+  transactionDate  DateTime @default(now())
+  productName      String
+  quantity         Int      @default(1)
+  supplierName     String?
+  purchaseAmount      Int      @default(0)
+  deliveryCompanyName String?
+  customerName        String?
+  saleAmount          Int      @default(0)
+  shippingFee         Int      @default(0)
+  settlementStatus String   @default("미정산")
+  memo             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([transactionDate])
+  @@index([settlementStatus])
+}
