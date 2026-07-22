@@ -37,6 +37,16 @@ export default function SupplierSettlementManager() {
   const [data, setData] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch("/api/auth/me", { cache: "no-store" });
+      if (!response.ok) { setIsAdmin(false); return; }
+      const result = await response.json();
+      setIsAdmin(result?.user?.role === "ADMIN");
+    } catch { setIsAdmin(false); }
+  }
 
   async function loadData() {
     try {
@@ -68,6 +78,7 @@ export default function SupplierSettlementManager() {
   }
 
   useEffect(() => {
+    loadCurrentUser();
     loadData();
   }, []);
 
@@ -173,15 +184,15 @@ export default function SupplierSettlementManager() {
         />
         <SummaryCard
           title="총 매입금액"
-          value={`${money(totalSummary.grossPurchaseAmount)}원`}
+          value={isAdmin ? `${money(totalSummary.grossPurchaseAmount)}원` : "***"}
         />
         <SummaryCard
           title="반품금액"
-          value={`${money(totalSummary.returnAmount)}원`}
+          value={isAdmin ? `${money(totalSummary.returnAmount)}원` : "***"}
         />
         <SummaryCard
           title="현재 정산금액"
-          value={`${money(totalSummary.payableAmount)}원`}
+          value={isAdmin ? `${money(totalSummary.payableAmount)}원` : "***"}
           emphasize
         />
       </div>
@@ -251,10 +262,10 @@ export default function SupplierSettlementManager() {
                   <td style={tdStyle}><strong>{row.productName}</strong></td>
                   <td style={tdStyle}>{row.customerName || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
-                  <td style={moneyStyle}>{money(row.purchaseAmount)}원</td>
+                  <td style={moneyStyle}>{isAdmin ? `${money(row.purchaseAmount)}원` : "***"}</td>
                   <td style={moneyStyle}>{money(row.shippingFee || 0)}원</td>
                   <td style={totalAmountTdStyle}>
-                    {money((row.purchaseAmount || 0) + (row.shippingFee || 0))}원
+                    {isAdmin ? `${money((row.purchaseAmount || 0) + (row.shippingFee || 0))}원` : "***"}
                   </td>
                   <td style={{ ...tdStyle, paddingLeft: 24 }}>
                     {row.memo || "-"}

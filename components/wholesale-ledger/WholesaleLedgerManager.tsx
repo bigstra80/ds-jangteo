@@ -892,11 +892,15 @@ export default function WholesaleLedgerManager() {
           </Field>
 
           <Field label="단가">
-            <WonInput
-              value={form.purchaseAmount}
-              onChange={(value) => changeForm("purchaseAmount", value)}
-              placeholder="직접 입력"
-            />
+            {isAdmin ? (
+              <WonInput
+                value={form.purchaseAmount}
+                onChange={(value) => changeForm("purchaseAmount", value)}
+                placeholder="직접 입력"
+              />
+            ) : (
+              <input type="text" value="***" readOnly style={inputStyle} />
+            )}
           </Field>
 
           <Field label="판매금액">
@@ -1052,7 +1056,7 @@ export default function WholesaleLedgerManager() {
                     </td>
                     <td style={centerTdStyle}>{money(row.quantity)}</td>
                     <td style={tdStyle}>{row.supplierName || "-"}</td>
-                    <td style={numberTdStyle}>{money(row.purchaseAmount)}원</td>
+                    <td style={numberTdStyle}>{isAdmin ? `${money(row.purchaseAmount)}원` : "***"}</td>
                     <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                     <td style={tdStyle}>{row.customerName || "-"}</td>
                     <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
@@ -1062,7 +1066,7 @@ export default function WholesaleLedgerManager() {
                       fontWeight: 900,
                       color: profit >= 0 ? "#166534" : "#b91c1c",
                     }}>
-                      {money(profit)}원
+                      {isAdmin ? `${money(profit)}원` : "***"}
                     </td>
                     <td style={tdStyle}>{row.memo || "-"}</td>
                     <td style={centerTdStyle}>

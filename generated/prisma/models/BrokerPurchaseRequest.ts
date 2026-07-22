@@ -658,6 +658,7 @@ export type BrokerPurchaseRequestCreateOrConnectWithoutProductSkuInput = {
 
 export type BrokerPurchaseRequestCreateManyProductSkuInputEnvelope = {
   data: Prisma.BrokerPurchaseRequestCreateManyProductSkuInput | Prisma.BrokerPurchaseRequestCreateManyProductSkuInput[]
+  skipDuplicates?: boolean
 }
 
 export type BrokerPurchaseRequestUpsertWithWhereUniqueWithoutProductSkuInput = {
@@ -722,6 +723,7 @@ export type BrokerPurchaseRequestCreateOrConnectWithoutOrderInput = {
 
 export type BrokerPurchaseRequestCreateManyOrderInputEnvelope = {
   data: Prisma.BrokerPurchaseRequestCreateManyOrderInput | Prisma.BrokerPurchaseRequestCreateManyOrderInput[]
+  skipDuplicates?: boolean
 }
 
 export type BrokerPurchaseRequestUpsertWithWhereUniqueWithoutOrderInput = {
@@ -770,6 +772,7 @@ export type BrokerPurchaseRequestCreateOrConnectWithoutSupplierInput = {
 
 export type BrokerPurchaseRequestCreateManySupplierInputEnvelope = {
   data: Prisma.BrokerPurchaseRequestCreateManySupplierInput | Prisma.BrokerPurchaseRequestCreateManySupplierInput[]
+  skipDuplicates?: boolean
 }
 
 export type BrokerPurchaseRequestUpsertWithWhereUniqueWithoutSupplierInput = {
@@ -1697,6 +1700,7 @@ export type BrokerPurchaseRequestCreateManyArgs<ExtArgs extends runtime.Types.Ex
    * The data used to create many BrokerPurchaseRequests.
    */
   data: Prisma.BrokerPurchaseRequestCreateManyInput | Prisma.BrokerPurchaseRequestCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1715,6 +1719,7 @@ export type BrokerPurchaseRequestCreateManyAndReturnArgs<ExtArgs extends runtime
    * The data used to create many BrokerPurchaseRequests.
    */
   data: Prisma.BrokerPurchaseRequestCreateManyInput | Prisma.BrokerPurchaseRequestCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

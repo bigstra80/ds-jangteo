@@ -38,11 +38,21 @@ export default function BrokerPurchaseManager() {
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expandedSuppliers, setExpandedSuppliers] = useState<Set<string>>(
     new Set()
   );
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch("/api/auth/me", { cache: "no-store" });
+      if (!response.ok) { setIsAdmin(false); return; }
+      const result = await response.json();
+      setIsAdmin(result?.user?.role === "ADMIN");
+    } catch { setIsAdmin(false); }
+  }
 
   function toggleSupplier(supplierName: string) {
     setExpandedSuppliers((current) => {
@@ -88,6 +98,7 @@ export default function BrokerPurchaseManager() {
   }
 
   useEffect(() => {
+    loadCurrentUser();
     loadItems();
   }, []);
 
@@ -200,7 +211,7 @@ export default function BrokerPurchaseManager() {
         />
         <SummaryCard
           label="총 매입금액"
-          value={`${money(totalPurchaseAmount)}원`}
+          value={isAdmin ? `${money(totalPurchaseAmount)}원` : "***"}
         />
       </div>
 
@@ -270,7 +281,7 @@ export default function BrokerPurchaseManager() {
 
                 <div style={supplierSummaryStyle}>
                   총 {group.totalQuantity.toLocaleString()}개 ·{" "}
-                  {money(group.totalPurchaseAmount)}원
+                  {isAdmin ? `${money(group.totalPurchaseAmount)}원` : "***"}
                 </div>
               </div>
 
@@ -302,7 +313,7 @@ export default function BrokerPurchaseManager() {
                             {row.quantity.toLocaleString()}개
                           </td>
                           <td style={tdStyle}>
-                            {money(row.purchaseAmount)}원
+                            {isAdmin ? `${money(row.purchaseAmount)}원` : "***"}
                           </td>
                           <td style={tdStyle}>
                             {row.deliveryCompanyName || "-"}

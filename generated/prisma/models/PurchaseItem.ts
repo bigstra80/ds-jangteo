@@ -518,6 +518,7 @@ export type PurchaseItemCreateOrConnectWithoutProductSkuInput = {
 
 export type PurchaseItemCreateManyProductSkuInputEnvelope = {
   data: Prisma.PurchaseItemCreateManyProductSkuInput | Prisma.PurchaseItemCreateManyProductSkuInput[]
+  skipDuplicates?: boolean
 }
 
 export type PurchaseItemUpsertWithWhereUniqueWithoutProductSkuInput = {
@@ -570,6 +571,7 @@ export type PurchaseItemCreateOrConnectWithoutPurchaseInput = {
 
 export type PurchaseItemCreateManyPurchaseInputEnvelope = {
   data: Prisma.PurchaseItemCreateManyPurchaseInput | Prisma.PurchaseItemCreateManyPurchaseInput[]
+  skipDuplicates?: boolean
 }
 
 export type PurchaseItemUpsertWithWhereUniqueWithoutPurchaseInput = {
@@ -1386,6 +1388,7 @@ export type PurchaseItemCreateManyArgs<ExtArgs extends runtime.Types.Extensions.
    * The data used to create many PurchaseItems.
    */
   data: Prisma.PurchaseItemCreateManyInput | Prisma.PurchaseItemCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1404,6 +1407,7 @@ export type PurchaseItemCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    * The data used to create many PurchaseItems.
    */
   data: Prisma.PurchaseItemCreateManyInput | Prisma.PurchaseItemCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

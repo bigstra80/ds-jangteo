@@ -1277,6 +1277,7 @@ export type ProductCreateOrConnectWithoutSupplierInput = {
 
 export type ProductCreateManySupplierInputEnvelope = {
   data: Prisma.ProductCreateManySupplierInput | Prisma.ProductCreateManySupplierInput[]
+  skipDuplicates?: boolean
 }
 
 export type ProductCreateWithoutSupplier2Input = {
@@ -1337,6 +1338,7 @@ export type ProductCreateOrConnectWithoutSupplier2Input = {
 
 export type ProductCreateManySupplier2InputEnvelope = {
   data: Prisma.ProductCreateManySupplier2Input | Prisma.ProductCreateManySupplier2Input[]
+  skipDuplicates?: boolean
 }
 
 export type ProductCreateWithoutSupplier3Input = {
@@ -1397,6 +1399,7 @@ export type ProductCreateOrConnectWithoutSupplier3Input = {
 
 export type ProductCreateManySupplier3InputEnvelope = {
   data: Prisma.ProductCreateManySupplier3Input | Prisma.ProductCreateManySupplier3Input[]
+  skipDuplicates?: boolean
 }
 
 export type ProductUpsertWithWhereUniqueWithoutSupplierInput = {
@@ -2660,6 +2663,7 @@ export type ProductCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * The data used to create many Products.
    */
   data: Prisma.ProductCreateManyInput | Prisma.ProductCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -2678,6 +2682,7 @@ export type ProductCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * The data used to create many Products.
    */
   data: Prisma.ProductCreateManyInput | Prisma.ProductCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

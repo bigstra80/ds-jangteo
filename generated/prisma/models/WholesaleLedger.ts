@@ -1305,6 +1305,7 @@ export type WholesaleLedgerCreateManyArgs<ExtArgs extends runtime.Types.Extensio
    * The data used to create many WholesaleLedgers.
    */
   data: Prisma.WholesaleLedgerCreateManyInput | Prisma.WholesaleLedgerCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1323,6 +1324,7 @@ export type WholesaleLedgerCreateManyAndReturnArgs<ExtArgs extends runtime.Types
    * The data used to create many WholesaleLedgers.
    */
   data: Prisma.WholesaleLedgerCreateManyInput | Prisma.WholesaleLedgerCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
