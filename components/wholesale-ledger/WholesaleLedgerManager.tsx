@@ -795,6 +795,22 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           max-width: 0 !important;
         }
 
+        .wl-list-only-table th,
+        .wl-list-only-table td {
+          padding-left: 4px !important;
+          padding-right: 4px !important;
+        }
+
+        .wl-list-only-table .wl-product-name-cell {
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: clip !important;
+          max-width: none !important;
+          overflow-wrap: anywhere !important;
+          word-break: keep-all !important;
+          line-height: 1.35 !important;
+        }
+
         .wl-date-cell {
           font-size: 10px !important;
           letter-spacing: -0.2px !important;
@@ -1172,21 +1188,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={{ ...tableStyle, minWidth: listOnly ? "980px" : "860px" }} className={!listOnly ? "wl-compact-ledger-table" : undefined}>
+        <table style={{ ...tableStyle, minWidth: listOnly ? "820px" : "860px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
           <colgroup>
             {listOnly ? (
               <>
-                <col style={{ width: "66px" }} />
-                <col style={{ width: "150px" }} />
-                <col style={{ width: "42px" }} />
-                <col style={{ width: "68px" }} />
-                <col style={{ width: "76px" }} />
-                <col style={{ width: "78px" }} />
-                <col style={{ width: "76px" }} />
-                <col style={{ width: "78px" }} />
-                <col style={{ width: "68px" }} />
-                <col style={{ width: "72px" }} />
+                <col style={{ width: "62px" }} />
+                <col style={{ width: "128px" }} />
+                <col style={{ width: "34px" }} />
+                <col style={{ width: "56px" }} />
+                <col style={{ width: "62px" }} />
                 <col style={{ width: "64px" }} />
+                <col style={{ width: "66px" }} />
+                <col style={{ width: "66px" }} />
+                <col style={{ width: "58px" }} />
+                <col style={{ width: "58px" }} />
+                <col style={{ width: "66px" }} />
               </>
             ) : (
               <>
