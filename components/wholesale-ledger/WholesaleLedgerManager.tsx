@@ -588,7 +588,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           margin-top: 0 !important;
         }
 
-        .wl-right-pane .wl-toolbar input {
+        .wl-right-pane .wl-toolbar > input {
           flex: 1 1 auto !important;
           width: auto !important;
           max-width: none !important;
@@ -628,7 +628,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           max-width: 760px !important;
         }
 
-        .wl-toolbar input {
+        .wl-toolbar > input {
           flex: 0 1 560px !important;
           width: min(560px, 100%) !important;
         }
