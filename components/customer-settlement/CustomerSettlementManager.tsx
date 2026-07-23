@@ -249,13 +249,13 @@ export default function CustomerSettlementManager() {
 
         .customer-settlement-table th {
           padding: 7px 4px !important;
-          font-size: 11px !important;
+          font-size: 12px !important;
         }
 
         .customer-settlement-table td {
           padding: 6px 4px !important;
-          font-size: 11px !important;
-          line-height: 1.2 !important;
+          font-size: 14px !important;
+          line-height: 1.3 !important;
         }
 
         .customer-settlement-table .product-cell,
@@ -265,13 +265,13 @@ export default function CustomerSettlementManager() {
 
         @media (max-width: 1250px) {
           .customer-settlement-table th {
-            padding: 9px 6px !important;
-            font-size: 11px !important;
+            padding: 8px 5px !important;
+            font-size: 12px !important;
           }
 
           .customer-settlement-table td {
-            padding: 9px 6px !important;
-            font-size: 12px !important;
+            padding: 8px 5px !important;
+            font-size: 14px !important;
             line-height: 1.3 !important;
           }
 
@@ -297,12 +297,12 @@ export default function CustomerSettlementManager() {
 
           .customer-settlement-table th {
             padding: 7px 4px !important;
-            font-size: 10px !important;
+            font-size: 12px !important;
           }
 
           .customer-settlement-table td {
             padding: 7px 4px !important;
-            font-size: 11px !important;
+            font-size: 14px !important;
           }
         }
 
@@ -320,12 +320,12 @@ export default function CustomerSettlementManager() {
           }
 
           .customer-settlement-table th {
-            font-size: 9px !important;
+            font-size: 11px !important;
             padding: 6px 3px !important;
           }
 
           .customer-settlement-table td {
-            font-size: 10px !important;
+            font-size: 13px !important;
             padding: 6px 3px !important;
           }
         }
