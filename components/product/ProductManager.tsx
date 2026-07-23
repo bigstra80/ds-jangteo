@@ -87,6 +87,19 @@ const emptyForm: ProductForm = {
   isBandImported: false,
 };
 
+function normalizeOneDecimal(value: string) {
+  const cleaned = value
+    .replace(/,/g, "")
+    .replace(/[^0-9.]/g, "")
+    .replace(/(\..*)\./g, "$1");
+
+  const [integerPart = "", decimalPart] = cleaned.split(".");
+
+  return decimalPart !== undefined
+    ? `${integerPart}.${decimalPart.slice(0, 1)}`
+    : integerPart;
+}
+
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -993,20 +1006,23 @@ export default function ProductManager() {
 
       <div style={topRowStyle} className="pm-top-row">
         <div>
-          <h2 style={titleStyle}>👕 상품관리</h2>
+          <div style={titleActionRowStyle} className="pm-title-action-row">
+            <h2 style={titleStyle}>👕 상품관리</h2>
+
+            <button
+              type="button"
+              onClick={openCreateForm}
+              style={primaryButtonStyle}
+              className="pm-primary-button"
+            >
+              {showProductForm ? "닫기" : "+ 상품등록"}
+            </button>
+          </div>
+
           <p style={subtitleStyle}>
             상품과 공급업체·SKU를 한곳에서 관리합니다.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={openCreateForm}
-          style={primaryButtonStyle}
-          className="pm-primary-button"
-        >
-          {showProductForm ? "닫기" : "+ 상품등록"}
-        </button>
       </div>
 
       {showProductForm && (
@@ -1124,7 +1140,7 @@ export default function ProductManager() {
               <Field
                 label="매입단가 1"
                 value={form.cost}
-                onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => updateForm("cost", normalizeOneDecimal(value))}
                 placeholder="0"
                 inputMode="decimal"
               />
@@ -1148,9 +1164,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 2"
                 value={form.cost2}
-                onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => updateForm("cost2", normalizeOneDecimal(value))}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <label style={fieldStyle}>
@@ -1172,9 +1188,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 3"
                 value={form.cost3}
-                onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => updateForm("cost3", normalizeOneDecimal(value))}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <Field
@@ -1213,7 +1229,7 @@ export default function ProductManager() {
                   updateForm("price", normalized);
                 }}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <Field
@@ -1457,7 +1473,7 @@ export default function ProductManager() {
                     <span className="pm-list-label">단가</span>
                     <input
                       className="pm-inline-input"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       value={
                         inlineCostDrafts[product.id] ??
                         String(product.cost || 0)
@@ -1467,7 +1483,7 @@ export default function ProductManager() {
                       onChange={(event) =>
                         setInlineCostDrafts((current) => ({
                           ...current,
-                          [product.id]: event.target.value.replace(/[^0-9,]/g, ""),
+                          [product.id]: normalizeOneDecimal(event.target.value),
                         }))
                       }
                       onBlur={(event) => {
@@ -1595,11 +1611,18 @@ const pageStyle: React.CSSProperties = {
 };
 
 const topRowStyle: React.CSSProperties = {
+  display: "block",
+  width: "100%",
+  marginBottom: "20px",
+};
+
+const titleActionRowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: "20px",
-  marginBottom: "20px",
+  justifyContent: "flex-start",
+  gap: "14px",
+  flexWrap: "nowrap",
+  width: "fit-content",
 };
 
 const titleStyle: React.CSSProperties = {
@@ -1616,15 +1639,16 @@ const subtitleStyle: React.CSSProperties = {
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  padding: "13px 22px",
+  padding: "10px 14px",
   border: "none",
   borderRadius: "8px",
   backgroundColor: "#2563eb",
   color: "white",
-  fontSize: "16px",
+  fontSize: "14px",
   fontWeight: 800,
   cursor: "pointer",
   whiteSpace: "nowrap",
+  flexShrink: 0,
 };
 
 const formCardStyle: React.CSSProperties = {
