@@ -52,10 +52,10 @@ const emptyForm = (): FormState => ({
   productName: "",
   quantity: "1",
   supplierName: "",
-  purchaseAmount: "0",
+  purchaseAmount: "",
   deliveryCompanyName: "",
   customerName: "",
-  saleAmount: "0",
+  saleAmount: "",
   shippingFee: "0.4",
   settlementStatus: "미정산",
   memo: "",
@@ -193,10 +193,10 @@ const formatWonInput = (value: string | number) => {
   if (raw === "" || raw === "-") return raw;
   const number = Number(raw);
   if (!Number.isFinite(number)) return "0원";
-  return `${number.toLocaleString("ko-KR", {
+  return number.toLocaleString("ko-KR", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 1,
-  })}원`;
+  });
 };
 
 const parseWonInput = (value: string) =>
@@ -1159,7 +1159,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 <col style={{ width: "92px" }} />
                 <col style={{ width: "82px" }} />
                 <col style={{ width: "100px" }} />
-                <col style={{ width: "104px" }} />
+                <col style={{ width: "140px" }} />
               </>
             )}
           </colgroup>
@@ -1318,6 +1318,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                             disabled={inlineSavingId === row.id}
                           >
                             {inlineSavingId === row.id ? "저장중" : "저장"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(row)}
+                            style={editButtonStyle}
+                          >
+                            수정
                           </button>
                           <button
                             type="button"
