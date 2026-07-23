@@ -177,7 +177,7 @@ export default function CustomerSettlementManager() {
 
         .customer-settlement-toolbar {
           display: flex;
-          align-items: center;
+          align-items: flex-end;
           justify-content: space-between;
           gap: 10px;
           margin-bottom: 12px;
@@ -187,7 +187,8 @@ export default function CustomerSettlementManager() {
           display: flex;
           align-items: flex-end;
           gap: 8px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
+          min-width: 0;
         }
 
         .customer-settlement-date-group {
