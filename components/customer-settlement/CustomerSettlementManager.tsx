@@ -177,9 +177,10 @@ export default function CustomerSettlementManager() {
         }
 
         .customer-settlement-table-wrap {
-          width: 100%;
+          width: min(1080px, 100%);
           min-width: 0;
           overflow: hidden;
+          margin-right: auto;
         }
 
         .customer-settlement-table {
@@ -196,14 +197,14 @@ export default function CustomerSettlementManager() {
         }
 
         .customer-settlement-table th {
-          padding: 8px 6px !important;
+          padding: 7px 4px !important;
           font-size: 11px !important;
         }
 
         .customer-settlement-table td {
-          padding: 7px 6px !important;
+          padding: 6px 4px !important;
           font-size: 11px !important;
-          line-height: 1.25 !important;
+          line-height: 1.2 !important;
         }
 
         .customer-settlement-table .product-cell,
@@ -327,15 +328,15 @@ export default function CustomerSettlementManager() {
       <div className="customer-settlement-table-wrap" style={tableWrapStyle}>
         <table className="customer-settlement-table" style={tableStyle}>
           <colgroup>
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "20%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "5%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "11%" }} />
+            <col style={{ width: 95 }} />
+            <col style={{ width: 95 }} />
+            <col style={{ width: 240 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 55 }} />
+            <col style={{ width: 105 }} />
+            <col style={{ width: 90 }} />
+            <col style={{ width: 105 }} />
+            <col style={{ width: 120 }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
@@ -468,9 +469,10 @@ const searchStyle: React.CSSProperties = {
 };
 
 const tableWrapStyle: React.CSSProperties = {
-  width: "100%",
+  width: "min(1080px, 100%)",
   minWidth: 0,
   overflow: "hidden",
+  marginRight: "auto",
   border: "1px solid #e5e7eb",
   borderRadius: 12,
   backgroundColor: "#fff",
@@ -478,7 +480,7 @@ const tableWrapStyle: React.CSSProperties = {
 
 const tableStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: "100%",
+  maxWidth: 1080,
   minWidth: 0,
   borderCollapse: "collapse",
   tableLayout: "fixed",
