@@ -767,6 +767,27 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           white-space: nowrap !important;
         }
 
+        .wl-history-table th {
+          padding: 7px 4px !important;
+          font-size: 12px !important;
+        }
+
+        .wl-history-table td {
+          padding: 12px 10px !important;
+          font-size: 14px !important;
+          line-height: 1.45 !important;
+        }
+
+        .wl-history-table .wl-date-cell {
+          font-size: 14px !important;
+          letter-spacing: 0 !important;
+        }
+
+        .wl-history-table .wl-product-name-cell {
+          font-size: 14px !important;
+          line-height: 1.45 !important;
+        }
+
         .wl-compact-ledger-table th,
         .wl-compact-ledger-table td {
           padding: 7px 5px !important;
@@ -1132,7 +1153,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={{ ...tableStyle, minWidth: listOnly ? "980px" : "860px" }} className={!listOnly ? "wl-compact-ledger-table" : undefined}>
+        <table
+          style={{
+            ...tableStyle,
+            minWidth: listOnly ? "980px" : "860px",
+          }}
+          className={listOnly ? "wl-history-table" : "wl-compact-ledger-table"}
+        >
           <colgroup>
             {listOnly ? (
               <>
@@ -1222,14 +1249,15 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       style={{
                         ...tdStyle,
                         fontWeight: 800,
-                        fontSize:
-                          row.productName.length >= 22
-                            ? "10px"
-                            : row.productName.length >= 16
-                            ? "11px"
-                            : row.productName.length >= 11
-                            ? "12px"
-                            : "13px",
+                        fontSize: listOnly
+                          ? "14px"
+                          : row.productName.length >= 22
+                          ? "10px"
+                          : row.productName.length >= 16
+                          ? "11px"
+                          : row.productName.length >= 11
+                          ? "12px"
+                          : "13px",
                       }}
                       title={row.productName}
                     >
