@@ -193,7 +193,10 @@ const formatWonInput = (value: string | number) => {
   if (raw === "" || raw === "-") return raw;
   const number = Number(raw);
   if (!Number.isFinite(number)) return "0원";
-  return `${number.toLocaleString("ko-KR")}원`;
+  return `${number.toLocaleString("ko-KR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  })}원`;
 };
 
 const parseWonInput = (value: string) =>

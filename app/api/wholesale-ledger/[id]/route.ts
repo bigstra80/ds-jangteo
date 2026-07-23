@@ -6,6 +6,12 @@ function toInt(value: unknown, fallback = 0) {
   return Number.isFinite(number) ? Math.trunc(number) : fallback;
 }
 
+function toOneDecimal(value: unknown, fallback = 0) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.round(number * 10) / 10;
+}
+
 function toNullableText(value: unknown) {
   const text = String(value ?? "").trim();
   return text ? text : null;
@@ -59,14 +65,14 @@ export async function PUT(
         supplierName: toNullableText(body.supplierName),
 
         // 음수 매입금액 그대로 유지
-        purchaseAmount: toInt(body.purchaseAmount, 0),
+        purchaseAmount: toOneDecimal(body.purchaseAmount, 0),
 
         deliveryCompanyName: toNullableText(body.deliveryCompanyName),
         customerName: toNullableText(body.customerName),
 
         // 핵심 수정: 수정할 때도 음수 판매금액 그대로 저장
-        saleAmount: toInt(body.saleAmount, 0),
-        shippingFee: toInt(body.shippingFee, 0),
+        saleAmount: toOneDecimal(body.saleAmount, 0),
+        shippingFee: toOneDecimal(body.shippingFee, 0),
 
         settlementStatus:
           String(body.settlementStatus ?? "").trim() || "미정산",
