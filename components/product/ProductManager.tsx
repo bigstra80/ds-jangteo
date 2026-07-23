@@ -99,7 +99,6 @@ export default function ProductManager() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [forceDeletingId, setForceDeletingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [inlineSupplierDrafts, setInlineSupplierDrafts] = useState<Record<number, string>>({});
   const [inlineCostDrafts, setInlineCostDrafts] = useState<Record<number, string>>({});
@@ -386,22 +385,6 @@ export default function ProductManager() {
       setDeletingId(null);
     }
   }
-
-  async function forceDeleteProduct(product: Product) {
-    const firstConfirm = window.confirm(
-      `[관리자 강제삭제]\n\n${product.code} / ${product.name}\n\n이 상품과 연결된 주문상품, 매입상품, 발주상품, 재고이력까지 정리한 뒤 상품을 완전히 삭제합니다.\n\n계속하시겠습니까?`
-    );
-
-    if (!firstConfirm) return;
-
-    const typed = window.prompt(
-      `실수 방지를 위해 상품코드 "${product.code}"를 정확히 입력해주세요.`
-    );
-
-    if (typed !== product.code) {
-      alert("상품코드가 일치하지 않아 강제삭제를 취소했습니다.");
-      return;
-    }
 
     try {
       setForceDeletingId(product.id);
@@ -1170,7 +1153,7 @@ export default function ProductManager() {
                 value={form.cost}
                 onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <label style={fieldStyle}>
@@ -1245,7 +1228,17 @@ export default function ProductManager() {
               <Field
                 label="판매가"
                 value={form.price}
-                onChange={(value) => updateForm("price", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => {
+                  const cleaned = value
+                    .replace(/[^0-9.]/g, "")
+                    .replace(/(\..*)\./g, "$1");
+                  const [integerPart, decimalPart] = cleaned.split(".");
+                  const normalized =
+                    decimalPart !== undefined
+                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
+                      : integerPart;
+                  updateForm("price", normalized);
+                }}
                 placeholder="0"
                 inputMode="numeric"
               />
@@ -1549,14 +1542,6 @@ export default function ProductManager() {
                     </button>
 
                     {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => forceDeleteProduct(product)}
-                        disabled={forceDeletingId === product.id}
-                        style={forceDeleteButtonStyle}
-                      >
-                        {forceDeletingId === product.id ? "삭제 중..." : "강제삭제"}
-                      </button>
                     )}
                   </div>
                 </div>
@@ -2013,14 +1998,17 @@ const actionBoxStyle: React.CSSProperties = {
 };
 
 const skuButtonStyle: React.CSSProperties = {
-  padding: "5px 8px",
+  width: "44px",
+  height: "28px",
+  padding: "0 6px",
+  border: "1px solid #cbd5e1",
   borderRadius: "6px",
-  border: "none",
-  background: "#2563eb",
-  color: "#ffffff",
-  fontWeight: 700,
-  fontSize: "11px",
+  backgroundColor: "white",
+  color: "#111827",
   cursor: "pointer",
+  fontSize: "11px",
+  fontWeight: 800,
+  lineHeight: "26px",
   whiteSpace: "nowrap",
 };
 
@@ -2054,20 +2042,6 @@ const deleteButtonStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const forceDeleteButtonStyle: React.CSSProperties = {
-  width: "54px",
-  height: "28px",
-  padding: "0 6px",
-  border: "none",
-  borderRadius: "6px",
-  backgroundColor: "#7f1d1d",
-  color: "white",
-  cursor: "pointer",
-  fontSize: "11px",
-  fontWeight: 800,
-  lineHeight: "28px",
-  whiteSpace: "nowrap",
-};
 
 const skuPanelStyle: React.CSSProperties = {
   padding: "14px 16px 16px",
