@@ -245,6 +245,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [inlineSavingId, setInlineSavingId] = useState<number | null>(null);
+  const [inlineEdits, setInlineEdits] = useState<Record<number, {
+    saleAmount: string;
+    shippingFee: string;
+    memo: string;
+  }>>({});
   const [keyword, setKeyword] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -272,7 +278,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         throw new Error(data.error || "목록 조회 실패");
       }
 
-      setRows(data.rows || []);
+      const nextRows = data.rows || [];
+      setRows(nextRows);
+      setInlineEdits((current) => {
+        const next = { ...current };
+        for (const row of nextRows) {
+          if (!next[row.id]) {
+            next[row.id] = {
+              saleAmount: String(row.saleAmount ?? 0),
+              shippingFee: String(row.shippingFee ?? 0),
+              memo: row.memo || "",
+            };
+          }
+        }
+        return next;
+      });
     } catch (error) {
       alert(error instanceof Error ? error.message : "목록을 불러오지 못했습니다.");
     } finally {
@@ -531,6 +551,65 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     }
   }
 
+  function changeInlineEdit(
+    id: number,
+    key: "saleAmount" | "shippingFee" | "memo",
+    value: string
+  ) {
+    setInlineEdits((prev) => ({
+      ...prev,
+      [id]: {
+        saleAmount: prev[id]?.saleAmount ?? "0",
+        shippingFee: prev[id]?.shippingFee ?? "0",
+        memo: prev[id]?.memo ?? "",
+        [key]: value,
+      },
+    }));
+  }
+
+  async function saveInlineRow(row: LedgerRow) {
+    const edit = inlineEdits[row.id] || {
+      saleAmount: String(row.saleAmount ?? 0),
+      shippingFee: String(row.shippingFee ?? 0),
+      memo: row.memo || "",
+    };
+
+    setInlineSavingId(row.id);
+
+    try {
+      const response = await fetch(`/api/wholesale-ledger/${row.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactionDate: row.transactionDate.slice(0, 10),
+          productName: row.productName,
+          quantity: String(row.quantity),
+          supplierName: row.supplierName || "",
+          purchaseAmount: String(row.purchaseAmount),
+          deliveryCompanyName: row.deliveryCompanyName || "",
+          customerName: row.customerName || "",
+          saleAmount: parseWonInput(edit.saleAmount || "0"),
+          shippingFee: parseWonInput(edit.shippingFee || "0"),
+          settlementStatus: row.settlementStatus,
+          memo: edit.memo,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "저장 실패");
+      }
+
+      await loadRows();
+      alert("저장되었습니다.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "저장하지 못했습니다.");
+    } finally {
+      setInlineSavingId(null);
+    }
+  }
+
   async function removeRow(id: number) {
     if (!confirm("이 거래 내역을 삭제하시겠습니까?")) return;
 
@@ -674,6 +753,22 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         .wl-compact-ledger-table button {
           padding: 5px 7px !important;
           font-size: 11px !important;
+        }
+
+        .wl-inline-input {
+          width: 100%;
+          min-width: 0;
+          height: 30px;
+          padding: 4px 6px;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          box-sizing: border-box;
+          font-size: 11px;
+          background: #fff;
+        }
+
+        .wl-inline-money {
+          text-align: right;
         }
 
         @media (max-width: 1180px) {
@@ -1028,16 +1123,16 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               </>
             ) : (
               <>
-                <col style={{ width: "74px" }} />
-                <col style={{ width: "175px" }} />
-                <col style={{ width: "44px" }} />
                 <col style={{ width: "70px" }} />
-                <col style={{ width: "78px" }} />
-                <col style={{ width: "80px" }} />
-                <col style={{ width: "78px" }} />
+                <col style={{ width: "164px" }} />
+                <col style={{ width: "42px" }} />
+                <col style={{ width: "66px" }} />
                 <col style={{ width: "72px" }} />
-                <col style={{ width: "72px" }} />
+                <col style={{ width: "76px" }} />
                 <col style={{ width: "92px" }} />
+                <col style={{ width: "82px" }} />
+                <col style={{ width: "100px" }} />
+                <col style={{ width: "104px" }} />
               </>
             )}
           </colgroup>
@@ -1122,8 +1217,44 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
                     <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                     <td style={tdStyle}>{row.customerName || "-"}</td>
-                    <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
-                    <td style={numberTdStyle}>{money(row.shippingFee || 0)}원</td>
+
+                    {listOnly ? (
+                      <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
+                    ) : (
+                      <td style={tdStyle}>
+                        <input
+                          className="wl-inline-input wl-inline-money"
+                          value={inlineEdits[row.id]?.saleAmount ?? String(row.saleAmount ?? 0)}
+                          onChange={(e) =>
+                            changeInlineEdit(
+                              row.id,
+                              "saleAmount",
+                              e.target.value.replace(/[^0-9-]/g, "")
+                            )
+                          }
+                          inputMode="numeric"
+                        />
+                      </td>
+                    )}
+
+                    {listOnly ? (
+                      <td style={numberTdStyle}>{money(row.shippingFee || 0)}원</td>
+                    ) : (
+                      <td style={tdStyle}>
+                        <input
+                          className="wl-inline-input wl-inline-money"
+                          value={inlineEdits[row.id]?.shippingFee ?? String(row.shippingFee ?? 0)}
+                          onChange={(e) =>
+                            changeInlineEdit(
+                              row.id,
+                              "shippingFee",
+                              e.target.value.replace(/[^0-9-]/g, "")
+                            )
+                          }
+                          inputMode="numeric"
+                        />
+                      </td>
+                    )}
 
                     {listOnly && (
                       <td style={{
@@ -1135,15 +1266,37 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       </td>
                     )}
 
-                    <td style={tdStyle}>{row.memo || "-"}</td>
+                    {listOnly ? (
+                      <td style={tdStyle}>{row.memo || "-"}</td>
+                    ) : (
+                      <td style={tdStyle}>
+                        <input
+                          className="wl-inline-input"
+                          value={inlineEdits[row.id]?.memo ?? (row.memo || "")}
+                          onChange={(e) =>
+                            changeInlineEdit(row.id, "memo", e.target.value)
+                          }
+                          placeholder="-"
+                        />
+                      </td>
+                    )}
 
                     {!listOnly && (
                       <td style={centerTdStyle}>
                         <div style={actionStyle}>
-                          <button onClick={() => startEdit(row)} style={editButtonStyle}>
-                            수정
+                          <button
+                            type="button"
+                            onClick={() => saveInlineRow(row)}
+                            style={editButtonStyle}
+                            disabled={inlineSavingId === row.id}
+                          >
+                            {inlineSavingId === row.id ? "저장중" : "저장"}
                           </button>
-                          <button onClick={() => removeRow(row.id)} style={deleteButtonStyle}>
+                          <button
+                            type="button"
+                            onClick={() => removeRow(row.id)}
+                            style={deleteButtonStyle}
+                          >
                             삭제
                           </button>
                         </div>
