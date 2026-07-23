@@ -87,6 +87,24 @@ const emptyForm: ProductForm = {
   isBandImported: false,
 };
 
+
+function oneDecimalInput(value: string) {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+
+  if (firstDot === -1) {
+    return cleaned;
+  }
+
+  const integerPart = cleaned.slice(0, firstDot);
+  const decimalPart = cleaned
+    .slice(firstDot + 1)
+    .replace(/\./g, "")
+    .slice(0, 1);
+
+  return `${integerPart}.${decimalPart}`;
+}
+
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -984,9 +1002,9 @@ export default function ProductManager() {
                 <Field
                   label="매입단가 1"
                   value={form.cost}
-                  onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
+                  onChange={(value) => updateForm("cost", oneDecimalInput(value))}
                   placeholder="0"
-                  inputMode="numeric"
+                  inputMode="decimal"
                 />
               )}
 
@@ -1001,9 +1019,9 @@ export default function ProductManager() {
                 <Field
                   label="매입단가 2"
                   value={form.cost2}
-                  onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
+                  onChange={(value) => updateForm("cost2", oneDecimalInput(value))}
                   placeholder="0"
-                  inputMode="numeric"
+                  inputMode="decimal"
                 />
               )}
 
@@ -1018,9 +1036,9 @@ export default function ProductManager() {
                 <Field
                   label="매입단가 3"
                   value={form.cost3}
-                  onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
+                  onChange={(value) => updateForm("cost3", oneDecimalInput(value))}
                   placeholder="0"
-                  inputMode="numeric"
+                  inputMode="decimal"
                 />
               )}
 
@@ -1048,9 +1066,9 @@ export default function ProductManager() {
               <Field
                 label="판매가"
                 value={form.price}
-                onChange={(value) => updateForm("price", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => updateForm("price", oneDecimalInput(value))}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <Field

@@ -15,10 +15,10 @@ model Product {
   category          String?
   colors            String?
   sizes              String?
-  cost              Int?
-  cost2             Int?
-  cost3             Int?
-  price             Int?
+  cost              Float?
+  cost2             Float?
+  cost3             Float?
+  price             Float?
   imageUrl          String?
 
   // DIRECT = 직접 매입 후 재고 보유

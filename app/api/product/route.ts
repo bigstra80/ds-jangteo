@@ -21,7 +21,9 @@ function nullableNumber(value: unknown) {
   if (value === "" || value === null || value === undefined) return null;
 
   const number = Number(value);
-  return Number.isFinite(number) ? number : null;
+  if (!Number.isFinite(number)) return null;
+
+  return Math.round(number * 10) / 10;
 }
 
 function nullableId(value: unknown) {
