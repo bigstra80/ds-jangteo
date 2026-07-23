@@ -646,11 +646,15 @@ export default function ProductManager() {
           }
 
           .pm-top-row {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 14px !important;
+            display: block !important;
             margin-bottom: 16px !important;
+          }
+
+          .pm-title-action-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            flex-wrap: wrap !important;
           }
 
           .pm-top-row h2 {
@@ -663,8 +667,10 @@ export default function ProductManager() {
           }
 
           .pm-primary-button {
-            width: 100% !important;
-            min-height: 46px !important;
+            width: auto !important;
+            min-height: 38px !important;
+            padding: 9px 14px !important;
+            font-size: 14px !important;
           }
 
           .pm-form-card {
@@ -1003,20 +1009,23 @@ export default function ProductManager() {
 
       <div style={topRowStyle} className="pm-top-row">
         <div>
-          <h2 style={titleStyle}>👕 상품관리</h2>
+          <div className="pm-title-action-row" style={titleActionRowStyle}>
+            <h2 style={titleStyle}>👕 상품관리</h2>
+
+            <button
+              type="button"
+              onClick={openCreateForm}
+              style={primaryButtonStyle}
+              className="pm-primary-button"
+            >
+              {showProductForm ? "닫기" : "+ 상품등록"}
+            </button>
+          </div>
+
           <p style={subtitleStyle}>
             상품과 공급업체·SKU를 한곳에서 관리합니다.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={openCreateForm}
-          style={primaryButtonStyle}
-          className="pm-primary-button"
-        >
-          {showProductForm ? "닫기" : "+ 상품등록"}
-        </button>
       </div>
 
       {showProductForm && (
@@ -1134,9 +1143,19 @@ export default function ProductManager() {
               <Field
                 label="매입단가 1"
                 value={form.cost}
-                onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => {
+                  const cleaned = value
+                    .replace(/[^0-9.]/g, "")
+                    .replace(/(\..*)\./g, "$1");
+                  const [integerPart, decimalPart] = cleaned.split(".");
+                  const normalized =
+                    decimalPart !== undefined
+                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
+                      : integerPart;
+                  updateForm("cost", normalized);
+                }}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <label style={fieldStyle}>
@@ -1158,9 +1177,19 @@ export default function ProductManager() {
               <Field
                 label="매입단가 2"
                 value={form.cost2}
-                onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => {
+                  const cleaned = value
+                    .replace(/[^0-9.]/g, "")
+                    .replace(/(\..*)\./g, "$1");
+                  const [integerPart, decimalPart] = cleaned.split(".");
+                  const normalized =
+                    decimalPart !== undefined
+                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
+                      : integerPart;
+                  updateForm("cost2", normalized);
+                }}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <label style={fieldStyle}>
@@ -1182,9 +1211,19 @@ export default function ProductManager() {
               <Field
                 label="매입단가 3"
                 value={form.cost3}
-                onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => {
+                  const cleaned = value
+                    .replace(/[^0-9.]/g, "")
+                    .replace(/(\..*)\./g, "$1");
+                  const [integerPart, decimalPart] = cleaned.split(".");
+                  const normalized =
+                    decimalPart !== undefined
+                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
+                      : integerPart;
+                  updateForm("cost3", normalized);
+                }}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <Field
@@ -1213,7 +1252,7 @@ export default function ProductManager() {
                 value={form.price}
                 onChange={(value) => updateForm("price", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <Field
@@ -1475,7 +1514,16 @@ export default function ProductManager() {
                       onChange={(event) =>
                         setInlineCostDrafts((current) => ({
                           ...current,
-                          [product.id]: event.target.value.replace(/[^0-9,]/g, ""),
+                          [product.id]: (() => {
+                            const cleaned = event.target.value
+                              .replace(/,/g, "")
+                              .replace(/[^0-9.]/g, "")
+                              .replace(/(\..*)\./g, "$1");
+                            const [integerPart, decimalPart] = cleaned.split(".");
+                            return decimalPart !== undefined
+                              ? `${integerPart}.${decimalPart.slice(0, 1)}`
+                              : integerPart;
+                          })(),
                         }))
                       }
                       onBlur={(event) => {
@@ -1611,11 +1659,15 @@ const pageStyle: React.CSSProperties = {
 };
 
 const topRowStyle: React.CSSProperties = {
+  display: "block",
+  marginBottom: "20px",
+};
+
+const titleActionRowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: "20px",
-  marginBottom: "20px",
+  gap: "12px",
+  flexWrap: "wrap",
 };
 
 const titleStyle: React.CSSProperties = {
