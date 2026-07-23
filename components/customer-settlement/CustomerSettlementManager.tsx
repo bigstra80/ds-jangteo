@@ -625,13 +625,17 @@ const moneyStyle: React.CSSProperties = {
 
 const totalAmountThStyle: React.CSSProperties = {
   ...rightThStyle,
-  paddingRight: 42,
+  textAlign: "center",
+  paddingLeft: 8,
+  paddingRight: 8,
 };
 
 const totalAmountTdStyle: React.CSSProperties = {
   ...moneyStyle,
   fontWeight: 900,
-  paddingRight: 42,
+  textAlign: "center",
+  paddingLeft: 8,
+  paddingRight: 8,
 };
 
 
