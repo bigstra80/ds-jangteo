@@ -87,19 +87,6 @@ const emptyForm: ProductForm = {
   isBandImported: false,
 };
 
-function normalizeOneDecimal(value: string) {
-  const cleaned = value
-    .replace(/,/g, "")
-    .replace(/[^0-9.]/g, "")
-    .replace(/(\..*)\./g, "$1");
-
-  const [integerPart = "", decimalPart] = cleaned.split(".");
-
-  return decimalPart !== undefined
-    ? `${integerPart}.${decimalPart.slice(0, 1)}`
-    : integerPart;
-}
-
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -1140,7 +1127,7 @@ export default function ProductManager() {
               <Field
                 label="매입단가 1"
                 value={form.cost}
-                onChange={(value) => updateForm("cost", normalizeOneDecimal(value))}
+                onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
                 inputMode="decimal"
               />
@@ -1164,9 +1151,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 2"
                 value={form.cost2}
-                onChange={(value) => updateForm("cost2", normalizeOneDecimal(value))}
+                onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <label style={fieldStyle}>
@@ -1188,9 +1175,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 3"
                 value={form.cost3}
-                onChange={(value) => updateForm("cost3", normalizeOneDecimal(value))}
+                onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <Field
@@ -1229,7 +1216,7 @@ export default function ProductManager() {
                   updateForm("price", normalized);
                 }}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <Field
@@ -1473,7 +1460,7 @@ export default function ProductManager() {
                     <span className="pm-list-label">단가</span>
                     <input
                       className="pm-inline-input"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       value={
                         inlineCostDrafts[product.id] ??
                         String(product.cost || 0)
@@ -1483,7 +1470,7 @@ export default function ProductManager() {
                       onChange={(event) =>
                         setInlineCostDrafts((current) => ({
                           ...current,
-                          [product.id]: normalizeOneDecimal(event.target.value),
+                          [product.id]: event.target.value.replace(/[^0-9,]/g, ""),
                         }))
                       }
                       onBlur={(event) => {
