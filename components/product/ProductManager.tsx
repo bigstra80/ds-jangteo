@@ -1666,8 +1666,10 @@ const topRowStyle: React.CSSProperties = {
 const titleActionRowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap",
+  justifyContent: "flex-start",
+  gap: "28px",
+  flexWrap: "nowrap",
+  width: "fit-content",
 };
 
 const titleStyle: React.CSSProperties = {
