@@ -386,33 +386,6 @@ export default function ProductManager() {
     }
   }
 
-    try {
-      setForceDeletingId(product.id);
-
-      const response = await fetch(
-        `/api/product?id=${product.id}&force=true`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        alert(result.message || "상품 강제삭제에 실패했습니다.");
-        return;
-      }
-
-      alert(result.message || "상품이 강제삭제되었습니다.");
-      await loadProducts();
-    } catch (error) {
-      console.error(error);
-      alert("상품 강제삭제 중 오류가 발생했습니다.");
-    } finally {
-      setForceDeletingId(null);
-    }
-  }
-
   async function saveInlineProduct(
     product: Product,
     changes: {
@@ -1541,8 +1514,6 @@ export default function ProductManager() {
                       {deletingId === product.id ? "삭제 중..." : "삭제"}
                     </button>
 
-                    {isAdmin && (
-                    )}
                   </div>
                 </div>
 
