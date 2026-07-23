@@ -87,24 +87,6 @@ const emptyForm: ProductForm = {
   isBandImported: false,
 };
 
-
-function oneDecimalInput(value: string) {
-  const cleaned = value.replace(/[^0-9.]/g, "");
-  const firstDot = cleaned.indexOf(".");
-
-  if (firstDot === -1) {
-    return cleaned;
-  }
-
-  const integerPart = cleaned.slice(0, firstDot);
-  const decimalPart = cleaned
-    .slice(firstDot + 1)
-    .replace(/\./g, "")
-    .slice(0, 1);
-
-  return `${integerPart}.${decimalPart}`;
-}
-
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -119,7 +101,9 @@ export default function ProductManager() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [forceDeletingId, setForceDeletingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [enlargedImage, setEnlargedImage] = useState<{ src: string; alt: string } | null>(null);
+  const [inlineSupplierDrafts, setInlineSupplierDrafts] = useState<Record<number, string>>({});
+  const [inlineCostDrafts, setInlineCostDrafts] = useState<Record<number, string>>({});
+  const [inlineSavingId, setInlineSavingId] = useState<number | null>(null);
 
   async function loadProducts() {
     try {
@@ -180,19 +164,6 @@ export default function ProductManager() {
     loadSuppliers();
     loadCurrentUser();
   }, []);
-
-  useEffect(() => {
-    if (!enlargedImage) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setEnlargedImage(null);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [enlargedImage]);
 
   const filteredProducts = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -459,6 +430,135 @@ export default function ProductManager() {
     }
   }
 
+  async function saveInlineProduct(
+    product: Product,
+    changes: {
+      supplierName?: string;
+      cost?: string;
+    }
+  ) {
+    try {
+      setInlineSavingId(product.id);
+
+      let supplierId = product.supplierId;
+
+      if (changes.supplierName !== undefined) {
+        const supplierName = changes.supplierName.trim();
+
+        if (!supplierName) {
+          supplierId = null;
+        } else {
+          let matchedSupplier = suppliers.find(
+            (supplier) =>
+              supplier.name.trim().toLowerCase() === supplierName.toLowerCase() ||
+              supplier.code.trim().toLowerCase() === supplierName.toLowerCase()
+          );
+
+          if (!matchedSupplier) {
+            const createResponse = await fetch("/api/suppliers", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                code: supplierName,
+                name: supplierName,
+                businessNumber: "",
+                representative: "",
+                phone: "",
+                email: "",
+                address: "",
+                contactName: "",
+                contactPhone: "",
+                bankName: "",
+                bankAccount: "",
+                accountHolder: "",
+                memo: "",
+              }),
+            });
+
+            const createdSupplier = await createResponse.json();
+
+            if (!createResponse.ok) {
+              throw new Error(
+                createdSupplier.message || "공급업체 저장에 실패했습니다."
+              );
+            }
+
+            matchedSupplier = createdSupplier;
+            await loadSuppliers();
+          }
+
+          supplierId = matchedSupplier?.id ?? null;
+        }
+      }
+
+      const nextCost =
+        changes.cost !== undefined
+          ? Number(String(changes.cost).replace(/,/g, "").trim() || 0)
+          : Number(product.cost || 0);
+
+      if (Number.isNaN(nextCost)) {
+        throw new Error("단가는 숫자로 입력해주세요.");
+      }
+
+      const response = await fetch("/api/product", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: product.id,
+          code: product.code,
+          name: product.name,
+          brand: product.brand || "",
+          category: product.category || "",
+          colors: product.colors || "",
+          sizes: product.sizes || "",
+          cost: nextCost,
+          cost2: Number(product.cost2 || 0),
+          cost3: Number(product.cost3 || 0),
+          price: Number(product.price || 0),
+          imageUrl: product.imageUrl || "",
+          productType: product.productType,
+          supplierId,
+          supplier2Id: product.supplier2Id,
+          supplier3Id: product.supplier3Id,
+          sourceProductName: product.sourceProductName || "",
+          bandPostId: product.bandPostId || "",
+          bandPostUrl: product.bandPostUrl || "",
+          isBandImported: product.isBandImported,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "상품 저장에 실패했습니다.");
+      }
+
+      setInlineSupplierDrafts((current) => {
+        const next = { ...current };
+        delete next[product.id];
+        return next;
+      });
+
+      setInlineCostDrafts((current) => {
+        const next = { ...current };
+        delete next[product.id];
+        return next;
+      });
+
+      await loadProducts();
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
+      await loadProducts();
+    } finally {
+      setInlineSavingId(null);
+    }
+  }
+
   function toggleMobileProduct(productId: number) {
     setOpenedMobileProductIds((current) =>
       current.includes(productId)
@@ -506,6 +606,66 @@ export default function ProductManager() {
         .pm-list-info strong {
           color: #111827;
           font-size: 12px;
+          overflow-wrap: anywhere;
+        }
+
+        .pm-inline-field {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .pm-inline-input {
+          width: 100%;
+          min-width: 0;
+          height: 34px;
+          padding: 0 9px;
+          border: 1px solid #dbe3ee;
+          border-radius: 7px;
+          background: #ffffff;
+          color: #111827;
+          font-size: 13px;
+          font-weight: 700;
+          box-sizing: border-box;
+          outline: none;
+        }
+
+        .pm-inline-input:focus {
+          border-color: #94a3b8;
+          box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.16);
+        }
+
+        .pm-detail-summary {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 0;
+          border-top: 1px solid #e5e7eb;
+          background: #fbfdff;
+        }
+
+        .pm-detail-summary-item {
+          padding: 14px 18px;
+          min-width: 0;
+        }
+
+        .pm-detail-summary-item + .pm-detail-summary-item {
+          border-left: 1px solid #e5e7eb;
+        }
+
+        .pm-detail-summary-label {
+          display: block;
+          margin-bottom: 7px;
+          color: #64748b;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .pm-detail-summary-value {
+          color: #111827;
+          font-size: 16px;
+          font-weight: 800;
+          line-height: 1.45;
           overflow-wrap: anywhere;
         }
 
@@ -876,23 +1036,21 @@ export default function ProductManager() {
       `}</style>
 
       <div style={topRowStyle} className="pm-top-row">
-        <div style={topLeftAreaStyle}>
-          <button
-            type="button"
-            onClick={openCreateForm}
-            style={primaryButtonStyle}
-            className="pm-primary-button"
-          >
-            {showProductForm ? "닫기" : "+ 상품등록"}
-          </button>
-
-          <div>
-            <h2 style={titleStyle}>👕 상품관리</h2>
-            <p style={subtitleStyle}>
-              상품과 공급업체·SKU를 한곳에서 관리합니다.
-            </p>
-          </div>
+        <div>
+          <h2 style={titleStyle}>👕 상품관리</h2>
+          <p style={subtitleStyle}>
+            상품과 공급업체·SKU를 한곳에서 관리합니다.
+          </p>
         </div>
+
+        <button
+          type="button"
+          onClick={openCreateForm}
+          style={primaryButtonStyle}
+          className="pm-primary-button"
+        >
+          {showProductForm ? "닫기" : "+ 상품등록"}
+        </button>
       </div>
 
       {showProductForm && (
@@ -991,56 +1149,77 @@ export default function ProductManager() {
                 placeholder="공급업체에서 사용하는 상품명"
               />
 
-              <SupplierSearchBox
-                label="공급업체 1"
-                suppliers={suppliers}
-                value={form.supplierId}
-                onChange={(value) => updateForm("supplierId", value)}
+              <label style={fieldStyle}>
+                <span style={fieldLabelStyle}>공급업체 1</span>
+                <select
+                  value={form.supplierId}
+                  onChange={(event) => updateForm("supplierId", event.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="">공급업체 선택</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.code} · {supplier.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <Field
+                label="매입단가 1"
+                value={form.cost}
+                onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
+                placeholder="0"
+                inputMode="numeric"
               />
 
-              {isAdmin && (
-                <Field
-                  label="매입단가 1"
-                  value={form.cost}
-                  onChange={(value) => updateForm("cost", oneDecimalInput(value))}
-                  placeholder="0"
-                  inputMode="decimal"
-                />
-              )}
+              <label style={fieldStyle}>
+                <span style={fieldLabelStyle}>공급업체 2</span>
+                <select
+                  value={form.supplier2Id}
+                  onChange={(event) => updateForm("supplier2Id", event.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="">공급업체 선택</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.code} · {supplier.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-              <SupplierSearchBox
-                label="공급업체 2"
-                suppliers={suppliers}
-                value={form.supplier2Id}
-                onChange={(value) => updateForm("supplier2Id", value)}
+              <Field
+                label="매입단가 2"
+                value={form.cost2}
+                onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
+                placeholder="0"
+                inputMode="numeric"
               />
 
-              {isAdmin && (
-                <Field
-                  label="매입단가 2"
-                  value={form.cost2}
-                  onChange={(value) => updateForm("cost2", oneDecimalInput(value))}
-                  placeholder="0"
-                  inputMode="decimal"
-                />
-              )}
+              <label style={fieldStyle}>
+                <span style={fieldLabelStyle}>공급업체 3</span>
+                <select
+                  value={form.supplier3Id}
+                  onChange={(event) => updateForm("supplier3Id", event.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="">공급업체 선택</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.code} · {supplier.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-              <SupplierSearchBox
-                label="공급업체 3"
-                suppliers={suppliers}
-                value={form.supplier3Id}
-                onChange={(value) => updateForm("supplier3Id", value)}
+              <Field
+                label="매입단가 3"
+                value={form.cost3}
+                onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
+                placeholder="0"
+                inputMode="numeric"
               />
-
-              {isAdmin && (
-                <Field
-                  label="매입단가 3"
-                  value={form.cost3}
-                  onChange={(value) => updateForm("cost3", oneDecimalInput(value))}
-                  placeholder="0"
-                  inputMode="decimal"
-                />
-              )}
 
               <Field
                 label="상품명"
@@ -1066,9 +1245,9 @@ export default function ProductManager() {
               <Field
                 label="판매가"
                 value={form.price}
-                onChange={(value) => updateForm("price", oneDecimalInput(value))}
+                onChange={(value) => updateForm("price", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <Field
@@ -1230,13 +1409,7 @@ export default function ProductManager() {
                       <img
                         src={product.imageUrl}
                         alt={product.name}
-                        style={{ ...productImageStyle, cursor: "zoom-in" }}
-                        onClick={() =>
-                          setEnlargedImage({
-                            src: product.imageUrl as string,
-                            alt: product.name,
-                          })
-                        }
+                        style={productImageStyle}
                       />
                     ) : (
                       <div style={noImageStyle}>
@@ -1278,34 +1451,74 @@ export default function ProductManager() {
 
                   </div>
 
-                  {/* 색상 */}
-                  <div className="pm-list-info">
-                    <span className="pm-list-label">색상</span>
-                    <strong>{product.colors || "-"}</strong>
+                  {/* 공급업체 - 직접 입력 */}
+                  <div className="pm-inline-field">
+                    <span className="pm-list-label">공급업체</span>
+                    <input
+                      className="pm-inline-input"
+                      value={
+                        inlineSupplierDrafts[product.id] ??
+                        product.supplier?.name ??
+                        ""
+                      }
+                      placeholder="공급업체 입력"
+                      disabled={inlineSavingId === product.id}
+                      onChange={(event) =>
+                        setInlineSupplierDrafts((current) => ({
+                          ...current,
+                          [product.id]: event.target.value,
+                        }))
+                      }
+                      onBlur={(event) => {
+                        const nextValue = event.target.value.trim();
+                        const currentValue = product.supplier?.name?.trim() || "";
+                        if (nextValue !== currentValue) {
+                          void saveInlineProduct(product, {
+                            supplierName: nextValue,
+                          });
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                    />
                   </div>
 
-                  {/* 사이즈 */}
-                  <div className="pm-list-info">
-                    <span className="pm-list-label">사이즈</span>
-                    <strong>{product.sizes || "-"}</strong>
-                  </div>
-
-                  {/* 판매가 / 원가 */}
-                  <div style={summaryBoxStyle} className="pm-summary-box">
-                    <div style={summaryLineStyle}>
-                      <span>공급업체</span>
-                      <strong>
-                        {[product.supplier?.name, product.supplier2?.name, product.supplier3?.name]
-                          .filter(Boolean)
-                          .join(" / ") || "-"}
-                      </strong>
-                    </div>
-                    {isAdmin && (
-                      <div style={summaryLineStyle}>
-                        <span>단가</span>
-                        <strong>{(product.cost || 0).toLocaleString()}원</strong>
-                      </div>
-                    )}
+                  {/* 단가 - 직접 입력 */}
+                  <div className="pm-inline-field">
+                    <span className="pm-list-label">단가</span>
+                    <input
+                      className="pm-inline-input"
+                      inputMode="numeric"
+                      value={
+                        inlineCostDrafts[product.id] ??
+                        String(product.cost || 0)
+                      }
+                      placeholder="단가 입력"
+                      disabled={inlineSavingId === product.id}
+                      onChange={(event) =>
+                        setInlineCostDrafts((current) => ({
+                          ...current,
+                          [product.id]: event.target.value.replace(/[^0-9,]/g, ""),
+                        }))
+                      }
+                      onBlur={(event) => {
+                        const nextValue = event.target.value.replace(/,/g, "").trim() || "0";
+                        const currentValue = String(product.cost || 0);
+                        if (nextValue !== currentValue) {
+                          void saveInlineProduct(product, {
+                            cost: nextValue,
+                          });
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                    />
                   </div>
 
                   {/* 버튼 */}
@@ -1315,7 +1528,7 @@ export default function ProductManager() {
                       onClick={() => toggleSku(product.id)}
                       style={skuButtonStyle}
                     >
-                      {opened ? "닫기" : "SKU"}
+                      {opened ? "접기" : "상세"}
                     </button>
 
                     <button
@@ -1326,55 +1539,42 @@ export default function ProductManager() {
                       수정
                     </button>
 
+                    <button
+                      type="button"
+                      onClick={() => deleteProduct(product)}
+                      disabled={deletingId === product.id}
+                      style={deleteButtonStyle}
+                    >
+                      {deletingId === product.id ? "삭제 중..." : "삭제"}
+                    </button>
+
                     {isAdmin && (
                       <button
                         type="button"
-                        onClick={() => deleteProduct(product)}
-                        disabled={deletingId === product.id}
-                        style={deleteButtonStyle}
+                        onClick={() => forceDeleteProduct(product)}
+                        disabled={forceDeletingId === product.id}
+                        style={forceDeleteButtonStyle}
                       >
-                        {deletingId === product.id ? "삭제 중..." : "삭제"}
+                        {forceDeletingId === product.id ? "삭제 중..." : "강제삭제"}
                       </button>
                     )}
-
                   </div>
                 </div>
 
                 {opened && (
-                  <div style={skuPanelStyle} className="pm-sku-panel">
-                    <div style={skuPanelTitleStyle}>
-                      "SKU 재고 현황"
+                  <div className="pm-detail-summary">
+                    <div className="pm-detail-summary-item">
+                      <span className="pm-detail-summary-label">색상</span>
+                      <div className="pm-detail-summary-value">
+                        {product.colors || "-"}
+                      </div>
                     </div>
-
-                    {product.skus.length === 0 ? (
-                      <div style={skuEmptyStyle}>
-                        등록된 SKU가 없습니다.
+                    <div className="pm-detail-summary-item">
+                      <span className="pm-detail-summary-label">사이즈</span>
+                      <div className="pm-detail-summary-value">
+                        {product.sizes || "-"}
                       </div>
-                    ) : (
-                      <div style={skuGridStyle} className="pm-sku-grid">
-                        {product.skus.map((sku) => (
-                          <div
-                            key={sku.id}
-                            style={skuCardStyle}
-                          >
-                            <div style={skuCodeStyle}>
-                              {sku.sku}
-                            </div>
-
-                            <div style={skuMetaStyle}>
-                              {sku.color} / {sku.size}
-                            </div>
-
-                            <div style={stockStyle}>
-                              "현재 재고"
-                              <strong>
-                                `${sku.stock.toLocaleString()}개`
-                              </strong>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    </div>
                   </div>
                 )}
                 </div>
@@ -1383,161 +1583,7 @@ export default function ProductManager() {
           })}
         </div>
       )}
-
-      {enlargedImage && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${enlargedImage.alt} 이미지 확대`}
-          onClick={() => setEnlargedImage(null)}
-          style={imageModalOverlayStyle}
-        >
-          <div
-            style={imageModalContentStyle}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              aria-label="확대 이미지 닫기"
-              onClick={() => setEnlargedImage(null)}
-              style={imageModalCloseButtonStyle}
-            >
-              ×
-            </button>
-
-            <img
-              src={enlargedImage.src}
-              alt={enlargedImage.alt}
-              style={imageModalImageStyle}
-            />
-          </div>
-        </div>
-      )}
     </div>
-  );
-}
-
-function SupplierSearchBox({
-  label,
-  suppliers,
-  value,
-  onChange,
-}: {
-  label: string;
-  suppliers: Supplier[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const [searchText, setSearchText] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-
-  const selectedSupplier = suppliers.find(
-    (supplier) => String(supplier.id) === String(value)
-  );
-
-  useEffect(() => {
-    if (selectedSupplier) {
-      setSearchText(`${selectedSupplier.code} · ${selectedSupplier.name}`);
-    } else if (!value) {
-      setSearchText("");
-    }
-  }, [selectedSupplier, value]);
-
-  const keyword = searchText.trim().toLowerCase();
-
-  const visibleSuppliers = suppliers.filter((supplier) => {
-    if (!keyword) return true;
-
-    const code = supplier.code.toLowerCase();
-    const name = supplier.name.toLowerCase();
-    return code.includes(keyword) || name.includes(keyword);
-  });
-
-  function chooseSupplier(supplier: Supplier) {
-    onChange(String(supplier.id));
-    setSearchText(`${supplier.code} · ${supplier.name}`);
-    setIsOpen(false);
-  }
-
-  function changeSearchText(nextValue: string) {
-    setSearchText(nextValue);
-    setIsOpen(true);
-
-    // 선택된 업체명을 직접 수정하기 시작하면 기존 선택을 해제합니다.
-    if (
-      selectedSupplier &&
-      nextValue !== `${selectedSupplier.code} · ${selectedSupplier.name}`
-    ) {
-      onChange("");
-    }
-  }
-
-  return (
-    <label style={fieldStyle}>
-      <span style={fieldLabelStyle}>{label}</span>
-
-      <div style={supplierSearchContainerStyle}>
-        <input
-          type="text"
-          value={searchText}
-          onChange={(event) => changeSearchText(event.target.value)}
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => {
-            window.setTimeout(() => setIsOpen(false), 180);
-          }}
-          placeholder="공급업체 코드 또는 이름을 직접 입력하여 검색"
-          autoComplete="off"
-          style={{
-            ...inputStyle,
-            paddingRight: "42px",
-          }}
-        />
-
-        {searchText && (
-          <button
-            type="button"
-            title="선택 해제"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              setSearchText("");
-              onChange("");
-              setIsOpen(true);
-            }}
-            style={supplierSearchClearStyle}
-          >
-            ×
-          </button>
-        )}
-
-        {isOpen && (
-          <div style={supplierSearchDropdownStyle}>
-            {visibleSuppliers.length === 0 ? (
-              <div style={supplierSearchEmptyStyle}>
-                검색되는 공급업체가 없습니다.
-              </div>
-            ) : (
-              visibleSuppliers.slice(0, 100).map((supplier) => (
-                <button
-                  key={supplier.id}
-                  type="button"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => chooseSupplier(supplier)}
-                  style={{
-                    ...supplierSearchOptionStyle,
-                    ...(String(supplier.id) === String(value)
-                      ? supplierSearchSelectedOptionStyle
-                      : {}),
-                  }}
-                >
-                  <span style={{ fontWeight: 700 }}>{supplier.code}</span>
-                  <span style={{ color: "#475569" }}>{supplier.name}</span>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </label>
   );
 }
 
@@ -1594,17 +1640,10 @@ const pageStyle: React.CSSProperties = {
 
 const topRowStyle: React.CSSProperties = {
   display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "flex-start",
+  alignItems: "center",
+  justifyContent: "space-between",
   gap: "20px",
   marginBottom: "20px",
-};
-
-const topLeftAreaStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "14px",
 };
 
 const titleStyle: React.CSSProperties = {
@@ -1727,66 +1766,6 @@ const formGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "14px",
-};
-
-const supplierSearchContainerStyle: React.CSSProperties = {
-  position: "relative",
-};
-
-const supplierSearchClearStyle: React.CSSProperties = {
-  position: "absolute",
-  right: "10px",
-  top: "50%",
-  transform: "translateY(-50%)",
-  width: "28px",
-  height: "28px",
-  border: "none",
-  background: "transparent",
-  color: "#64748b",
-  fontSize: "20px",
-  lineHeight: 1,
-  cursor: "pointer",
-  zIndex: 3,
-};
-
-const supplierSearchDropdownStyle: React.CSSProperties = {
-  position: "absolute",
-  left: 0,
-  right: 0,
-  top: "calc(100% + 4px)",
-  zIndex: 100,
-  maxHeight: "260px",
-  overflowY: "auto",
-  border: "1px solid #cbd5e1",
-  borderRadius: "8px",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.16)",
-};
-
-const supplierSearchOptionStyle: React.CSSProperties = {
-  width: "100%",
-  display: "flex",
-  gap: "8px",
-  alignItems: "center",
-  padding: "11px 12px",
-  border: "none",
-  borderBottom: "1px solid #f1f5f9",
-  backgroundColor: "#ffffff",
-  color: "#0f172a",
-  textAlign: "left",
-  fontSize: "13px",
-  cursor: "pointer",
-};
-
-const supplierSearchSelectedOptionStyle: React.CSSProperties = {
-  backgroundColor: "#eff6ff",
-};
-
-const supplierSearchEmptyStyle: React.CSSProperties = {
-  padding: "14px 12px",
-  color: "#94a3b8",
-  fontSize: "13px",
-  textAlign: "center",
 };
 
 const fieldStyle: React.CSSProperties = {
@@ -1914,56 +1893,6 @@ const productImageBoxStyle: React.CSSProperties = {
   alignSelf: "center",
 };
 
-const imageModalOverlayStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 9999,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "24px",
-  backgroundColor: "rgba(15, 23, 42, 0.78)",
-  cursor: "zoom-out",
-};
-
-const imageModalContentStyle: React.CSSProperties = {
-  position: "relative",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  maxWidth: "90vw",
-  maxHeight: "90vh",
-};
-
-const imageModalImageStyle: React.CSSProperties = {
-  maxWidth: "90vw",
-  maxHeight: "90vh",
-  width: "auto",
-  height: "auto",
-  objectFit: "contain",
-  borderRadius: "10px",
-  backgroundColor: "white",
-  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.35)",
-  cursor: "default",
-};
-
-const imageModalCloseButtonStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "8px",
-  right: "8px",
-  width: "38px",
-  height: "38px",
-  border: "none",
-  borderRadius: "50%",
-  backgroundColor: "rgba(255, 255, 255, 0.95)",
-  color: "#111827",
-  fontSize: "28px",
-  lineHeight: "34px",
-  cursor: "pointer",
-  zIndex: 2,
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-};
-
 const productImageStyle: React.CSSProperties = {
   width: "100%",
   height: "100%",
@@ -2084,16 +2013,13 @@ const actionBoxStyle: React.CSSProperties = {
 };
 
 const skuButtonStyle: React.CSSProperties = {
-  width: "44px",
-  height: "28px",
-  padding: "0 6px",
+  padding: "5px 8px",
   borderRadius: "6px",
   border: "none",
   background: "#2563eb",
   color: "#ffffff",
-  fontWeight: 800,
+  fontWeight: 700,
   fontSize: "11px",
-  lineHeight: "28px",
   cursor: "pointer",
   whiteSpace: "nowrap",
 };
