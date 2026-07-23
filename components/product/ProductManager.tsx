@@ -87,6 +87,19 @@ const emptyForm: ProductForm = {
   isBandImported: false,
 };
 
+function normalizeOneDecimal(value: string) {
+  const cleaned = value
+    .replace(/,/g, "")
+    .replace(/[^0-9.]/g, "")
+    .replace(/(\..*)\./g, "$1");
+
+  const [integerPart = "", decimalPart] = cleaned.split(".");
+
+  return decimalPart !== undefined
+    ? `${integerPart}.${decimalPart.slice(0, 1)}`
+    : integerPart;
+}
+
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -1127,7 +1140,7 @@ export default function ProductManager() {
               <Field
                 label="매입단가 1"
                 value={form.cost}
-                onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => updateForm("cost", normalizeOneDecimal(value))}
                 placeholder="0"
                 inputMode="decimal"
               />
@@ -1151,9 +1164,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 2"
                 value={form.cost2}
-                onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => updateForm("cost2", normalizeOneDecimal(value))}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <label style={fieldStyle}>
@@ -1175,9 +1188,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 3"
                 value={form.cost3}
-                onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
+                onChange={(value) => updateForm("cost3", normalizeOneDecimal(value))}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <Field
@@ -1216,7 +1229,7 @@ export default function ProductManager() {
                   updateForm("price", normalized);
                 }}
                 placeholder="0"
-                inputMode="numeric"
+                inputMode="decimal"
               />
 
               <Field
@@ -1460,7 +1473,7 @@ export default function ProductManager() {
                     <span className="pm-list-label">단가</span>
                     <input
                       className="pm-inline-input"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       value={
                         inlineCostDrafts[product.id] ??
                         String(product.cost || 0)
@@ -1470,7 +1483,7 @@ export default function ProductManager() {
                       onChange={(event) =>
                         setInlineCostDrafts((current) => ({
                           ...current,
-                          [product.id]: event.target.value.replace(/[^0-9,]/g, ""),
+                          [product.id]: normalizeOneDecimal(event.target.value),
                         }))
                       }
                       onBlur={(event) => {
@@ -1838,7 +1851,7 @@ const productCardStyle: React.CSSProperties = {
 const productMainRowStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns:
-    "62px minmax(76px, 1.2fr) minmax(72px, 1fr) minmax(52px, 0.7fr) 112px 92px",
+    "62px minmax(76px, 1.2fr) 74px 82px minmax(0, 1fr) 44px",
   gap: "8px",
   padding: "7px 8px",
   alignItems: "center",
@@ -1974,7 +1987,7 @@ const actionBoxStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr",
   gap: "4px",
-  justifyContent: "end",
+  justifySelf: "end",
   alignContent: "center",
   alignSelf: "center",
 };
@@ -1998,10 +2011,10 @@ const editButtonStyle: React.CSSProperties = {
   width: "44px",
   height: "28px",
   padding: "0 6px",
-  border: "1px solid #cbd5e1",
+  border: "1px solid #2563eb",
   borderRadius: "6px",
-  backgroundColor: "white",
-  color: "#111827",
+  backgroundColor: "#2563eb",
+  color: "#ffffff",
   cursor: "pointer",
   fontSize: "11px",
   fontWeight: 800,
