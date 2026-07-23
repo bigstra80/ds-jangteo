@@ -159,7 +159,114 @@ export default function CustomerSettlementManager() {
   }, [data]);
 
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ width: "100%", minWidth: 0 }}>
+      <style jsx>{`
+        .customer-settlement-summary {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 14px;
+          margin-bottom: 24px;
+        }
+
+        .customer-settlement-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .customer-settlement-table-wrap {
+          width: 100%;
+          min-width: 0;
+          overflow: hidden;
+        }
+
+        .customer-settlement-table {
+          width: 100%;
+          min-width: 0;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+
+        .customer-settlement-table th,
+        .customer-settlement-table td {
+          overflow-wrap: anywhere;
+          word-break: keep-all;
+        }
+
+        .customer-settlement-table .product-cell,
+        .customer-settlement-table .memo-cell {
+          white-space: normal;
+        }
+
+        @media (max-width: 1250px) {
+          .customer-settlement-table th {
+            padding: 9px 6px !important;
+            font-size: 11px !important;
+          }
+
+          .customer-settlement-table td {
+            padding: 9px 6px !important;
+            font-size: 12px !important;
+            line-height: 1.3 !important;
+          }
+
+          .customer-settlement-table .memo-cell {
+            padding-left: 8px !important;
+          }
+
+          .customer-settlement-table .total-amount-cell,
+          .customer-settlement-table .total-amount-head {
+            padding-right: 8px !important;
+          }
+        }
+
+        @media (max-width: 980px) {
+          .customer-settlement-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+          }
+
+          .customer-settlement-toolbar {
+            align-items: stretch;
+          }
+
+          .customer-settlement-table th {
+            padding: 7px 4px !important;
+            font-size: 10px !important;
+          }
+
+          .customer-settlement-table td {
+            padding: 7px 4px !important;
+            font-size: 11px !important;
+          }
+        }
+
+        @media (max-width: 700px) {
+          .customer-settlement-summary {
+            grid-template-columns: 1fr;
+          }
+
+          .customer-settlement-toolbar {
+            flex-direction: column;
+          }
+
+          .customer-settlement-search {
+            max-width: none !important;
+          }
+
+          .customer-settlement-table th {
+            font-size: 9px !important;
+            padding: 6px 3px !important;
+          }
+
+          .customer-settlement-table td {
+            font-size: 10px !important;
+            padding: 6px 3px !important;
+          }
+        }
+      `}</style>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ marginBottom: 8 }}>📒 거래처 정산·미수금</h1>
         <p style={{ margin: 0, color: "#6b7280" }}>
@@ -168,7 +275,7 @@ export default function CustomerSettlementManager() {
         </p>
       </div>
 
-      <div style={summaryGridStyle}>
+      <div className="customer-settlement-summary">
         <SummaryCard
           title="전체 거래건수"
           value={`${totalSummary.tradeCount.toLocaleString()}건`}
@@ -188,11 +295,12 @@ export default function CustomerSettlementManager() {
         />
       </div>
 
-      <div style={toolbarStyle}>
+      <div className="customer-settlement-toolbar">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="거래처·상품명·이름·메모 검색"
+          className="customer-settlement-search"
           style={searchStyle}
         />
 
@@ -205,18 +313,18 @@ export default function CustomerSettlementManager() {
         </button>
       </div>
 
-      <div style={tableWrapStyle}>
-        <table style={tableStyle}>
+      <div className="customer-settlement-table-wrap" style={tableWrapStyle}>
+        <table className="customer-settlement-table" style={tableStyle}>
           <colgroup>
-            <col style={{ width: 120 }} />
-            <col style={{ width: 150 }} />
-            <col style={{ width: 280 }} />
-            <col style={{ width: 150 }} />
-            <col style={{ width: 80 }} />
-            <col style={{ width: 130 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 150 }} />
-            <col style={{ width: 220 }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "23%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
@@ -227,7 +335,7 @@ export default function CustomerSettlementManager() {
               <th style={centerThStyle}>수량</th>
               <th style={rightThStyle}>금액</th>
               <th style={rightThStyle}>배송비</th>
-              <th style={totalAmountThStyle}>총금액</th>
+              <th className="total-amount-head" style={totalAmountThStyle}>총금액</th>
               <th style={leftThStyle}>메모</th>
             </tr>
           </thead>
@@ -250,15 +358,15 @@ export default function CustomerSettlementManager() {
                     {new Date(row.transactionDate).toLocaleDateString("ko-KR")}
                   </td>
                   <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
-                  <td style={tdStyle}><strong>{row.productName}</strong></td>
+                  <td className="product-cell" style={tdStyle}><strong>{row.productName}</strong></td>
                   <td style={tdStyle}>{row.customerName || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
                   <td style={moneyStyle}>{money(row.saleAmount)}원</td>
                   <td style={moneyStyle}>{money(row.shippingFee || 0)}원</td>
-                  <td style={totalAmountTdStyle}>
+                  <td className="total-amount-cell" style={totalAmountTdStyle}>
                     {money((row.saleAmount || 0) + (row.shippingFee || 0))}원
                   </td>
-                  <td style={{ ...tdStyle, paddingLeft: 24 }}>
+                  <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 24 }}>
                     {row.memo || "-"}
                   </td>
                 </tr>
@@ -349,15 +457,18 @@ const searchStyle: React.CSSProperties = {
 };
 
 const tableWrapStyle: React.CSSProperties = {
-  overflowX: "auto",
+  width: "100%",
+  minWidth: 0,
+  overflow: "hidden",
   border: "1px solid #e5e7eb",
   borderRadius: 12,
   backgroundColor: "#fff",
 };
 
 const tableStyle: React.CSSProperties = {
-  width: 1310,
+  width: "100%",
   maxWidth: "100%",
+  minWidth: 0,
   borderCollapse: "collapse",
   tableLayout: "fixed",
 };
