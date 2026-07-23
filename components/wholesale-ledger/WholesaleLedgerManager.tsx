@@ -1200,28 +1200,30 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         <table
           style={{
             ...tableStyle,
+            width: listOnly ? "980px" : "100%",
             minWidth: listOnly ? "980px" : "860px",
+            maxWidth: listOnly ? "980px" : undefined,
           }}
           className={listOnly ? "wl-history-table" : "wl-compact-ledger-table"}
         >
           <colgroup>
             {listOnly ? (
               <>
-                <col style={{ width: "66px" }} />
-                <col style={{ width: "150px" }} />
-                <col style={{ width: "42px" }} />
-                <col style={{ width: "68px" }} />
-                <col style={{ width: "76px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "170px" }} />
+                <col style={{ width: "44px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "80px" }} />
                 <col style={{ width: "78px" }} />
                 <col style={{ width: "76px" }} />
                 <col style={{ width: "78px" }} />
                 <col style={{ width: "68px" }} />
                 <col style={{ width: "72px" }} />
-                <col style={{ width: "64px" }} />
+                <col style={{ width: "66px" }} />
               </>
             ) : (
               <>
-                <col style={{ width: "70px" }} />
+                <col style={{ width: "72px" }} />
                 <col style={{ width: "164px" }} />
                 <col style={{ width: "42px" }} />
                 <col style={{ width: "66px" }} />
