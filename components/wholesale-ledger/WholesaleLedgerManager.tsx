@@ -832,6 +832,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           text-align: right;
         }
 
+        .wl-return-row,
+        .wl-return-row td,
+        .wl-return-row input {
+          color: #dc2626 !important;
+        }
+
         @media (max-width: 1180px) {
           .wl-two-column-layout {
             grid-template-columns: 1fr;
@@ -1247,7 +1253,14 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 const profit = row.saleAmount - row.purchaseAmount;
 
                 return (
-                  <tr key={row.id}>
+                  <tr
+                    key={row.id}
+                    className={
+                      (inlineEdits[row.id]?.memo ?? row.memo ?? "").trim() === "회수반품"
+                        ? "wl-return-row"
+                        : undefined
+                    }
+                  >
                     <td className="wl-date-cell" style={tdStyle}>
                       {dateOnly(row.transactionDate)}
                     </td>

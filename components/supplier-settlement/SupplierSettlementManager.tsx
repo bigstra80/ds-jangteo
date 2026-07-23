@@ -127,7 +127,6 @@ export default function SupplierSettlementManager() {
       수량: row.quantity,
       금액: row.purchaseAmount || 0,
       배송비: row.shippingFee || 0,
-      총금액: (row.purchaseAmount || 0) + (row.shippingFee || 0),
       메모: row.memo || "-",
     }));
 
@@ -141,7 +140,6 @@ export default function SupplierSettlementManager() {
       { wch: 8 },
       { wch: 14 },
       { wch: 12 },
-      { wch: 14 },
       { wch: 24 },
     ];
 
@@ -266,15 +264,14 @@ export default function SupplierSettlementManager() {
       <div style={tableWrapStyle}>
         <table style={tableStyle}>
           <colgroup>
-            <col style={{ width: 120 }} />
-            <col style={{ width: 150 }} />
-            <col style={{ width: 280 }} />
-            <col style={{ width: 150 }} />
-            <col style={{ width: 80 }} />
-            <col style={{ width: 130 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 150 }} />
-            <col style={{ width: 220 }} />
+            <col style={{ width: 92 }} />
+            <col style={{ width: 82 }} />
+            <col style={{ width: 205 }} />
+            <col style={{ width: 95 }} />
+            <col style={{ width: 48 }} />
+            <col style={{ width: 76 }} />
+            <col style={{ width: 105 }} />
+            <col style={{ width: 132 }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
@@ -284,40 +281,60 @@ export default function SupplierSettlementManager() {
               <th style={leftThStyle}>이름</th>
               <th style={centerThStyle}>수량</th>
               <th style={rightThStyle}>금액</th>
-              <th style={rightThStyle}>배송비</th>
-              <th style={totalAmountThStyle}>총금액</th>
-              <th style={leftThStyle}>메모</th>
+              <th style={{ ...rightThStyle, paddingRight: 14 }}>배송비</th>
+              <th style={centerThStyle}>메모</th>
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={emptyStyle}>불러오는 중...</td>
+                <td colSpan={8} style={emptyStyle}>불러오는 중...</td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={9} style={emptyStyle}>
+                <td colSpan={8} style={emptyStyle}>
                   표시할 거래내역이 없습니다.
                 </td>
               </tr>
             ) : (
               filteredRows.map((row) => (
-                <tr key={row.id} style={{ borderTop: "1px solid #e5e7eb" }}>
+                <tr
+                  key={row.id}
+                  style={{
+                    borderTop: "1px solid #e5e7eb",
+                    color: row.memo?.trim() === "회수반품" ? "#dc2626" : undefined,
+                  }}
+                >
                   <td style={centerTdStyle}>
                     {new Date(row.transactionDate).toLocaleDateString("ko-KR")}
                   </td>
                   <td style={tdStyle}>{row.supplierName || "-"}</td>
-                  <td style={tdStyle}><strong>{row.productName}</strong></td>
+                  <td
+                    style={{
+                      ...tdStyle,
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      wordBreak: "keep-all",
+                    }}
+                  >
+                    <strong>{row.productName}</strong>
+                  </td>
                   <td style={tdStyle}>{row.customerName || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
                   <td style={moneyStyle}>{isAdmin ? `${money(row.purchaseAmount)}원` : "***"}</td>
-                  <td style={moneyStyle}>{money(row.shippingFee || 0)}원</td>
-                  <td style={totalAmountTdStyle}>
-                    {isAdmin ? `${money((row.purchaseAmount || 0) + (row.shippingFee || 0))}원` : "***"}
-                  </td>
-                  <td style={{ ...tdStyle, paddingLeft: 24 }}>
-                    {row.memo || "-"}
+                  <td style={{ ...moneyStyle, paddingRight: 14 }}>{money(row.shippingFee || 0)}원</td>
+                  <td
+                    style={{
+                      ...tdStyle,
+                      paddingLeft: 6,
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      textAlign: "center",
+                    }}
+                    title={row.memo || ""}
+                  >
+                    {row.memo?.trim() || "-"}
                   </td>
                 </tr>
               ))
@@ -453,7 +470,7 @@ const searchStyle: React.CSSProperties = {
 };
 
 const tableWrapStyle: React.CSSProperties = {
-  width: "min(1080px, 100%)",
+  width: "min(835px, 100%)",
   minWidth: 0,
   overflow: "hidden",
   marginRight: "auto",
@@ -464,14 +481,14 @@ const tableWrapStyle: React.CSSProperties = {
 
 const tableStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: 1080,
+  maxWidth: 835,
   minWidth: 0,
   borderCollapse: "collapse",
   tableLayout: "fixed",
 };
 
 const thStyle: React.CSSProperties = {
-  padding: "7px 4px",
+  padding: "7px 2px",
   fontSize: 12,
   whiteSpace: "nowrap",
   verticalAlign: "middle",
@@ -494,7 +511,7 @@ const rightThStyle: React.CSSProperties = {
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "12px 10px",
+  padding: "9px 4px",
   fontSize: 14,
   verticalAlign: "middle",
   lineHeight: 1.45,
@@ -511,16 +528,6 @@ const moneyStyle: React.CSSProperties = {
   fontVariantNumeric: "tabular-nums",
 };
 
-const totalAmountThStyle: React.CSSProperties = {
-  ...rightThStyle,
-  paddingRight: 28,
-};
-
-const totalAmountTdStyle: React.CSSProperties = {
-  ...moneyStyle,
-  fontWeight: 900,
-  paddingRight: 28,
-};
 
 
 const emptyStyle: React.CSSProperties = {
