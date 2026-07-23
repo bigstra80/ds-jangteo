@@ -23,6 +23,7 @@ function nullableNumber(value: unknown) {
   const number = Number(value);
   if (!Number.isFinite(number)) return null;
 
+  // 상품 단가는 소수점 한 자리까지만 저장
   return Math.round(number * 10) / 10;
 }
 

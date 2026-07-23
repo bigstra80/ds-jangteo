@@ -56,12 +56,36 @@ const emptyForm = (): FormState => ({
   deliveryCompanyName: "",
   customerName: "",
   saleAmount: "0",
-  shippingFee: "4000",
+  shippingFee: "0.4",
   settlementStatus: "미정산",
   memo: "",
 });
 
-const money = (value: number) => new Intl.NumberFormat("ko-KR").format(value);
+const money = (value: number) =>
+  new Intl.NumberFormat("ko-KR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(value);
+
+
+function oneDecimalSignedInput(value: string) {
+  const negative = value.startsWith("-");
+  const unsigned = value.replace(/-/g, "");
+  const cleaned = unsigned.replace(/[^0-9.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+
+  let normalized = cleaned;
+  if (firstDot !== -1) {
+    const integerPart = cleaned.slice(0, firstDot);
+    const decimalPart = cleaned
+      .slice(firstDot + 1)
+      .replace(/\./g, "")
+      .slice(0, 1);
+    normalized = `${integerPart}.${decimalPart}`;
+  }
+
+  return negative ? `-${normalized}` : normalized;
+}
 
 function dateOnly(value: string) {
   return new Date(value).toLocaleDateString("ko-KR");
@@ -204,7 +228,7 @@ function WonInput({
     <>
       <input
         type="text"
-        inputMode="numeric"
+        inputMode="decimal"
         list={suggestions ? "shipping-fee-options" : undefined}
         value={displayValue}
         placeholder={placeholder}
@@ -214,7 +238,7 @@ function WonInput({
         }}
         onChange={(e) => {
           const raw = parseWonInput(e.target.value);
-          if (/^-?\d*$/.test(raw)) {
+          if (/^-?\d*(?:\.\d{0,1})?$/.test(raw)) {
             setDraft(raw);
             onChange(raw);
           }
@@ -1019,7 +1043,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               value={form.shippingFee}
               onChange={(value) => changeForm("shippingFee", value)}
               placeholder="직접 입력 또는 목록 선택"
-              suggestions={["0", "4000", "7000"]}
+              suggestions={["0", "0.4", "0.7"]}
             />
           </Field>
 
@@ -1229,10 +1253,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                             changeInlineEdit(
                               row.id,
                               "saleAmount",
-                              e.target.value.replace(/[^0-9-]/g, "")
+                              oneDecimalSignedInput(e.target.value)
                             )
                           }
-                          inputMode="numeric"
+                          inputMode="decimal"
                         />
                       </td>
                     )}
@@ -1248,10 +1272,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                             changeInlineEdit(
                               row.id,
                               "shippingFee",
-                              e.target.value.replace(/[^0-9-]/g, "")
+                              oneDecimalSignedInput(e.target.value)
                             )
                           }
-                          inputMode="numeric"
+                          inputMode="decimal"
                         />
                       </td>
                     )}

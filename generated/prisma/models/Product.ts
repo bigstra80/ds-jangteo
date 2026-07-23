@@ -365,10 +365,10 @@ export type ProductWhereInput = {
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   colors?: Prisma.StringNullableFilter<"Product"> | string | null
   sizes?: Prisma.StringNullableFilter<"Product"> | string | null
-  cost?: Prisma.IntNullableFilter<"Product"> | number | null
-  cost2?: Prisma.IntNullableFilter<"Product"> | number | null
-  cost3?: Prisma.IntNullableFilter<"Product"> | number | null
-  price?: Prisma.IntNullableFilter<"Product"> | number | null
+  cost?: Prisma.FloatNullableFilter<"Product"> | number | null
+  cost2?: Prisma.FloatNullableFilter<"Product"> | number | null
+  cost3?: Prisma.FloatNullableFilter<"Product"> | number | null
+  price?: Prisma.FloatNullableFilter<"Product"> | number | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   productType?: Prisma.StringFilter<"Product"> | string
   sourceProductName?: Prisma.StringNullableFilter<"Product"> | string | null
@@ -429,10 +429,10 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   colors?: Prisma.StringNullableFilter<"Product"> | string | null
   sizes?: Prisma.StringNullableFilter<"Product"> | string | null
-  cost?: Prisma.IntNullableFilter<"Product"> | number | null
-  cost2?: Prisma.IntNullableFilter<"Product"> | number | null
-  cost3?: Prisma.IntNullableFilter<"Product"> | number | null
-  price?: Prisma.IntNullableFilter<"Product"> | number | null
+  cost?: Prisma.FloatNullableFilter<"Product"> | number | null
+  cost2?: Prisma.FloatNullableFilter<"Product"> | number | null
+  cost3?: Prisma.FloatNullableFilter<"Product"> | number | null
+  price?: Prisma.FloatNullableFilter<"Product"> | number | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   productType?: Prisma.StringFilter<"Product"> | string
   sourceProductName?: Prisma.StringNullableFilter<"Product"> | string | null
@@ -491,10 +491,10 @@ export type ProductScalarWhereWithAggregatesInput = {
   category?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   colors?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   sizes?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
-  cost?: Prisma.IntNullableWithAggregatesFilter<"Product"> | number | null
-  cost2?: Prisma.IntNullableWithAggregatesFilter<"Product"> | number | null
-  cost3?: Prisma.IntNullableWithAggregatesFilter<"Product"> | number | null
-  price?: Prisma.IntNullableWithAggregatesFilter<"Product"> | number | null
+  cost?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
+  cost2?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
+  cost3?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
+  price?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   productType?: Prisma.StringWithAggregatesFilter<"Product"> | string
   sourceProductName?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
@@ -568,10 +568,10 @@ export type ProductUpdateInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -595,10 +595,10 @@ export type ProductUncheckedUpdateInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -646,10 +646,10 @@ export type ProductUpdateManyMutationInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -668,10 +668,10 @@ export type ProductUncheckedUpdateManyInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -805,7 +805,7 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
+export type NullableFloatFieldUpdateOperationsInput = {
   set?: number | null
   increment?: number
   decrement?: number
@@ -823,6 +823,14 @@ export type DateTimeFieldUpdateOperationsInput = {
 
 export type IntFieldUpdateOperationsInput = {
   set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
   increment?: number
   decrement?: number
   multiply?: number
@@ -1057,10 +1065,10 @@ export type ProductUpdateWithoutSkusInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1083,10 +1091,10 @@ export type ProductUncheckedUpdateWithoutSkusInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1175,10 +1183,10 @@ export type ProductUpdateWithoutCustomerPricesInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1201,10 +1209,10 @@ export type ProductUncheckedUpdateWithoutCustomerPricesInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1429,10 +1437,10 @@ export type ProductScalarWhereInput = {
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   colors?: Prisma.StringNullableFilter<"Product"> | string | null
   sizes?: Prisma.StringNullableFilter<"Product"> | string | null
-  cost?: Prisma.IntNullableFilter<"Product"> | number | null
-  cost2?: Prisma.IntNullableFilter<"Product"> | number | null
-  cost3?: Prisma.IntNullableFilter<"Product"> | number | null
-  price?: Prisma.IntNullableFilter<"Product"> | number | null
+  cost?: Prisma.FloatNullableFilter<"Product"> | number | null
+  cost2?: Prisma.FloatNullableFilter<"Product"> | number | null
+  cost3?: Prisma.FloatNullableFilter<"Product"> | number | null
+  price?: Prisma.FloatNullableFilter<"Product"> | number | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   productType?: Prisma.StringFilter<"Product"> | string
   sourceProductName?: Prisma.StringNullableFilter<"Product"> | string | null
@@ -1557,10 +1565,10 @@ export type ProductUpdateWithoutSupplierInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1583,10 +1591,10 @@ export type ProductUncheckedUpdateWithoutSupplierInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1609,10 +1617,10 @@ export type ProductUncheckedUpdateManyWithoutSupplierInput = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1632,10 +1640,10 @@ export type ProductUpdateWithoutSupplier2Input = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1658,10 +1666,10 @@ export type ProductUncheckedUpdateWithoutSupplier2Input = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1684,10 +1692,10 @@ export type ProductUncheckedUpdateManyWithoutSupplier2Input = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1707,10 +1715,10 @@ export type ProductUpdateWithoutSupplier3Input = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1733,10 +1741,10 @@ export type ProductUncheckedUpdateWithoutSupplier3Input = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1759,10 +1767,10 @@ export type ProductUncheckedUpdateManyWithoutSupplier3Input = {
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   colors?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cost?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost2?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  cost3?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cost?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cost3?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productType?: Prisma.StringFieldUpdateOperationsInput | string
   sourceProductName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2414,10 +2422,10 @@ export interface ProductFieldRefs {
   readonly category: Prisma.FieldRef<"Product", 'String'>
   readonly colors: Prisma.FieldRef<"Product", 'String'>
   readonly sizes: Prisma.FieldRef<"Product", 'String'>
-  readonly cost: Prisma.FieldRef<"Product", 'Int'>
-  readonly cost2: Prisma.FieldRef<"Product", 'Int'>
-  readonly cost3: Prisma.FieldRef<"Product", 'Int'>
-  readonly price: Prisma.FieldRef<"Product", 'Int'>
+  readonly cost: Prisma.FieldRef<"Product", 'Float'>
+  readonly cost2: Prisma.FieldRef<"Product", 'Float'>
+  readonly cost3: Prisma.FieldRef<"Product", 'Float'>
+  readonly price: Prisma.FieldRef<"Product", 'Float'>
   readonly imageUrl: Prisma.FieldRef<"Product", 'String'>
   readonly productType: Prisma.FieldRef<"Product", 'String'>
   readonly sourceProductName: Prisma.FieldRef<"Product", 'String'>
