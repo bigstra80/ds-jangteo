@@ -164,16 +164,16 @@ export default function CustomerSettlementManager() {
         .customer-settlement-summary {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 14px;
-          margin-bottom: 24px;
+          gap: 10px;
+          margin-bottom: 16px;
         }
 
         .customer-settlement-toolbar {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 16px;
+          gap: 10px;
+          margin-bottom: 12px;
         }
 
         .customer-settlement-table-wrap {
@@ -193,6 +193,17 @@ export default function CustomerSettlementManager() {
         .customer-settlement-table td {
           overflow-wrap: anywhere;
           word-break: keep-all;
+        }
+
+        .customer-settlement-table th {
+          padding: 8px 6px !important;
+          font-size: 11px !important;
+        }
+
+        .customer-settlement-table td {
+          padding: 7px 6px !important;
+          font-size: 11px !important;
+          line-height: 1.25 !important;
         }
 
         .customer-settlement-table .product-cell,
@@ -316,15 +327,15 @@ export default function CustomerSettlementManager() {
       <div className="customer-settlement-table-wrap" style={tableWrapStyle}>
         <table className="customer-settlement-table" style={tableStyle}>
           <colgroup>
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "11%" }} />
-            <col style={{ width: "23%" }} />
-            <col style={{ width: "11%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "10%" }} />
             <col style={{ width: "9%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} />
+            <col style={{ width: "20%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "5%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "11%" }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
