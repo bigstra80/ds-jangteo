@@ -723,11 +723,24 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           flex: 1 1 auto !important;
           width: auto !important;
           max-width: none !important;
+          transform: translateY(-54px);
+          margin-bottom: -54px;
         }
 
         .wl-right-pane .wl-table-wrap {
           width: 100%;
           margin-top: 0 !important;
+          max-height: 586px;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          scrollbar-gutter: stable;
+        }
+
+        .wl-right-pane .wl-table-wrap thead {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          background: #f8fafc;
         }
 
         .wl-form-grid {
@@ -833,10 +846,18 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           line-height: 1.45 !important;
         }
 
-        .wl-compact-ledger-table th,
-        .wl-compact-ledger-table td {
+        .wl-compact-ledger-table th {
           padding: 7px 5px !important;
           font-size: 11px !important;
+          height: 32px;
+          box-sizing: border-box;
+        }
+
+        .wl-compact-ledger-table td {
+          padding: 6px 5px !important;
+          font-size: 11px !important;
+          height: 46px;
+          box-sizing: border-box;
         }
 
         .wl-compact-ledger-table .wl-product-name-cell {
@@ -871,6 +892,16 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
           .wl-right-pane {
             margin-top: 0;
+          }
+
+          .wl-right-pane .wl-toolbar > input {
+            transform: none;
+            margin-bottom: 0;
+          }
+
+          .wl-right-pane .wl-table-wrap {
+            max-height: 586px;
+            overflow-y: auto !important;
           }
         }
 
