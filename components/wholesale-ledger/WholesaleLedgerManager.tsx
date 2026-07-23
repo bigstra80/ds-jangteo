@@ -664,24 +664,35 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           display: grid;
           grid-template-columns: minmax(430px, 42%) minmax(0, 58%);
           gap: 18px;
-          align-items: start;
+          align-items: stretch;
           width: 100%;
         }
 
         .wl-left-pane,
         .wl-right-pane {
           min-width: 0;
-          align-self: start;
+          align-self: stretch;
+          height: 100%;
         }
 
         .wl-left-pane {
-          height: fit-content;
+          display: flex;
+        }
+
+        .wl-left-pane > form {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .wl-left-pane > form > div:last-child {
+          margin-top: auto !important;
         }
 
         .wl-right-pane {
           display: flex;
           flex-direction: column;
-          height: fit-content;
         }
 
         .wl-left-pane .wl-form-grid {
@@ -1680,7 +1691,7 @@ const descriptionStyle: React.CSSProperties = {
 
 const formCardStyle: React.CSSProperties = {
   background: "white",
-  height: "fit-content",
+  minHeight: "100%",
   border: "1px solid #e2e8f0",
   borderRadius: "16px",
   padding: "clamp(12px, 1.4vw, 18px)",
