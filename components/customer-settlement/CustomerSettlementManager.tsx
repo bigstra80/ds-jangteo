@@ -431,8 +431,8 @@ export default function CustomerSettlementManager() {
             <col style={{ width: 55 }} />
             <col style={{ width: 105 }} />
             <col style={{ width: 90 }} />
-            <col style={{ width: 115 }} />
-            <col style={{ width: 150 }} />
+            <col style={{ width: 105 }} />
+            <col style={{ width: 160 }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
@@ -474,7 +474,7 @@ export default function CustomerSettlementManager() {
                   <td className="total-amount-cell" style={totalAmountTdStyle}>
                     {money((row.saleAmount || 0) + (row.shippingFee || 0))}원
                   </td>
-                  <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 32 }}>
+                  <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 38 }}>
                     {row.memo || "-"}
                   </td>
                 </tr>
@@ -625,7 +625,7 @@ const moneyStyle: React.CSSProperties = {
 
 const totalAmountThStyle: React.CSSProperties = {
   ...rightThStyle,
-  paddingRight: 20,
+  paddingRight: 30,
 };
 
 const totalAmountTdStyle: React.CSSProperties = {
