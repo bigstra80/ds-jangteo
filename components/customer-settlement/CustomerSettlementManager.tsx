@@ -39,6 +39,8 @@ export default function CustomerSettlementManager() {
   const [data, setData] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   async function loadData() {
     try {
@@ -79,6 +81,10 @@ export default function CustomerSettlementManager() {
     return data
       .flatMap((item) => item.rows)
       .filter((row) => {
+        const rowDate = String(row.transactionDate).slice(0, 10);
+
+        if (startDate && rowDate < startDate) return false;
+        if (endDate && rowDate > endDate) return false;
         if (!keyword) return true;
 
         return [
@@ -102,7 +108,7 @@ export default function CustomerSettlementManager() {
         // 같은 거래일이면 먼저 등록된 거래(id가 작은 거래)를 위에 표시
         return a.id - b.id;
       });
-  }, [data, search]);
+  }, [data, search, startDate, endDate]);
 
   function downloadExcel() {
     const excelRows = filteredRows.map((row) => ({
@@ -163,9 +169,10 @@ export default function CustomerSettlementManager() {
       <style jsx>{`
         .customer-settlement-summary {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(4, 190px);
           gap: 10px;
           margin-bottom: 16px;
+          justify-content: start;
         }
 
         .customer-settlement-toolbar {
@@ -174,6 +181,46 @@ export default function CustomerSettlementManager() {
           justify-content: space-between;
           gap: 10px;
           margin-bottom: 12px;
+        }
+
+        .customer-settlement-filter-left {
+          display: flex;
+          align-items: flex-end;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .customer-settlement-date-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .customer-settlement-date-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #475569;
+        }
+
+        .customer-settlement-date-input {
+          width: 128px;
+          height: 36px;
+          padding: 0 9px;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          box-sizing: border-box;
+          font-size: 12px;
+          background: #fff;
+        }
+
+        .customer-settlement-reset-button {
+          height: 36px;
+          padding: 0 12px;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          background: #fff;
+          font-weight: 700;
+          cursor: pointer;
         }
 
         .customer-settlement-table-wrap {
@@ -236,7 +283,7 @@ export default function CustomerSettlementManager() {
 
         @media (max-width: 980px) {
           .customer-settlement-summary {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(2, 190px);
             gap: 10px;
           }
 
@@ -257,7 +304,7 @@ export default function CustomerSettlementManager() {
 
         @media (max-width: 700px) {
           .customer-settlement-summary {
-            grid-template-columns: 1fr;
+            grid-template-columns: 190px;
           }
 
           .customer-settlement-toolbar {
@@ -308,19 +355,50 @@ export default function CustomerSettlementManager() {
       </div>
 
       <div className="customer-settlement-toolbar">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="거래처·상품명·이름·메모 검색"
-          className="customer-settlement-search"
-          style={searchStyle}
-        />
+        <div className="customer-settlement-filter-left">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="거래처·상품명·이름·메모 검색"
+            className="customer-settlement-search"
+            style={searchStyle}
+          />
 
-        <button
-          type="button"
-          onClick={downloadExcel}
-          style={excelButtonStyle}
-        >
+          <div className="customer-settlement-date-group">
+            <label className="customer-settlement-date-label">시작일</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="customer-settlement-date-input"
+            />
+          </div>
+
+          <span style={{ paddingBottom: 9 }}>~</span>
+
+          <div className="customer-settlement-date-group">
+            <label className="customer-settlement-date-label">종료일</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="customer-settlement-date-input"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="customer-settlement-reset-button"
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
+          >
+            날짜 초기화
+          </button>
+        </div>
+
+        <button onClick={downloadExcel} style={excelButtonStyle}>
           엑셀 다운로드
         </button>
       </div>
