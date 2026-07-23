@@ -719,7 +719,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <input
               type="date"
               value={form.transactionDate}
-              onChange={(e) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> changeForm("transactionDate", e.target.value)}
+              onChange={(e) => changeForm("transactionDate", e.target.value)}
               style={inputStyle}
             />
           </Field>
@@ -964,7 +964,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <input
               type="date"
               value={startDate}
-              onChange={(e) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> setStartDate(e.target.value)}
+              onChange={(e) => setStartDate(e.target.value)}
               style={dateInputStyle}
             />
           </label>
@@ -976,7 +976,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <input
               type="date"
               value={endDate}
-              onChange={(e) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> setEndDate(e.target.value)}
+              onChange={(e) => setEndDate(e.target.value)}
               style={dateInputStyle}
             />
           </label>
@@ -997,35 +997,64 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       <div style={tableWrapStyle} className="wl-table-wrap">
         <table style={tableStyle}>
           <colgroup>
-            <col style={{ width: "66px" }} />
-            <col style={{ width: "150px" }} />
-            <col style={{ width: "42px" }} />
-            <col style={{ width: "68px" }} />
-            <col style={{ width: "76px" }} />
-            <col style={{ width: "78px" }} />
-            <col style={{ width: "76px" }} />
-            <col style={{ width: "78px" }} />
-            <col style={{ width: "68px" }} />
-            <col style={{ width: "72px" }} />
-            <col style={{ width: "64px" }} />
-            {!listOnly && <col style={{ width: "78px" }} />}
+            {listOnly ? (
+              <>
+                <col style={{ width: "66px" }} />
+                <col style={{ width: "150px" }} />
+                <col style={{ width: "42px" }} />
+                <col style={{ width: "68px" }} />
+                <col style={{ width: "76px" }} />
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "76px" }} />
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "68px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "64px" }} />
+              </>
+            ) : (
+              <>
+                <col style={{ width: "82px" }} />
+                <col style={{ width: "190px" }} />
+                <col style={{ width: "50px" }} />
+                <col style={{ width: "76px" }} />
+                <col style={{ width: "88px" }} />
+                <col style={{ width: "88px" }} />
+                <col style={{ width: "92px" }} />
+                <col style={{ width: "82px" }} />
+                <col style={{ width: "86px" }} />
+                <col style={{ width: "100px" }} />
+              </>
+            )}
           </colgroup>
           <thead>
             <tr>
-              {[
-                "날짜",
-                "상품",
-                "수량",
-                "공급업체",
-                "매입금액",
-                "납품업체",
-                "고객 이름",
-                "판매금액",
-                "배송비",
-                "이익",
-                "메모",
-                ...(!listOnly ? ["관리"] : []),
-              ].map((head) => (
+              {(listOnly
+                ? [
+                    "날짜",
+                    "상품",
+                    "수량",
+                    "공급업체",
+                    "매입금액",
+                    "납품업체",
+                    "고객 이름",
+                    "판매금액",
+                    "배송비",
+                    "이익",
+                    "메모",
+                  ]
+                : [
+                    "날짜",
+                    "상품",
+                    "수량",
+                    "공급업체",
+                    "납품업체",
+                    "고객 이름",
+                    "판매금액",
+                    "배송비",
+                    "메모",
+                    "관리",
+                  ]
+              ).map((head) => (
                 <th key={head} style={{ ...thStyle, textAlign: "left" }}>
                   {head}
                 </th>
@@ -1036,11 +1065,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={listOnly ? 11 : 12} style={emptyStyle}>불러오는 중...</td>
+                <td colSpan={listOnly ? 11 : 10} style={emptyStyle}>불러오는 중...</td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={listOnly ? 11 : 12} style={emptyStyle}>등록된 거래가 없습니다.</td>
+                <td colSpan={listOnly ? 11 : 10} style={emptyStyle}>등록된 거래가 없습니다.</td>
               </tr>
             ) : (
               [...filteredRows].reverse().map((row) => {
@@ -1071,30 +1100,39 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     </td>
                     <td style={centerTdStyle}>{money(row.quantity)}</td>
                     <td style={tdStyle}>{row.supplierName || "-"}</td>
-                    <td style={numberTdStyle}>{money(row.purchaseAmount)}원</td>
+
+                    {listOnly && (
+                      <td style={numberTdStyle}>{money(row.purchaseAmount)}원</td>
+                    )}
+
                     <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                     <td style={tdStyle}>{row.customerName || "-"}</td>
                     <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
                     <td style={numberTdStyle}>{money(row.shippingFee || 0)}원</td>
-                    <td style={{
-                      ...numberTdStyle,
-                      fontWeight: 900,
-                      color: profit >= 0 ? "#166534" : "#b91c1c",
-                    }}>
-                      {money(profit)}원
-                    </td>
+
+                    {listOnly && (
+                      <td style={{
+                        ...numberTdStyle,
+                        fontWeight: 900,
+                        color: profit >= 0 ? "#166534" : "#b91c1c",
+                      }}>
+                        {money(profit)}원
+                      </td>
+                    )}
+
                     <td style={tdStyle}>{row.memo || "-"}</td>
+
                     {!listOnly && (
-                    <td style={centerTdStyle}>
-                      <div style={actionStyle}>
-                        <button onClick={() => startEdit(row)} style={editButtonStyle}>
-                          수정
-                        </button>
-                        <button onClick={() => removeRow(row.id)} style={deleteButtonStyle}>
-                          삭제
-                        </button>
-                      </div>
-                    </td>
+                      <td style={centerTdStyle}>
+                        <div style={actionStyle}>
+                          <button onClick={() => startEdit(row)} style={editButtonStyle}>
+                            수정
+                          </button>
+                          <button onClick={() => removeRow(row.id)} style={deleteButtonStyle}>
+                            삭제
+                          </button>
+                        </div>
+                      </td>
                     )}
                   </tr>
                 );
