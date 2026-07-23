@@ -37,6 +37,8 @@ export default function SupplierSettlementManager() {
   const [data, setData] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
   async function loadCurrentUser() {
@@ -88,6 +90,9 @@ export default function SupplierSettlementManager() {
     return data
       .flatMap((item) => item.rows)
       .filter((row) => {
+        const rowDate = String(row.transactionDate).slice(0, 10);
+        if (startDate && rowDate < startDate) return false;
+        if (endDate && rowDate > endDate) return false;
         if (!keyword) return true;
 
         return [
@@ -111,7 +116,7 @@ export default function SupplierSettlementManager() {
         // 같은 거래일이면 먼저 등록된 거래(id가 작은 거래)를 위에 표시
         return a.id - b.id;
       });
-  }, [data, search]);
+  }, [data, search, startDate, endDate]);
 
   function downloadExcel() {
     const excelRows = filteredRows.map((row) => ({
@@ -198,12 +203,47 @@ export default function SupplierSettlementManager() {
       </div>
 
       <div style={toolbarStyle}>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="공급업체·상품명·이름·메모 검색"
-          style={searchStyle}
-        />
+        <div style={filterLeftStyle}>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="공급업체·상품명·이름·메모 검색"
+            style={searchStyle}
+          />
+
+          <div style={dateGroupStyle}>
+            <label style={dateLabelStyle}>시작일</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={dateInputStyle}
+            />
+          </div>
+
+          <span style={{ paddingBottom: 9 }}>~</span>
+
+          <div style={dateGroupStyle}>
+            <label style={dateLabelStyle}>종료일</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={dateInputStyle}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
+            style={dateResetButtonStyle}
+          >
+            날짜 초기화
+          </button>
+        </div>
 
         <button
           type="button"
@@ -309,16 +349,18 @@ function SummaryCard({
 
 const summaryGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: 14,
-  marginBottom: 24,
+  gridTemplateColumns: "repeat(4, 190px)",
+  gap: 10,
+  marginBottom: 16,
+  justifyContent: "start",
 };
 
 const summaryCardStyle: React.CSSProperties = {
-  padding: 18,
+  padding: "11px 13px",
+  minHeight: 74,
   backgroundColor: "#fff",
   border: "1px solid #e5e7eb",
-  borderRadius: 12,
+  borderRadius: 10,
 };
 
 const summaryTitleStyle: React.CSSProperties = {
@@ -329,10 +371,54 @@ const summaryTitleStyle: React.CSSProperties = {
 
 const toolbarStyle: React.CSSProperties = {
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-end",
   justifyContent: "space-between",
-  gap: 12,
-  marginBottom: 16,
+  gap: 10,
+  marginBottom: 12,
+  flexWrap: "wrap",
+};
+
+const filterLeftStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-end",
+  gap: 8,
+  flexWrap: "wrap",
+};
+
+const dateGroupStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+};
+
+const dateLabelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: "#475569",
+};
+
+const dateInputStyle: React.CSSProperties = {
+  width: 128,
+  height: 36,
+  padding: "0 9px",
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  boxSizing: "border-box",
+  fontSize: 12,
+  background: "#fff",
+};
+
+const dateResetButtonStyle: React.CSSProperties = {
+  height: 36,
+  minWidth: 88,
+  padding: "0 10px",
+  whiteSpace: "nowrap",
+  fontSize: 12,
+  fontWeight: 700,
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  background: "#fff",
+  cursor: "pointer",
 };
 
 const excelButtonStyle: React.CSSProperties = {
@@ -348,32 +434,36 @@ const excelButtonStyle: React.CSSProperties = {
 };
 
 const searchStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: 620,
-  height: 42,
-  padding: "0 14px",
+  width: 300,
+  maxWidth: "100%",
+  height: 36,
+  padding: "0 12px",
   border: "1px solid #d1d5db",
   borderRadius: 8,
-  fontSize: 14,
+  fontSize: 13,
 };
 
 const tableWrapStyle: React.CSSProperties = {
-  overflowX: "auto",
+  width: "min(1080px, 100%)",
+  minWidth: 0,
+  overflow: "hidden",
+  marginRight: "auto",
   border: "1px solid #e5e7eb",
   borderRadius: 12,
   backgroundColor: "#fff",
 };
 
 const tableStyle: React.CSSProperties = {
-  width: 1310,
-  maxWidth: "100%",
+  width: "100%",
+  maxWidth: 1080,
+  minWidth: 0,
   borderCollapse: "collapse",
   tableLayout: "fixed",
 };
 
 const thStyle: React.CSSProperties = {
-  padding: "12px 10px",
-  fontSize: 13,
+  padding: "7px 4px",
+  fontSize: 12,
   whiteSpace: "nowrap",
   verticalAlign: "middle",
   borderBottom: "1px solid #e5e7eb",
