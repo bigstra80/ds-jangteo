@@ -216,7 +216,10 @@ export default function CustomerSettlementManager() {
 
         .customer-settlement-reset-button {
           height: 36px;
-          padding: 0 12px;
+          padding: 0 10px;
+          min-width: 88px;
+          white-space: nowrap;
+          font-size: 12px;
           border: 1px solid #cbd5e1;
           border-radius: 8px;
           background: #fff;
