@@ -474,7 +474,7 @@ export default function CustomerSettlementManager() {
                   <td className="total-amount-cell" style={totalAmountTdStyle}>
                     {money((row.saleAmount || 0) + (row.shippingFee || 0))}원
                   </td>
-                  <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 38 }}>
+                  <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 30 }}>
                     {row.memo || "-"}
                   </td>
                 </tr>
@@ -625,13 +625,13 @@ const moneyStyle: React.CSSProperties = {
 
 const totalAmountThStyle: React.CSSProperties = {
   ...rightThStyle,
-  paddingRight: 30,
+  paddingRight: 42,
 };
 
 const totalAmountTdStyle: React.CSSProperties = {
   ...moneyStyle,
   fontWeight: 900,
-  paddingRight: 20,
+  paddingRight: 42,
 };
 
 
