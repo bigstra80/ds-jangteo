@@ -387,6 +387,48 @@ export default function ProductManager() {
     }
   }
 
+  async function forceDeleteProduct(product: Product) {
+    const firstConfirm = window.confirm(
+      `[관리자 강제삭제]\n\n${product.code} / ${product.name}\n\n이 상품과 연결된 주문상품, 매입상품, 발주상품, 재고이력까지 정리한 뒤 상품을 완전히 삭제합니다.\n\n계속하시겠습니까?`
+    );
+
+    if (!firstConfirm) return;
+
+    const typed = window.prompt(
+      `실수 방지를 위해 상품코드 "${product.code}"를 정확히 입력해주세요.`
+    );
+
+    if (typed !== product.code) {
+      alert("상품코드가 일치하지 않아 강제삭제를 취소했습니다.");
+      return;
+    }
+
+    try {
+      setForceDeletingId(product.id);
+
+      const response = await fetch(
+        `/api/product?id=${product.id}&force=true`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        alert(result.message || "상품 강제삭제에 실패했습니다.");
+        return;
+      }
+
+      alert(result.message || "상품이 강제삭제되었습니다.");
+      await loadProducts();
+    } catch (error) {
+      console.error(error);
+      alert("상품 강제삭제 중 오류가 발생했습니다.");
+    } finally {
+      setForceDeletingId(null);
+    }
+  }
 
   async function saveInlineProduct(
     product: Product,
@@ -574,14 +616,6 @@ export default function ProductManager() {
           gap: 6px;
         }
 
-        .pm-inline-supplier {
-          width: 90px;
-        }
-
-        .pm-inline-cost {
-          width: 72px;
-        }
-
         .pm-inline-input {
           width: 100%;
           min-width: 0;
@@ -646,15 +680,11 @@ export default function ProductManager() {
           }
 
           .pm-top-row {
-            display: block !important;
-            margin-bottom: 16px !important;
-          }
-
-          .pm-title-action-row {
             display: flex !important;
-            align-items: center !important;
-            gap: 10px !important;
-            flex-wrap: wrap !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 14px !important;
+            margin-bottom: 16px !important;
           }
 
           .pm-top-row h2 {
@@ -667,10 +697,8 @@ export default function ProductManager() {
           }
 
           .pm-primary-button {
-            width: auto !important;
-            min-height: 38px !important;
-            padding: 9px 14px !important;
-            font-size: 14px !important;
+            width: 100% !important;
+            min-height: 46px !important;
           }
 
           .pm-form-card {
@@ -1009,23 +1037,20 @@ export default function ProductManager() {
 
       <div style={topRowStyle} className="pm-top-row">
         <div>
-          <div className="pm-title-action-row" style={titleActionRowStyle}>
-            <h2 style={titleStyle}>👕 상품관리</h2>
-
-            <button
-              type="button"
-              onClick={openCreateForm}
-              style={primaryButtonStyle}
-              className="pm-primary-button"
-            >
-              {showProductForm ? "닫기" : "+ 상품등록"}
-            </button>
-          </div>
-
+          <h2 style={titleStyle}>👕 상품관리</h2>
           <p style={subtitleStyle}>
             상품과 공급업체·SKU를 한곳에서 관리합니다.
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={openCreateForm}
+          style={primaryButtonStyle}
+          className="pm-primary-button"
+        >
+          {showProductForm ? "닫기" : "+ 상품등록"}
+        </button>
       </div>
 
       {showProductForm && (
@@ -1134,7 +1159,7 @@ export default function ProductManager() {
                   <option value="">공급업체 선택</option>
                   {suppliers.map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>
-                      {supplier.code} · {supplier.name}
+                      {supplier.code}
                     </option>
                   ))}
                 </select>
@@ -1143,19 +1168,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 1"
                 value={form.cost}
-                onChange={(value) => {
-                  const cleaned = value
-                    .replace(/[^0-9.]/g, "")
-                    .replace(/(\..*)\./g, "$1");
-                  const [integerPart, decimalPart] = cleaned.split(".");
-                  const normalized =
-                    decimalPart !== undefined
-                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
-                      : integerPart;
-                  updateForm("cost", normalized);
-                }}
+                onChange={(value) => updateForm("cost", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <label style={fieldStyle}>
@@ -1168,7 +1183,7 @@ export default function ProductManager() {
                   <option value="">공급업체 선택</option>
                   {suppliers.map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>
-                      {supplier.code} · {supplier.name}
+                      {supplier.code}
                     </option>
                   ))}
                 </select>
@@ -1177,19 +1192,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 2"
                 value={form.cost2}
-                onChange={(value) => {
-                  const cleaned = value
-                    .replace(/[^0-9.]/g, "")
-                    .replace(/(\..*)\./g, "$1");
-                  const [integerPart, decimalPart] = cleaned.split(".");
-                  const normalized =
-                    decimalPart !== undefined
-                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
-                      : integerPart;
-                  updateForm("cost2", normalized);
-                }}
+                onChange={(value) => updateForm("cost2", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <label style={fieldStyle}>
@@ -1202,7 +1207,7 @@ export default function ProductManager() {
                   <option value="">공급업체 선택</option>
                   {suppliers.map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>
-                      {supplier.code} · {supplier.name}
+                      {supplier.code}
                     </option>
                   ))}
                 </select>
@@ -1211,19 +1216,9 @@ export default function ProductManager() {
               <Field
                 label="매입단가 3"
                 value={form.cost3}
-                onChange={(value) => {
-                  const cleaned = value
-                    .replace(/[^0-9.]/g, "")
-                    .replace(/(\..*)\./g, "$1");
-                  const [integerPart, decimalPart] = cleaned.split(".");
-                  const normalized =
-                    decimalPart !== undefined
-                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
-                      : integerPart;
-                  updateForm("cost3", normalized);
-                }}
+                onChange={(value) => updateForm("cost3", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <Field
@@ -1252,7 +1247,7 @@ export default function ProductManager() {
                 value={form.price}
                 onChange={(value) => updateForm("price", value.replace(/[^0-9]/g, ""))}
                 placeholder="0"
-                inputMode="decimal"
+                inputMode="numeric"
               />
 
               <Field
@@ -1457,13 +1452,13 @@ export default function ProductManager() {
                   </div>
 
                   {/* 공급업체 - 직접 입력 */}
-                  <div className="pm-inline-field pm-inline-supplier">
+                  <div className="pm-inline-field">
                     <span className="pm-list-label">공급업체</span>
                     <input
                       className="pm-inline-input"
                       value={
                         inlineSupplierDrafts[product.id] ??
-                        product.supplier?.name ??
+                        product.supplier?.code ??
                         ""
                       }
                       placeholder="공급업체 입력"
@@ -1476,7 +1471,7 @@ export default function ProductManager() {
                       }
                       onBlur={(event) => {
                         const nextValue = event.target.value.trim();
-                        const currentValue = product.supplier?.name?.trim() || "";
+                        const currentValue = product.supplier?.code?.trim() || "";
                         if (nextValue !== currentValue) {
                           void saveInlineProduct(product, {
                             supplierName: nextValue,
@@ -1484,15 +1479,7 @@ export default function ProductManager() {
                         }
                       }}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                          event.preventDefault();
-                          const nextValue = event.currentTarget.value.trim();
-                          const currentValue = product.supplier?.name?.trim() || "";
-                          if (nextValue !== currentValue) {
-                            void saveInlineProduct(product, {
-                              supplierName: nextValue,
-                            });
-                          }
+                        if (event.key === "Enter") {
                           event.currentTarget.blur();
                         }
                       }}
@@ -1500,7 +1487,7 @@ export default function ProductManager() {
                   </div>
 
                   {/* 단가 - 직접 입력 */}
-                  <div className="pm-inline-field pm-inline-cost">
+                  <div className="pm-inline-field">
                     <span className="pm-list-label">단가</span>
                     <input
                       className="pm-inline-input"
@@ -1514,16 +1501,7 @@ export default function ProductManager() {
                       onChange={(event) =>
                         setInlineCostDrafts((current) => ({
                           ...current,
-                          [product.id]: (() => {
-                            const cleaned = event.target.value
-                              .replace(/,/g, "")
-                              .replace(/[^0-9.]/g, "")
-                              .replace(/(\..*)\./g, "$1");
-                            const [integerPart, decimalPart] = cleaned.split(".");
-                            return decimalPart !== undefined
-                              ? `${integerPart}.${decimalPart.slice(0, 1)}`
-                              : integerPart;
-                          })(),
+                          [product.id]: event.target.value.replace(/[^0-9,]/g, ""),
                         }))
                       }
                       onBlur={(event) => {
@@ -1536,16 +1514,7 @@ export default function ProductManager() {
                         }
                       }}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                          event.preventDefault();
-                          const nextValue =
-                            event.currentTarget.value.replace(/,/g, "").trim() || "0";
-                          const currentValue = String(product.cost || 0);
-                          if (nextValue !== currentValue) {
-                            void saveInlineProduct(product, {
-                              cost: nextValue,
-                            });
-                          }
+                        if (event.key === "Enter") {
                           event.currentTarget.blur();
                         }
                       }}
@@ -1578,6 +1547,17 @@ export default function ProductManager() {
                     >
                       {deletingId === product.id ? "삭제 중..." : "삭제"}
                     </button>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => forceDeleteProduct(product)}
+                        disabled={forceDeletingId === product.id}
+                        style={forceDeleteButtonStyle}
+                      >
+                        {forceDeletingId === product.id ? "삭제 중..." : "강제삭제"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1659,17 +1639,11 @@ const pageStyle: React.CSSProperties = {
 };
 
 const topRowStyle: React.CSSProperties = {
-  display: "block",
-  marginBottom: "20px",
-};
-
-const titleActionRowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-start",
-  gap: "28px",
-  flexWrap: "nowrap",
-  width: "fit-content",
+  justifyContent: "space-between",
+  gap: "20px",
+  marginBottom: "20px",
 };
 
 const titleStyle: React.CSSProperties = {
@@ -2039,17 +2013,14 @@ const actionBoxStyle: React.CSSProperties = {
 };
 
 const skuButtonStyle: React.CSSProperties = {
-  width: "44px",
-  height: "28px",
-  padding: "0 6px",
-  border: "1px solid #2563eb",
+  padding: "5px 8px",
   borderRadius: "6px",
-  backgroundColor: "#2563eb",
+  border: "none",
+  background: "#2563eb",
   color: "#ffffff",
-  cursor: "pointer",
+  fontWeight: 700,
   fontSize: "11px",
-  fontWeight: 800,
-  lineHeight: "26px",
+  cursor: "pointer",
   whiteSpace: "nowrap",
 };
 
@@ -2083,6 +2054,20 @@ const deleteButtonStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const forceDeleteButtonStyle: React.CSSProperties = {
+  width: "54px",
+  height: "28px",
+  padding: "0 6px",
+  border: "none",
+  borderRadius: "6px",
+  backgroundColor: "#7f1d1d",
+  color: "white",
+  cursor: "pointer",
+  fontSize: "11px",
+  fontWeight: 800,
+  lineHeight: "28px",
+  whiteSpace: "nowrap",
+};
 
 const skuPanelStyle: React.CSSProperties = {
   padding: "14px 16px 16px",
