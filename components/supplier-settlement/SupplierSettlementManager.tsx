@@ -152,14 +152,23 @@ export default function SupplierSettlementManager() {
     XLSX.writeFile(workbook, `공급업체_정산_${today}.xlsx`);
   }
 
+  // 검색어와 날짜 필터로 현재 화면에 표시되는 거래내역만 기준으로 요약 카드 재계산
   const totalSummary = useMemo(() => {
-    return data.reduce(
-      (result, item) => {
-        result.tradeCount += item.tradeCount;
-        result.grossPurchaseAmount += item.grossPurchaseAmount;
-        result.returnAmount += item.returnAmount;
-        result.netPurchaseAmount += item.netPurchaseAmount;
-        result.payableAmount += item.payableAmount;
+    return filteredRows.reduce(
+      (result, row) => {
+        const purchaseAmount = Number(row.purchaseAmount || 0);
+
+        result.tradeCount += 1;
+
+        if (purchaseAmount < 0) {
+          result.returnAmount += Math.abs(purchaseAmount);
+        } else {
+          result.grossPurchaseAmount += purchaseAmount;
+        }
+
+        result.netPurchaseAmount += purchaseAmount;
+        result.payableAmount += purchaseAmount;
+
         return result;
       },
       {
@@ -170,7 +179,7 @@ export default function SupplierSettlementManager() {
         payableAmount: 0,
       }
     );
-  }, [data]);
+  }, [filteredRows]);
 
   return (
     <div style={{ width: "100%" }}>

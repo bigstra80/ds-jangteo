@@ -145,13 +145,25 @@ export default function CustomerSettlementManager() {
   }
 
   const totalSummary = useMemo(() => {
-    return data.reduce(
-      (result, item) => {
-        result.tradeCount += item.tradeCount;
-        result.grossSalesAmount += item.grossSalesAmount;
-        result.returnAmount += item.returnAmount;
-        result.netSalesAmount += item.netSalesAmount;
-        result.receivableAmount += item.receivableAmount;
+    return filteredRows.reduce(
+      (result, row) => {
+        const saleAmount = Number(row.saleAmount || 0);
+        const shippingFee = Number(row.shippingFee || 0);
+        const totalAmount = saleAmount + shippingFee;
+        const isReturn =
+          saleAmount < 0 ||
+          String(row.memo || "").trim().toLowerCase().includes("반품");
+
+        result.tradeCount += 1;
+        result.grossSalesAmount += totalAmount;
+
+        if (isReturn) {
+          result.returnAmount += Math.abs(totalAmount);
+        }
+
+        result.netSalesAmount += totalAmount;
+        result.receivableAmount += totalAmount;
+
         return result;
       },
       {
@@ -162,7 +174,7 @@ export default function CustomerSettlementManager() {
         receivableAmount: 0,
       }
     );
-  }, [data]);
+  }, [filteredRows]);
 
   return (
     <div style={{ width: "100%", minWidth: 0 }}>
