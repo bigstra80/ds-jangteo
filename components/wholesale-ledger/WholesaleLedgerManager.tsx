@@ -662,14 +662,26 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       <style>{`
         .wl-two-column-layout {
           display: grid;
-          grid-template-columns: minmax(470px, 40%) minmax(0, 60%);
-          gap: 20px;
+          grid-template-columns: minmax(430px, 42%) minmax(0, 58%);
+          gap: 18px;
           align-items: start;
+          width: 100%;
         }
 
         .wl-left-pane,
         .wl-right-pane {
           min-width: 0;
+          align-self: start;
+        }
+
+        .wl-left-pane {
+          height: fit-content;
+        }
+
+        .wl-right-pane {
+          display: flex;
+          flex-direction: column;
+          height: fit-content;
         }
 
         .wl-left-pane .wl-form-grid {
@@ -690,8 +702,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         }
 
         .wl-right-pane .wl-toolbar {
+          width: 100% !important;
           max-width: 100% !important;
           margin-top: 0 !important;
+          margin-bottom: 12px !important;
         }
 
         .wl-right-pane .wl-toolbar > input {
@@ -702,12 +716,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         .wl-right-pane .wl-table-wrap {
           width: 100%;
+          margin-top: 0 !important;
         }
 
         .wl-form-grid {
           display: grid !important;
           grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          gap: 18px 12px !important;
+          gap: 14px 12px !important;
           align-items: end !important;
           width: 100% !important;
           max-width: 760px !important;
@@ -838,7 +853,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           text-align: right;
         }
 
-        @media (max-width: 1180px) {
+        @media (max-width: 920px) {
           .wl-two-column-layout {
             grid-template-columns: 1fr;
           }
@@ -1786,7 +1801,7 @@ const noResultStyle: React.CSSProperties = {
 };
 
 const buttonRowStyle: React.CSSProperties = {
-  marginTop: "18px",
+  marginTop: "14px",
   display: "flex",
   justifyContent: "flex-end",
   gap: "8px",
