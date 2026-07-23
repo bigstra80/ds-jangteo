@@ -739,6 +739,25 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           width: min(560px, 100%) !important;
         }
 
+        .wl-history-toolbar {
+          max-width: none !important;
+          flex-wrap: nowrap !important;
+          align-items: flex-end !important;
+          width: 100% !important;
+        }
+
+        .wl-history-toolbar > input {
+          flex: 0 0 560px !important;
+          width: 560px !important;
+          max-width: 560px !important;
+        }
+
+        .wl-history-toolbar > div {
+          flex: 0 0 auto !important;
+          flex-wrap: nowrap !important;
+        }
+
+
         .wl-toolbar select {
           flex: 0 0 130px !important;
           width: 130px !important;
@@ -835,6 +854,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           }
         }
 
+        .wl-history-date-filter {
+          flex-wrap: nowrap !important;
+        }
+
         @media (max-width: 760px) {
           .wl-form-grid {
             grid-template-columns: 1fr !important;
@@ -843,6 +866,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           .wl-toolbar {
             flex-direction: column !important;
             max-width: 100% !important;
+          }
+
+          .wl-history-toolbar {
+            flex-wrap: wrap !important;
+          }
+
+          .wl-history-toolbar > input {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: 1 1 auto !important;
+          }
+
+          .wl-history-date-filter {
+            flex-wrap: wrap !important;
+            width: 100% !important;
           }
 
           .wl-toolbar > * {
@@ -1108,7 +1146,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         )}
 
         <div className={listOnly ? "" : "wl-right-pane"}>
-      <div style={toolbarStyle} className="wl-toolbar">
+      <div
+        style={toolbarStyle}
+        className={`wl-toolbar ${listOnly ? "wl-history-toolbar" : ""}`}
+      >
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
@@ -1116,7 +1157,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           style={searchStyle}
         />
 
-        <div style={dateFilterStyle}>
+        <div
+          style={dateFilterStyle}
+          className={listOnly ? "wl-history-date-filter" : undefined}
+        >
           <label style={dateLabelStyle}>
             시작일
             <input
