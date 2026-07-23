@@ -130,7 +130,7 @@ export default function Sidebar() {
         </Link>
       )}
 
-{canAccess("wholesale-ledger") && (
+{canAccess("transaction-history") && (
         <Link
           href="/transaction-history"
           style={{

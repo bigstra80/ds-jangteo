@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 const MENUS = [
   ["products", "상품관리"],
   ["wholesale-ledger", "도매 거래 한 줄 장부"],
+  ["transaction-history", "전체 거래내역"],
   ["customer-settlement", "거래처 정산·미수금"],
   ["supplier-settlement", "공급업체 정산"],
   ["broker-purchases", "업체별 매입목록"],
