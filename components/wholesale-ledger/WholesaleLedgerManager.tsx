@@ -1328,6 +1328,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                           </button>
                           <button
                             type="button"
+                            onClick={() => startEdit(row)}
+                            style={editButtonStyle}
+                          >
+                            수정
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => removeRow(row.id)}
                             style={deleteButtonStyle}
                           >
