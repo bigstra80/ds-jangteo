@@ -719,7 +719,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <input
               type="date"
               value={form.transactionDate}
-              onChange={(e) => changeForm("transactionDate", e.target.value)}
+              onChange={(e) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> changeForm("transactionDate", e.target.value)}
               style={inputStyle}
             />
           </Field>
@@ -964,7 +964,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> setStartDate(e.target.value)}
               style={dateInputStyle}
             />
           </label>
@@ -976,7 +976,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> setEndDate(e.target.value)}
               style={dateInputStyle}
             />
           </label>

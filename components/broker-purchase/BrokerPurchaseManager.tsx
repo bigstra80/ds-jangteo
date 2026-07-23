@@ -218,7 +218,7 @@ export default function BrokerPurchaseManager() {
             <input
               type="date"
               value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
+              onChange={(event) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> setStartDate(event.target.value)}
               style={dateInputStyle}
             />
           </label>
@@ -230,7 +230,7 @@ export default function BrokerPurchaseManager() {
             <input
               type="date"
               value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
+              onChange={(event) = style={{ width: "110px", height: "38px", minHeight: "38px", padding: "0 10px", boxSizing: "border-box" }}> setEndDate(event.target.value)}
               style={dateInputStyle}
             />
           </label>
