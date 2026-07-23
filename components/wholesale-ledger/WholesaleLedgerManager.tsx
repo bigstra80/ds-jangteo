@@ -716,15 +716,20 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           width: 100% !important;
           max-width: 100% !important;
           margin-top: 0 !important;
-          margin-bottom: 12px !important;
+          margin-bottom: -42px !important;
+          transform: translateY(-54px);
+          position: relative;
+          z-index: 5;
+        }
+
+        .wl-right-pane .wl-table-wrap {
+          padding-top: 54px;
         }
 
         .wl-right-pane .wl-toolbar > input {
           flex: 1 1 auto !important;
           width: auto !important;
           max-width: none !important;
-          transform: translateY(-54px);
-          margin-bottom: -54px;
         }
 
         .wl-right-pane .wl-table-wrap {
@@ -894,14 +899,15 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             margin-top: 0;
           }
 
-          .wl-right-pane .wl-toolbar > input {
+          .wl-right-pane .wl-toolbar {
             transform: none;
-            margin-bottom: 0;
+            margin-bottom: 12px !important;
           }
 
           .wl-right-pane .wl-table-wrap {
             max-height: 586px;
             overflow-y: auto !important;
+            padding-top: 0;
           }
         }
 
