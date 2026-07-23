@@ -661,6 +661,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           white-space: nowrap !important;
         }
 
+        .wl-compact-ledger-table th,
+        .wl-compact-ledger-table td {
+          padding: 7px 5px !important;
+          font-size: 11px !important;
+        }
+
+        .wl-compact-ledger-table .wl-product-name-cell {
+          font-size: 11px !important;
+        }
+
+        .wl-compact-ledger-table button {
+          padding: 5px 7px !important;
+          font-size: 11px !important;
+        }
+
         @media (max-width: 1180px) {
           .wl-two-column-layout {
             grid-template-columns: 1fr;
@@ -995,7 +1010,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={tableStyle}>
+        <table style={{ ...tableStyle, minWidth: listOnly ? "980px" : "860px" }} className={!listOnly ? "wl-compact-ledger-table" : undefined}>
           <colgroup>
             {listOnly ? (
               <>
@@ -1013,16 +1028,16 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               </>
             ) : (
               <>
-                <col style={{ width: "82px" }} />
-                <col style={{ width: "190px" }} />
-                <col style={{ width: "50px" }} />
-                <col style={{ width: "76px" }} />
-                <col style={{ width: "88px" }} />
-                <col style={{ width: "88px" }} />
+                <col style={{ width: "74px" }} />
+                <col style={{ width: "175px" }} />
+                <col style={{ width: "44px" }} />
+                <col style={{ width: "70px" }} />
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "80px" }} />
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "72px" }} />
                 <col style={{ width: "92px" }} />
-                <col style={{ width: "82px" }} />
-                <col style={{ width: "86px" }} />
-                <col style={{ width: "100px" }} />
               </>
             )}
           </colgroup>
