@@ -249,13 +249,13 @@ export default function CustomerSettlementManager() {
 
         .customer-settlement-table th {
           padding: 7px 4px !important;
-          font-size: 12px !important;
+          font-size: 11px !important;
         }
 
         .customer-settlement-table td {
-          padding: 6px 4px !important;
+          padding: 12px 10px !important;
           font-size: 14px !important;
-          line-height: 1.3 !important;
+          line-height: 1.45 !important;
         }
 
         .customer-settlement-table .product-cell,
@@ -265,14 +265,14 @@ export default function CustomerSettlementManager() {
 
         @media (max-width: 1250px) {
           .customer-settlement-table th {
-            padding: 8px 5px !important;
-            font-size: 12px !important;
+            padding: 9px 6px !important;
+            font-size: 11px !important;
           }
 
           .customer-settlement-table td {
-            padding: 8px 5px !important;
+            padding: 12px 10px !important;
             font-size: 14px !important;
-            line-height: 1.3 !important;
+            line-height: 1.45 !important;
           }
 
           .customer-settlement-table .memo-cell {
@@ -297,12 +297,13 @@ export default function CustomerSettlementManager() {
 
           .customer-settlement-table th {
             padding: 7px 4px !important;
-            font-size: 12px !important;
+            font-size: 10px !important;
           }
 
           .customer-settlement-table td {
-            padding: 7px 4px !important;
+            padding: 10px 8px !important;
             font-size: 14px !important;
+            line-height: 1.4 !important;
           }
         }
 
@@ -320,13 +321,14 @@ export default function CustomerSettlementManager() {
           }
 
           .customer-settlement-table th {
-            font-size: 11px !important;
+            font-size: 9px !important;
             padding: 6px 3px !important;
           }
 
           .customer-settlement-table td {
             font-size: 13px !important;
-            padding: 6px 3px !important;
+            padding: 8px 5px !important;
+            line-height: 1.35 !important;
           }
         }
       `}</style>
