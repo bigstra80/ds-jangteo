@@ -239,7 +239,7 @@ function WonInput({
   );
 }
 
-export default function WholesaleLedgerManager() {
+export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?: boolean }) {
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -701,14 +701,17 @@ export default function WholesaleLedgerManager() {
       `}</style>
       <div style={headerStyle}>
         <div>
-          <h1 style={titleStyle}>도매 거래 한 줄 장부</h1>
+          <h1 style={titleStyle}>{listOnly ? "전체 거래내역" : "도매 거래 한 줄 장부"}</h1>
           <p style={descriptionStyle}>
-            상품번호로 상품을 빠르게 불러오고 매입·판매·정산까지 관리합니다.
+            {listOnly
+              ? "도매 거래 한 줄 장부에 등록된 모든 거래가 자동으로 표시됩니다."
+              : "상품번호로 상품을 빠르게 불러오고 매입·판매·정산까지 관리합니다."}
           </p>
         </div>
       </div>
 
-      <div className="wl-two-column-layout">
+      <div className={listOnly ? "" : "wl-two-column-layout"}>
+        {!listOnly && (
         <div className="wl-left-pane">
       <form onSubmit={submit} style={formCardStyle}>
         <div style={formGridStyle} className="wl-form-grid">
@@ -944,8 +947,9 @@ export default function WholesaleLedgerManager() {
         </div>
       </form>
         </div>
+        )}
 
-        <div className="wl-right-pane">
+        <div className={listOnly ? "" : "wl-right-pane"}>
       <div style={toolbarStyle} className="wl-toolbar">
         <input
           value={keyword}
@@ -1004,7 +1008,7 @@ export default function WholesaleLedgerManager() {
             <col style={{ width: "68px" }} />
             <col style={{ width: "72px" }} />
             <col style={{ width: "64px" }} />
-            <col style={{ width: "78px" }} />
+            {!listOnly && <col style={{ width: "78px" }} />}
           </colgroup>
           <thead>
             <tr>
@@ -1020,7 +1024,7 @@ export default function WholesaleLedgerManager() {
                 "배송비",
                 "이익",
                 "메모",
-                "관리",
+                ...(!listOnly ? ["관리"] : []),
               ].map((head) => (
                 <th key={head} style={{ ...thStyle, textAlign: "left" }}>
                   {head}
@@ -1032,11 +1036,11 @@ export default function WholesaleLedgerManager() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={12} style={emptyStyle}>불러오는 중...</td>
+                <td colSpan={listOnly ? 11 : 12} style={emptyStyle}>불러오는 중...</td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={12} style={emptyStyle}>등록된 거래가 없습니다.</td>
+                <td colSpan={listOnly ? 11 : 12} style={emptyStyle}>등록된 거래가 없습니다.</td>
               </tr>
             ) : (
               [...filteredRows].reverse().map((row) => {
@@ -1080,6 +1084,7 @@ export default function WholesaleLedgerManager() {
                       {money(profit)}원
                     </td>
                     <td style={tdStyle}>{row.memo || "-"}</td>
+                    {!listOnly && (
                     <td style={centerTdStyle}>
                       <div style={actionStyle}>
                         <button onClick={() => startEdit(row)} style={editButtonStyle}>
@@ -1090,6 +1095,7 @@ export default function WholesaleLedgerManager() {
                         </button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 );
               })

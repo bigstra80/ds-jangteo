@@ -130,6 +130,19 @@ export default function Sidebar() {
         </Link>
       )}
 
+{canAccess("wholesale-ledger") && (
+        <Link
+          href="/transaction-history"
+          style={{
+            ...menuLinkStyle,
+            ...(isActive("/transaction-history") ? activeMenuStyle : {}),
+          }}
+        >
+          <span style={iconStyle}>📋</span>
+          <span className="sidebar-text">전체 거래내역</span>
+        </Link>
+      )}
+
 {canAccess("customer-settlement") && (
         <Link
   href="/customer-settlement"
