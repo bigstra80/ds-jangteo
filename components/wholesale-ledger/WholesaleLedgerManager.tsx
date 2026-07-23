@@ -1314,17 +1314,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                           <button
                             type="button"
                             onClick={() => saveInlineRow(row)}
-                            style={editButtonStyle}
+                            style={saveButtonStyle}
                             disabled={inlineSavingId === row.id}
                           >
                             {inlineSavingId === row.id ? "저장중" : "저장"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => startEdit(row)}
-                            style={editButtonStyle}
-                          >
-                            수정
                           </button>
                           <button
                             type="button"
