@@ -359,15 +359,15 @@ export default function CustomerSettlementManager() {
         />
         <SummaryCard
           title="총 판매금액"
-          value={money(totalSummary.grossSalesAmount)}
+          value={`${money(totalSummary.grossSalesAmount)}`}
         />
         <SummaryCard
           title="반품금액"
-          value={money(totalSummary.returnAmount)}
+          value={`${money(totalSummary.returnAmount)}`}
         />
         <SummaryCard
           title="현재 미수금"
-          value={money(totalSummary.receivableAmount)}
+          value={`${money(totalSummary.receivableAmount)}`}
           emphasize
         />
       </div>
