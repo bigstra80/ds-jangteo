@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
 
         deliveryCompanyName: toNullableText(body.deliveryCompanyName),
         customerName: toNullableText(body.customerName),
+        customerPhone: toNullableText(body.customerPhone),
 
         // 핵심 수정: Math.max(0, ...) 같은 제한 없이 음수 판매금액 그대로 저장
         saleAmount: toOneDecimal(body.saleAmount, 0),

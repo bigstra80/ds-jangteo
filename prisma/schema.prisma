@@ -256,6 +256,7 @@ model WholesaleLedger {
   purchaseAmount      Float      @default(0)
   deliveryCompanyName String?
   customerName        String?
+  customerPhone       String?
   saleAmount          Float      @default(0)
   shippingFee         Float      @default(0)
   settlementStatus    String   @default("미정산")

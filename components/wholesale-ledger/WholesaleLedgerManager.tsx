@@ -11,6 +11,7 @@ type LedgerRow = {
   purchaseAmount: number;
   deliveryCompanyName: string | null;
   customerName: string | null;
+  customerPhone: string | null;
   saleAmount: number;
   shippingFee: number;
   settlementStatus: string;
@@ -25,6 +26,7 @@ type FormState = {
   purchaseAmount: string;
   deliveryCompanyName: string;
   customerName: string;
+  customerPhone: string;
   saleAmount: string;
   shippingFee: string;
   settlementStatus: string;
@@ -55,6 +57,7 @@ const emptyForm = (): FormState => ({
   purchaseAmount: "",
   deliveryCompanyName: "",
   customerName: "",
+  customerPhone: "",
   saleAmount: "",
   shippingFee: "0.4",
   settlementStatus: "미정산",
@@ -370,6 +373,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         row.supplierName || "",
         row.deliveryCompanyName || "",
         row.customerName || "",
+        row.customerPhone || "",
         String(row.shippingFee || 0),
         row.memo || "",
       ].some((value) => value.toLowerCase().includes(normalizedKeyword));
@@ -522,6 +526,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       purchaseAmount: String(row.purchaseAmount),
       deliveryCompanyName: row.deliveryCompanyName || "",
       customerName: row.customerName || "",
+      customerPhone: row.customerPhone || "",
       saleAmount: String(row.saleAmount),
       shippingFee: String(row.shippingFee ?? 0),
       settlementStatus: row.settlementStatus,
@@ -615,6 +620,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           purchaseAmount: String(row.purchaseAmount),
           deliveryCompanyName: row.deliveryCompanyName || "",
           customerName: row.customerName || "",
+          customerPhone: row.customerPhone || "",
           saleAmount: parseWonInput(edit.saleAmount || "0"),
           shippingFee: parseWonInput(edit.shippingFee || "0"),
           settlementStatus: row.settlementStatus,
@@ -1125,6 +1131,17 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
+          <Field label="전화 번호">
+            <input
+              type="tel"
+              value={form.customerPhone}
+              onChange={(e) => changeForm("customerPhone", e.target.value)}
+              placeholder="전화 번호 입력"
+              style={inputStyle}
+              autoComplete="tel"
+            />
+          </Field>
+
 
         </div>
 
@@ -1147,7 +1164,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          placeholder="상품·공급업체·납품업체·고객이름·메모 검색"
+          placeholder="상품·공급업체·납품업체·고객이름·전화번호·메모 검색"
           style={searchStyle}
         />
 
@@ -1302,14 +1319,14 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     <td style={tdStyle}>{row.supplierName || "-"}</td>
 
                     {listOnly && (
-                      <td style={numberTdStyle}>{money(row.purchaseAmount)}</td>
+                      <td style={numberTdStyle}>{money(row.purchaseAmount)}원</td>
                     )}
 
                     <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                     <td style={tdStyle}>{row.customerName || "-"}</td>
 
                     {listOnly ? (
-                      <td style={numberTdStyle}>{money(row.saleAmount)}</td>
+                      <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
                     ) : (
                       <td style={tdStyle}>
                         <input
@@ -1335,7 +1352,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     )}
 
                     {listOnly ? (
-                      <td style={numberTdStyle}>{money(row.shippingFee || 0)}</td>
+                      <td style={numberTdStyle}>{money(row.shippingFee || 0)}원</td>
                     ) : (
                       <td style={tdStyle}>
                         <input
@@ -1366,7 +1383,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                         fontWeight: 900,
                         color: profit >= 0 ? "#166534" : "#b91c1c",
                       }}>
-                        {money(profit)}
+                        {money(profit)}원
                       </td>
                     )}
 

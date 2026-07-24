@@ -69,6 +69,7 @@ export async function PUT(
 
         deliveryCompanyName: toNullableText(body.deliveryCompanyName),
         customerName: toNullableText(body.customerName),
+        customerPhone: toNullableText(body.customerPhone),
 
         // 핵심 수정: 수정할 때도 음수 판매금액 그대로 저장
         saleAmount: toOneDecimal(body.saleAmount, 0),
