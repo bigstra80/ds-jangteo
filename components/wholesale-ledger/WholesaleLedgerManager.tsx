@@ -70,6 +70,21 @@ const money = (value: number) =>
     maximumFractionDigits: 1,
   }).format(value);
 
+const redMemoKeywords = [
+  "회수반품",
+  "회수확인",
+  "매입처리",
+  "반품",
+  "회수",
+  "매입",
+  "확인",
+];
+
+function shouldHighlightMemo(memo: string | null | undefined) {
+  const normalizedMemo = (memo || "").trim();
+  return redMemoKeywords.some((keyword) => normalizedMemo.includes(keyword));
+}
+
 
 function oneDecimalSignedInput(value: string) {
   const negative = value.startsWith("-");
@@ -294,6 +309,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [selectedDeliveryCustomerId, setSelectedDeliveryCustomerId] = useState<string>("");
   const [selectedCustomerUnitPrice, setSelectedCustomerUnitPrice] = useState(0);
+  const [saleUnitPriceInput, setSaleUnitPriceInput] = useState("");
 
   async function loadRows() {
     setLoading(true);
@@ -413,6 +429,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   ) {
     if (!customerId || !productId) {
       setSelectedCustomerUnitPrice(0);
+      setSaleUnitPriceInput("");
       return;
     }
 
@@ -431,6 +448,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
       if (matched?.customerPrice === null || matched?.customerPrice === undefined) {
         setSelectedCustomerUnitPrice(0);
+        setSaleUnitPriceInput("");
         return;
       }
 
@@ -442,6 +460,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           : 1;
 
       setSelectedCustomerUnitPrice(unitPrice);
+      setSaleUnitPriceInput(String(unitPrice));
       changeForm("saleAmount", String(unitPrice * quantity));
     } catch (error) {
       console.error("거래처 판매단가 자동 적용 오류:", error);
@@ -486,6 +505,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       setSelectedUnitCost(0);
       setSelectedProductId("");
       setSelectedCustomerUnitPrice(0);
+      setSaleUnitPriceInput("");
       changeForm("saleAmount", "0");
       return;
     }
@@ -533,6 +553,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       memo: row.memo || "",
     });
 
+    const editQuantity = Number(row.quantity);
+    const editUnitPrice = editQuantity !== 0 ? row.saleAmount / editQuantity : row.saleAmount;
+    setSelectedCustomerUnitPrice(editUnitPrice);
+    setSaleUnitPriceInput(String(editUnitPrice));
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -544,6 +569,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setSelectedProductId("");
     setSelectedDeliveryCustomerId("");
     setSelectedCustomerUnitPrice(0);
+    setSaleUnitPriceInput("");
     setProductCode("");
   }
 
@@ -1006,6 +1032,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 } else {
                   setSelectedProductId("");
                   setSelectedCustomerUnitPrice(0);
+                  setSaleUnitPriceInput("");
                 }
               }}
               onSelect={(option) => {
@@ -1067,6 +1094,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 } else {
                   setSelectedDeliveryCustomerId("");
                   setSelectedCustomerUnitPrice(0);
+                  setSaleUnitPriceInput("");
                 }
               }}
               onSelect={(option) => {
@@ -1092,15 +1120,27 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="판매금액">
-            <WonInput
-              value={form.saleAmount}
-              onChange={(value) => {
-                changeForm("saleAmount", value);
-                setSelectedCustomerUnitPrice(0);
-              }}
-              placeholder="직접 입력"
-            />
+          <Field label="판매단가">
+            <div>
+              <WonInput
+                value={saleUnitPriceInput}
+                onChange={(value) => {
+                  setSaleUnitPriceInput(value);
+                  const unitPrice = Number(parseWonInput(value || "0"));
+                  const quantity = Number(form.quantity);
+                  const safeQuantity = Number.isFinite(quantity) ? quantity : 0;
+                  setSelectedCustomerUnitPrice(Number.isFinite(unitPrice) ? unitPrice : 0);
+                  changeForm(
+                    "saleAmount",
+                    String((Number.isFinite(unitPrice) ? unitPrice : 0) * safeQuantity)
+                  );
+                }}
+                placeholder="1개 가격 입력"
+              />
+              <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#2563eb" }}>
+                판매금액: {money(Number(form.saleAmount) || 0)}
+              </div>
+            </div>
           </Field>
 
           <Field label="배송비">
@@ -1289,7 +1329,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   <tr
                     key={row.id}
                     className={
-                      (inlineEdits[row.id]?.memo ?? row.memo ?? "").trim() === "회수반품"
+                      shouldHighlightMemo(
+                        inlineEdits[row.id]?.memo ?? row.memo ?? ""
+                      )
                         ? "wl-return-row"
                         : undefined
                     }

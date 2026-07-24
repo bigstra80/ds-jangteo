@@ -29,6 +29,21 @@ type Settlement = {
   rows: LedgerDetail[];
 };
 
+const redMemoKeywords = [
+  "회수반품",
+  "회수확인",
+  "매입처리",
+  "반품",
+  "회수",
+  "매입",
+  "확인",
+];
+
+function shouldHighlightMemo(memo: string | null | undefined) {
+  const normalizedMemo = (memo || "").trim();
+  return redMemoKeywords.some((keyword) => normalizedMemo.includes(keyword));
+}
+
 function money(value: number) {
   return Number(value || 0).toLocaleString("ko-KR");
 }
@@ -303,7 +318,7 @@ export default function SupplierSettlementManager() {
                   key={row.id}
                   style={{
                     borderTop: "1px solid #e5e7eb",
-                    color: row.memo?.trim() === "회수반품" ? "#dc2626" : undefined,
+                    color: shouldHighlightMemo(row.memo) ? "#dc2626" : undefined,
                   }}
                 >
                   <td style={centerTdStyle}>
