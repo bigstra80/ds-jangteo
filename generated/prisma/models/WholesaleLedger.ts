@@ -51,6 +51,7 @@ export type WholesaleLedgerMinAggregateOutputType = {
   purchaseAmount: number | null
   deliveryCompanyName: string | null
   customerName: string | null
+  customerPhone: string | null
   saleAmount: number | null
   shippingFee: number | null
   settlementStatus: string | null
@@ -68,6 +69,7 @@ export type WholesaleLedgerMaxAggregateOutputType = {
   purchaseAmount: number | null
   deliveryCompanyName: string | null
   customerName: string | null
+  customerPhone: string | null
   saleAmount: number | null
   shippingFee: number | null
   settlementStatus: string | null
@@ -85,6 +87,7 @@ export type WholesaleLedgerCountAggregateOutputType = {
   purchaseAmount: number
   deliveryCompanyName: number
   customerName: number
+  customerPhone: number
   saleAmount: number
   shippingFee: number
   settlementStatus: number
@@ -120,6 +123,7 @@ export type WholesaleLedgerMinAggregateInputType = {
   purchaseAmount?: true
   deliveryCompanyName?: true
   customerName?: true
+  customerPhone?: true
   saleAmount?: true
   shippingFee?: true
   settlementStatus?: true
@@ -137,6 +141,7 @@ export type WholesaleLedgerMaxAggregateInputType = {
   purchaseAmount?: true
   deliveryCompanyName?: true
   customerName?: true
+  customerPhone?: true
   saleAmount?: true
   shippingFee?: true
   settlementStatus?: true
@@ -154,6 +159,7 @@ export type WholesaleLedgerCountAggregateInputType = {
   purchaseAmount?: true
   deliveryCompanyName?: true
   customerName?: true
+  customerPhone?: true
   saleAmount?: true
   shippingFee?: true
   settlementStatus?: true
@@ -258,6 +264,7 @@ export type WholesaleLedgerGroupByOutputType = {
   purchaseAmount: number
   deliveryCompanyName: string | null
   customerName: string | null
+  customerPhone: string | null
   saleAmount: number
   shippingFee: number
   settlementStatus: string
@@ -298,6 +305,7 @@ export type WholesaleLedgerWhereInput = {
   purchaseAmount?: Prisma.FloatFilter<"WholesaleLedger"> | number
   deliveryCompanyName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   customerName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  customerPhone?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   saleAmount?: Prisma.FloatFilter<"WholesaleLedger"> | number
   shippingFee?: Prisma.FloatFilter<"WholesaleLedger"> | number
   settlementStatus?: Prisma.StringFilter<"WholesaleLedger"> | string
@@ -315,6 +323,7 @@ export type WholesaleLedgerOrderByWithRelationInput = {
   purchaseAmount?: Prisma.SortOrder
   deliveryCompanyName?: Prisma.SortOrderInput | Prisma.SortOrder
   customerName?: Prisma.SortOrderInput | Prisma.SortOrder
+  customerPhone?: Prisma.SortOrderInput | Prisma.SortOrder
   saleAmount?: Prisma.SortOrder
   shippingFee?: Prisma.SortOrder
   settlementStatus?: Prisma.SortOrder
@@ -335,6 +344,7 @@ export type WholesaleLedgerWhereUniqueInput = Prisma.AtLeast<{
   purchaseAmount?: Prisma.FloatFilter<"WholesaleLedger"> | number
   deliveryCompanyName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   customerName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  customerPhone?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   saleAmount?: Prisma.FloatFilter<"WholesaleLedger"> | number
   shippingFee?: Prisma.FloatFilter<"WholesaleLedger"> | number
   settlementStatus?: Prisma.StringFilter<"WholesaleLedger"> | string
@@ -352,6 +362,7 @@ export type WholesaleLedgerOrderByWithAggregationInput = {
   purchaseAmount?: Prisma.SortOrder
   deliveryCompanyName?: Prisma.SortOrderInput | Prisma.SortOrder
   customerName?: Prisma.SortOrderInput | Prisma.SortOrder
+  customerPhone?: Prisma.SortOrderInput | Prisma.SortOrder
   saleAmount?: Prisma.SortOrder
   shippingFee?: Prisma.SortOrder
   settlementStatus?: Prisma.SortOrder
@@ -377,6 +388,7 @@ export type WholesaleLedgerScalarWhereWithAggregatesInput = {
   purchaseAmount?: Prisma.FloatWithAggregatesFilter<"WholesaleLedger"> | number
   deliveryCompanyName?: Prisma.StringNullableWithAggregatesFilter<"WholesaleLedger"> | string | null
   customerName?: Prisma.StringNullableWithAggregatesFilter<"WholesaleLedger"> | string | null
+  customerPhone?: Prisma.StringNullableWithAggregatesFilter<"WholesaleLedger"> | string | null
   saleAmount?: Prisma.FloatWithAggregatesFilter<"WholesaleLedger"> | number
   shippingFee?: Prisma.FloatWithAggregatesFilter<"WholesaleLedger"> | number
   settlementStatus?: Prisma.StringWithAggregatesFilter<"WholesaleLedger"> | string
@@ -393,6 +405,7 @@ export type WholesaleLedgerCreateInput = {
   purchaseAmount?: number
   deliveryCompanyName?: string | null
   customerName?: string | null
+  customerPhone?: string | null
   saleAmount?: number
   shippingFee?: number
   settlementStatus?: string
@@ -410,6 +423,7 @@ export type WholesaleLedgerUncheckedCreateInput = {
   purchaseAmount?: number
   deliveryCompanyName?: string | null
   customerName?: string | null
+  customerPhone?: string | null
   saleAmount?: number
   shippingFee?: number
   settlementStatus?: string
@@ -426,6 +440,7 @@ export type WholesaleLedgerUpdateInput = {
   purchaseAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   deliveryCompanyName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   saleAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   shippingFee?: Prisma.FloatFieldUpdateOperationsInput | number
   settlementStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -443,6 +458,7 @@ export type WholesaleLedgerUncheckedUpdateInput = {
   purchaseAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   deliveryCompanyName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   saleAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   shippingFee?: Prisma.FloatFieldUpdateOperationsInput | number
   settlementStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -460,6 +476,7 @@ export type WholesaleLedgerCreateManyInput = {
   purchaseAmount?: number
   deliveryCompanyName?: string | null
   customerName?: string | null
+  customerPhone?: string | null
   saleAmount?: number
   shippingFee?: number
   settlementStatus?: string
@@ -476,6 +493,7 @@ export type WholesaleLedgerUpdateManyMutationInput = {
   purchaseAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   deliveryCompanyName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   saleAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   shippingFee?: Prisma.FloatFieldUpdateOperationsInput | number
   settlementStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -493,6 +511,7 @@ export type WholesaleLedgerUncheckedUpdateManyInput = {
   purchaseAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   deliveryCompanyName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   saleAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   shippingFee?: Prisma.FloatFieldUpdateOperationsInput | number
   settlementStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -510,6 +529,7 @@ export type WholesaleLedgerCountOrderByAggregateInput = {
   purchaseAmount?: Prisma.SortOrder
   deliveryCompanyName?: Prisma.SortOrder
   customerName?: Prisma.SortOrder
+  customerPhone?: Prisma.SortOrder
   saleAmount?: Prisma.SortOrder
   shippingFee?: Prisma.SortOrder
   settlementStatus?: Prisma.SortOrder
@@ -535,6 +555,7 @@ export type WholesaleLedgerMaxOrderByAggregateInput = {
   purchaseAmount?: Prisma.SortOrder
   deliveryCompanyName?: Prisma.SortOrder
   customerName?: Prisma.SortOrder
+  customerPhone?: Prisma.SortOrder
   saleAmount?: Prisma.SortOrder
   shippingFee?: Prisma.SortOrder
   settlementStatus?: Prisma.SortOrder
@@ -552,6 +573,7 @@ export type WholesaleLedgerMinOrderByAggregateInput = {
   purchaseAmount?: Prisma.SortOrder
   deliveryCompanyName?: Prisma.SortOrder
   customerName?: Prisma.SortOrder
+  customerPhone?: Prisma.SortOrder
   saleAmount?: Prisma.SortOrder
   shippingFee?: Prisma.SortOrder
   settlementStatus?: Prisma.SortOrder
@@ -587,6 +609,7 @@ export type WholesaleLedgerSelect<ExtArgs extends runtime.Types.Extensions.Inter
   purchaseAmount?: boolean
   deliveryCompanyName?: boolean
   customerName?: boolean
+  customerPhone?: boolean
   saleAmount?: boolean
   shippingFee?: boolean
   settlementStatus?: boolean
@@ -604,6 +627,7 @@ export type WholesaleLedgerSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   purchaseAmount?: boolean
   deliveryCompanyName?: boolean
   customerName?: boolean
+  customerPhone?: boolean
   saleAmount?: boolean
   shippingFee?: boolean
   settlementStatus?: boolean
@@ -621,6 +645,7 @@ export type WholesaleLedgerSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   purchaseAmount?: boolean
   deliveryCompanyName?: boolean
   customerName?: boolean
+  customerPhone?: boolean
   saleAmount?: boolean
   shippingFee?: boolean
   settlementStatus?: boolean
@@ -638,6 +663,7 @@ export type WholesaleLedgerSelectScalar = {
   purchaseAmount?: boolean
   deliveryCompanyName?: boolean
   customerName?: boolean
+  customerPhone?: boolean
   saleAmount?: boolean
   shippingFee?: boolean
   settlementStatus?: boolean
@@ -646,7 +672,7 @@ export type WholesaleLedgerSelectScalar = {
   updatedAt?: boolean
 }
 
-export type WholesaleLedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "transactionDate" | "productName" | "quantity" | "supplierName" | "purchaseAmount" | "deliveryCompanyName" | "customerName" | "saleAmount" | "shippingFee" | "settlementStatus" | "memo" | "createdAt" | "updatedAt", ExtArgs["result"]["wholesaleLedger"]>
+export type WholesaleLedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "transactionDate" | "productName" | "quantity" | "supplierName" | "purchaseAmount" | "deliveryCompanyName" | "customerName" | "customerPhone" | "saleAmount" | "shippingFee" | "settlementStatus" | "memo" | "createdAt" | "updatedAt", ExtArgs["result"]["wholesaleLedger"]>
 
 export type $WholesaleLedgerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "WholesaleLedger"
@@ -660,6 +686,7 @@ export type $WholesaleLedgerPayload<ExtArgs extends runtime.Types.Extensions.Int
     purchaseAmount: number
     deliveryCompanyName: string | null
     customerName: string | null
+    customerPhone: string | null
     saleAmount: number
     shippingFee: number
     settlementStatus: string
@@ -1097,6 +1124,7 @@ export interface WholesaleLedgerFieldRefs {
   readonly purchaseAmount: Prisma.FieldRef<"WholesaleLedger", 'Float'>
   readonly deliveryCompanyName: Prisma.FieldRef<"WholesaleLedger", 'String'>
   readonly customerName: Prisma.FieldRef<"WholesaleLedger", 'String'>
+  readonly customerPhone: Prisma.FieldRef<"WholesaleLedger", 'String'>
   readonly saleAmount: Prisma.FieldRef<"WholesaleLedger", 'Float'>
   readonly shippingFee: Prisma.FieldRef<"WholesaleLedger", 'Float'>
   readonly settlementStatus: Prisma.FieldRef<"WholesaleLedger", 'String'>

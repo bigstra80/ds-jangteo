@@ -1798,6 +1798,7 @@ export const WholesaleLedgerScalarFieldEnum = {
   purchaseAmount: 'purchaseAmount',
   deliveryCompanyName: 'deliveryCompanyName',
   customerName: 'customerName',
+  customerPhone: 'customerPhone',
   saleAmount: 'saleAmount',
   shippingFee: 'shippingFee',
   settlementStatus: 'settlementStatus',
