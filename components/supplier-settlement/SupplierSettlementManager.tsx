@@ -196,15 +196,15 @@ export default function SupplierSettlementManager() {
         />
         <SummaryCard
           title="총 매입금액"
-          value={isAdmin ? `${money(totalSummary.grossPurchaseAmount)}원` : "***"}
+          value={isAdmin ? money(totalSummary.grossPurchaseAmount) : "***"}
         />
         <SummaryCard
           title="반품금액"
-          value={isAdmin ? `${money(totalSummary.returnAmount)}원` : "***"}
+          value={isAdmin ? money(totalSummary.returnAmount) : "***"}
         />
         <SummaryCard
           title="현재 정산금액"
-          value={isAdmin ? `${money(totalSummary.payableAmount)}원` : "***"}
+          value={isAdmin ? money(totalSummary.payableAmount) : "***"}
           emphasize
         />
       </div>
@@ -322,8 +322,8 @@ export default function SupplierSettlementManager() {
                   </td>
                   <td style={tdStyle}>{row.customerName || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
-                  <td style={moneyStyle}>{isAdmin ? `${money(row.purchaseAmount)}원` : "***"}</td>
-                  <td style={{ ...moneyStyle, paddingRight: 14 }}>{money(row.shippingFee || 0)}원</td>
+                  <td style={moneyStyle}>{isAdmin ? money(row.purchaseAmount) : "***"}</td>
+                  <td style={{ ...moneyStyle, paddingRight: 14 }}>{money(row.shippingFee || 0)}</td>
                   <td
                     style={{
                       ...tdStyle,

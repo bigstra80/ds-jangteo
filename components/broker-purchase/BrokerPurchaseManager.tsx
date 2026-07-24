@@ -270,7 +270,7 @@ export default function BrokerPurchaseManager() {
 
                 <div style={supplierSummaryStyle}>
                   총 {group.totalQuantity.toLocaleString()}개 ·{" "}
-                  {isAdmin ? `${money(group.totalPurchaseAmount)}원` : "***"}
+                  {isAdmin ? money(group.totalPurchaseAmount) : "***"}
                 </div>
               </div>
 
@@ -302,7 +302,7 @@ export default function BrokerPurchaseManager() {
                             {row.quantity.toLocaleString()}개
                           </td>
                           <td style={tdStyle}>
-                            {isAdmin ? `${money(row.purchaseAmount)}원` : "***"}
+                            {isAdmin ? money(row.purchaseAmount) : "***"}
                           </td>
                           <td style={tdStyle}>
                             {row.deliveryCompanyName || "-"}

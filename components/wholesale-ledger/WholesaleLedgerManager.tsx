@@ -1302,14 +1302,14 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     <td style={tdStyle}>{row.supplierName || "-"}</td>
 
                     {listOnly && (
-                      <td style={numberTdStyle}>{money(row.purchaseAmount)}원</td>
+                      <td style={numberTdStyle}>{money(row.purchaseAmount)}</td>
                     )}
 
                     <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                     <td style={tdStyle}>{row.customerName || "-"}</td>
 
                     {listOnly ? (
-                      <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
+                      <td style={numberTdStyle}>{money(row.saleAmount)}</td>
                     ) : (
                       <td style={tdStyle}>
                         <input
@@ -1335,7 +1335,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     )}
 
                     {listOnly ? (
-                      <td style={numberTdStyle}>{money(row.shippingFee || 0)}원</td>
+                      <td style={numberTdStyle}>{money(row.shippingFee || 0)}</td>
                     ) : (
                       <td style={tdStyle}>
                         <input
@@ -1366,7 +1366,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                         fontWeight: 900,
                         color: profit >= 0 ? "#166534" : "#b91c1c",
                       }}>
-                        {money(profit)}원
+                        {money(profit)}
                       </td>
                     )}
 

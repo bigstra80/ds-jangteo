@@ -359,15 +359,15 @@ export default function CustomerSettlementManager() {
         />
         <SummaryCard
           title="총 판매금액"
-          value={`${money(totalSummary.grossSalesAmount)}원`}
+          value={money(totalSummary.grossSalesAmount)}
         />
         <SummaryCard
           title="반품금액"
-          value={`${money(totalSummary.returnAmount)}원`}
+          value={money(totalSummary.returnAmount)}
         />
         <SummaryCard
           title="현재 미수금"
-          value={`${money(totalSummary.receivableAmount)}원`}
+          value={money(totalSummary.receivableAmount)}
           emphasize
         />
       </div>
@@ -469,10 +469,10 @@ export default function CustomerSettlementManager() {
                   <td className="product-cell" style={tdStyle}><strong>{row.productName}</strong></td>
                   <td style={tdStyle}>{row.customerName || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
-                  <td style={moneyStyle}>{money(row.saleAmount)}원</td>
-                  <td style={moneyStyle}>{money(row.shippingFee || 0)}원</td>
+                  <td style={moneyStyle}>{money(row.saleAmount)}</td>
+                  <td style={moneyStyle}>{money(row.shippingFee || 0)}</td>
                   <td className="total-amount-cell" style={totalAmountTdStyle}>
-                    {money((row.saleAmount || 0) + (row.shippingFee || 0))}원
+                    {money((row.saleAmount || 0) + (row.shippingFee || 0))}
                   </td>
                   <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 30 }}>
                     {row.memo || "-"}
