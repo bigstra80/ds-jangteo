@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function toInt(value: unknown, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.trunc(number) : fallback;
@@ -26,7 +29,7 @@ export async function GET() {
       ],
     });
 
-    return NextResponse.json({ rows });
+    return NextResponse.json({ rows }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } });
   } catch (error) {
     console.error("도매 거래 목록 조회 오류:", error);
 

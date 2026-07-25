@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 
+type SortOrder = "dateDesc" | "dateAsc" | "inputDesc" | "inputAsc";
+
 type LedgerDetail = {
   id: number;
   transactionDate: string;
@@ -16,6 +18,7 @@ type LedgerDetail = {
   shippingFee: number;
   settlementStatus: string;
   memo: string | null;
+  createdAt: string;
 };
 
 type Settlement = {
@@ -41,12 +44,13 @@ export default function CustomerSettlementManager() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
 
   async function loadData() {
     try {
       setLoading(true);
 
-      const response = await fetch("/api/customer-settlement", {
+      const response = await fetch(`/api/customer-settlement?ts=${Date.now()}`, {
         cache: "no-store",
       });
 
@@ -99,16 +103,29 @@ export default function CustomerSettlementManager() {
           .includes(keyword);
       })
       .sort((a, b) => {
+        if (sortOrder === "inputDesc") {
+          const createdDiff =
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return createdDiff !== 0 ? createdDiff : b.id - a.id;
+        }
+
+        if (sortOrder === "inputAsc") {
+          const createdDiff =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return createdDiff !== 0 ? createdDiff : a.id - b.id;
+        }
+
         const dateDiff =
           new Date(a.transactionDate).getTime() -
           new Date(b.transactionDate).getTime();
 
-        if (dateDiff !== 0) return dateDiff;
+        if (sortOrder === "dateAsc") {
+          return dateDiff !== 0 ? dateDiff : a.id - b.id;
+        }
 
-        // 같은 거래일이면 먼저 등록된 거래(id가 작은 거래)를 위에 표시
-        return a.id - b.id;
+        return dateDiff !== 0 ? -dateDiff : b.id - a.id;
       });
-  }, [data, search, startDate, endDate]);
+  }, [data, search, startDate, endDate, sortOrder]);
 
   function downloadExcel() {
     const excelRows = filteredRows.map((row) => ({
@@ -155,14 +172,18 @@ export default function CustomerSettlementManager() {
           String(row.memo || "").trim().toLowerCase().includes("반품");
 
         result.tradeCount += 1;
-        result.grossSalesAmount += totalAmount;
 
         if (isReturn) {
           result.returnAmount += Math.abs(totalAmount);
+        } else {
+          result.grossSalesAmount += totalAmount;
         }
 
         result.netSalesAmount += totalAmount;
-        result.receivableAmount += totalAmount;
+
+        if (row.settlementStatus !== "정산완료") {
+          result.receivableAmount += totalAmount;
+        }
 
         return result;
       },
@@ -242,8 +263,19 @@ export default function CustomerSettlementManager() {
         .customer-settlement-table-wrap {
           width: min(1080px, 100%);
           min-width: 0;
-          overflow: hidden;
+          max-height: clamp(260px, calc(100vh - 390px), 680px);
+          overflow-x: auto;
+          overflow-y: auto;
           margin-right: auto;
+          scrollbar-gutter: stable;
+          overscroll-behavior: contain;
+        }
+
+        .customer-settlement-table thead th {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: #f8fafc;
         }
 
         .customer-settlement-table {
@@ -416,9 +448,23 @@ export default function CustomerSettlementManager() {
           </button>
         </div>
 
-        <button onClick={downloadExcel} style={excelButtonStyle}>
-          엑셀 다운로드
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            style={sortSelectStyle}
+            aria-label="정렬 순서"
+          >
+            <option value="dateDesc">최근순서</option>
+            <option value="dateAsc">오래된순서</option>
+            <option value="inputDesc">최근 입력순</option>
+            <option value="inputAsc">오래된 입력순</option>
+          </select>
+
+          <button onClick={downloadExcel} style={excelButtonStyle}>
+            엑셀 다운로드
+          </button>
+        </div>
       </div>
 
       <div className="customer-settlement-table-wrap" style={tableWrapStyle}>
@@ -460,8 +506,25 @@ export default function CustomerSettlementManager() {
                 </td>
               </tr>
             ) : (
-              filteredRows.map((row) => (
-                <tr key={row.id} style={{ borderTop: "1px solid #e5e7eb" }}>
+              filteredRows.map((row) => {
+                const memoText = String(row.memo || "");
+                const shouldHighlightRed = [
+                  "회수반품",
+                  "회수확인",
+                  "매입",
+                  "매입처리",
+                  "반품",
+                  "회수",
+                ].some((keyword) => memoText.includes(keyword));
+
+                return (
+                <tr
+                  key={row.id}
+                  style={{
+                    borderTop: "1px solid #e5e7eb",
+                    color: shouldHighlightRed ? "#dc2626" : undefined,
+                  }}
+                >
                   <td style={centerTdStyle}>
                     {new Date(row.transactionDate).toLocaleDateString("ko-KR")}
                   </td>
@@ -478,7 +541,8 @@ export default function CustomerSettlementManager() {
                     {row.memo || "-"}
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
@@ -542,6 +606,19 @@ const toolbarStyle: React.CSSProperties = {
   marginBottom: 16,
 };
 
+
+const sortSelectStyle: React.CSSProperties = {
+  width: 128,
+  height: 36,
+  padding: "0 10px",
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  background: "#fff",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
 const excelButtonStyle: React.CSSProperties = {
   height: 42,
   padding: "0 18px",
@@ -567,8 +644,12 @@ const searchStyle: React.CSSProperties = {
 const tableWrapStyle: React.CSSProperties = {
   width: "min(1080px, 100%)",
   minWidth: 0,
-  overflow: "hidden",
+  maxHeight: "clamp(260px, calc(100vh - 390px), 680px)",
+  overflowX: "auto",
+  overflowY: "auto",
   marginRight: "auto",
+  scrollbarGutter: "stable",
+  overscrollBehavior: "contain",
   border: "1px solid #e5e7eb",
   borderRadius: 12,
   backgroundColor: "#fff",

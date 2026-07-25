@@ -93,14 +93,16 @@ export async function POST(request: Request) {
       );
     }
 
-    if (colors.length === 0) {
+    const isExcelImport = body.excelImport === true;
+
+    if (!isExcelImport && colors.length === 0) {
       return NextResponse.json(
         { message: "색상을 1개 이상 입력해주세요." },
         { status: 400 }
       );
     }
 
-    if (sizes.length === 0) {
+    if (!isExcelImport && sizes.length === 0) {
       return NextResponse.json(
         { message: "사이즈를 1개 이상 입력해주세요." },
         { status: 400 }
@@ -118,7 +120,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (productType === "BROKER" && !supplierId) {
+    if (!isExcelImport && productType === "BROKER" && !supplierId) {
       return NextResponse.json(
         { message: "중도매 상품은 1번 공급업체를 선택해주세요." },
         { status: 400 }
@@ -133,7 +135,7 @@ export async function POST(request: Request) {
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
         sizes: String(body.sizes || "").trim(),
-        cost: isAdmin ? nullableNumber(body.cost) : null,
+        cost: isExcelImport ? (nullableNumber(body.cost) ?? 0) : isAdmin ? nullableNumber(body.cost) : null,
         cost2: isAdmin ? nullableNumber(body.cost2) : null,
         cost3: isAdmin ? nullableNumber(body.cost3) : null,
         price: nullableNumber(body.price),
@@ -264,14 +266,16 @@ export async function PUT(request: Request) {
     const colors = makeList(body.colors || "");
     const sizes = makeList(body.sizes || "");
 
-    if (colors.length === 0) {
+    const isExcelImport = body.excelImport === true;
+
+    if (!isExcelImport && colors.length === 0) {
       return NextResponse.json(
         { message: "색상을 1개 이상 입력해주세요." },
         { status: 400 }
       );
     }
 
-    if (sizes.length === 0) {
+    if (!isExcelImport && sizes.length === 0) {
       return NextResponse.json(
         { message: "사이즈를 1개 이상 입력해주세요." },
         { status: 400 }
@@ -289,7 +293,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (productType === "BROKER" && !supplierId) {
+    if (!isExcelImport && productType === "BROKER" && !supplierId) {
       return NextResponse.json(
         { message: "중도매 상품은 1번 공급업체를 선택해주세요." },
         { status: 400 }
@@ -354,7 +358,7 @@ export async function PUT(request: Request) {
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
         sizes: String(body.sizes || "").trim(),
-        cost: isAdmin ? nullableNumber(body.cost) : existingProduct.cost,
+        cost: isExcelImport ? (nullableNumber(body.cost) ?? 0) : isAdmin ? nullableNumber(body.cost) : existingProduct.cost,
         cost2: isAdmin ? nullableNumber(body.cost2) : existingProduct.cost2,
         cost3: isAdmin ? nullableNumber(body.cost3) : existingProduct.cost3,
         price: nullableNumber(body.price),

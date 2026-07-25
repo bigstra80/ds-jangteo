@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 
 type ProductSku = {
   id: number;
@@ -42,6 +43,38 @@ type Product = {
   supplier3: Supplier | null;
   skus: ProductSku[];
 };
+
+
+
+type ProductExcelRow = {
+  상품코드?: unknown;
+  상품명?: unknown;
+  공급업체?: unknown;
+  단가?: unknown;
+  색상?: unknown;
+  사이즈?: unknown;
+  판매가?: unknown;
+  브랜드?: unknown;
+  카테고리?: unknown;
+  이미지URL?: unknown;
+  상품유형?: unknown;
+};
+
+function excelText(value: unknown) {
+  return value === null || value === undefined ? "" : String(value).trim();
+}
+
+function excelNumber(value: unknown) {
+  const text = excelText(value).replace(/,/g, "");
+  if (!text) return "";
+  const number = Number(text);
+  return Number.isFinite(number) ? String(Math.round(number * 10) / 10) : "";
+}
+
+function supplierCodeFromProductCode(productCode: string) {
+  const matched = productCode.trim().toUpperCase().match(/^([A-Z]{2})(?=\d)/);
+  return matched?.[1] || "";
+}
 
 type ProductForm = {
   code: string;
@@ -116,6 +149,8 @@ export default function ProductManager() {
   const [inlineSupplierDrafts, setInlineSupplierDrafts] = useState<Record<number, string>>({});
   const [inlineCostDrafts, setInlineCostDrafts] = useState<Record<number, string>>({});
   const [inlineSavingId, setInlineSavingId] = useState<number | null>(null);
+  const [importingExcel, setImportingExcel] = useState(false);
+  const excelInputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadProducts() {
     try {
@@ -150,6 +185,207 @@ export default function ProductManager() {
     } catch (error) {
       console.error(error);
       setSuppliers([]);
+    }
+  }
+
+  function downloadProductExcel() {
+    const rows = products.length
+      ? products.map((product) => ({
+          상품코드: product.code,
+          상품명: product.name,
+          공급업체: product.supplier?.name || "",
+          단가: product.cost ?? "",
+          색상: product.colors || "",
+          사이즈: product.sizes || "",
+          판매가: product.price ?? "",
+          브랜드: product.brand || "",
+          카테고리: product.category || "",
+          이미지URL: product.imageUrl || "",
+          상품유형: product.productType === "BROKER" ? "중도매" : "직접",
+        }))
+      : [
+          {
+            상품코드: "A0001",
+            상품명: "예시 상품",
+            공급업체: "예시 공급업체",
+            단가: 1.5,
+            색상: "블랙,화이트",
+            사이즈: "M,L,XL",
+            판매가: "",
+            브랜드: "",
+            카테고리: "",
+            이미지URL: "",
+            상품유형: "직접",
+          },
+        ];
+
+    const guideRows = [
+      { 항목: "필수", 설명: "상품코드, 상품명" },
+      { 항목: "선택 항목", 설명: "공급업체, 단가, 색상, 사이즈 등 나머지 컬럼은 없어도 등록됩니다." },
+      { 항목: "기본값", 설명: "공급업체·색상·사이즈는 빈칸, 단가는 0으로 등록되며 상품관리에서 수정할 수 있습니다." },
+      { 항목: "공급업체", 설명: "기존 업체명 또는 업체코드를 입력합니다. 없는 업체는 자동 등록됩니다." },
+      { 항목: "상품유형", 설명: "직접 또는 중도매를 입력합니다. 비워두면 직접으로 등록됩니다." },
+      { 항목: "재업로드", 설명: "같은 상품코드가 있으면 해당 상품을 수정하고, 없으면 새 상품으로 등록합니다." },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    const productSheet = XLSX.utils.json_to_sheet(rows);
+    const guideSheet = XLSX.utils.json_to_sheet(guideRows);
+    productSheet["!cols"] = [
+      { wch: 16 }, { wch: 30 }, { wch: 18 }, { wch: 10 }, { wch: 22 },
+      { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 40 }, { wch: 12 },
+    ];
+    guideSheet["!cols"] = [{ wch: 16 }, { wch: 80 }];
+    XLSX.utils.book_append_sheet(workbook, productSheet, "상품목록");
+    XLSX.utils.book_append_sheet(workbook, guideSheet, "작성방법");
+    XLSX.writeFile(workbook, "상품등록_양식.xlsx");
+  }
+
+  async function findOrCreateSupplierId(nameOrCode: string) {
+    const keyword = nameOrCode.trim();
+    if (!keyword) return "";
+
+    const matched = suppliers.find(
+      (supplier) =>
+        supplier.name.trim().toLowerCase() === keyword.toLowerCase() ||
+        supplier.code.trim().toLowerCase() === keyword.toLowerCase()
+    );
+    if (matched) return String(matched.id);
+
+    const response = await fetch("/api/suppliers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: keyword,
+        name: keyword,
+        businessNumber: "",
+        representative: "",
+        phone: "",
+        email: "",
+        address: "",
+        contactName: "",
+        contactPhone: "",
+        bankName: "",
+        bankAccount: "",
+        accountHolder: "",
+        memo: "",
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || `${keyword} 공급업체 등록 실패`);
+    return String(result.id);
+  }
+
+  async function uploadProductExcel(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      setImportingExcel(true);
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<ProductExcelRow>(firstSheet, { defval: "" });
+
+      if (rows.length === 0) {
+        alert("엑셀에 등록할 상품이 없습니다.");
+        return;
+      }
+
+      const validRows = rows.filter((row) => excelText(row.상품코드) || excelText(row.상품명));
+      const errors: string[] = [];
+      validRows.forEach((row, index) => {
+        const missing = [
+          ["상품코드", excelText(row.상품코드)],
+          ["상품명", excelText(row.상품명)],
+        ].filter(([, value]) => !value).map(([label]) => label);
+        if (missing.length) errors.push(`${index + 2}행: ${missing.join(", ")} 누락`);
+      });
+
+      if (errors.length) {
+        alert(`엑셀 내용을 확인해주세요.\n\n${errors.slice(0, 10).join("\n")}${errors.length > 10 ? "\n..." : ""}`);
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `${validRows.length}개 상품을 업로드합니다.\n같은 상품코드는 기존 상품을 수정합니다. 진행할까요?`
+      );
+      if (!confirmed) return;
+
+      const supplierCache = new Map<string, string>();
+      const productMap = new Map(products.map((product) => [product.code.trim().toLowerCase(), product]));
+      let created = 0;
+      let updated = 0;
+      const failed: string[] = [];
+
+      for (let index = 0; index < validRows.length; index += 1) {
+        const row = validRows[index];
+        const code = excelText(row.상품코드);
+        try {
+          const supplierText = excelText(row.공급업체) || supplierCodeFromProductCode(code);
+          let supplierId = "";
+          if (supplierText) {
+            const cacheKey = supplierText.toLowerCase();
+            supplierId = supplierCache.get(cacheKey) || "";
+            if (!supplierId) {
+              supplierId = await findOrCreateSupplierId(supplierText);
+              supplierCache.set(cacheKey, supplierId);
+            }
+          }
+
+          const existing = productMap.get(code.toLowerCase());
+          const payload = {
+            id: existing?.id,
+            code,
+            name: excelText(row.상품명),
+            brand: excelText(row.브랜드),
+            category: excelText(row.카테고리),
+            colors: excelText(row.색상),
+            sizes: excelText(row.사이즈),
+            cost: excelNumber(row.단가) || "0",
+            cost2: existing?.cost2 == null ? "" : String(existing.cost2),
+            cost3: existing?.cost3 == null ? "" : String(existing.cost3),
+            price: excelNumber(row.판매가),
+            imageUrl: excelText(row.이미지URL),
+            productType: excelText(row.상품유형).includes("중도매") ? "BROKER" : "DIRECT",
+            supplierId,
+            supplier2Id: existing?.supplier2Id ? String(existing.supplier2Id) : "",
+            supplier3Id: existing?.supplier3Id ? String(existing.supplier3Id) : "",
+            sourceProductName: existing?.sourceProductName || "",
+            bandPostId: existing?.bandPostId || "",
+            bandPostUrl: existing?.bandPostUrl || "",
+            isBandImported: Boolean(existing?.isBandImported),
+            excelImport: true,
+          };
+
+          const response = await fetch("/api/product", {
+            method: existing ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || "상품 저장 실패");
+          if (existing) updated += 1;
+          else {
+            created += 1;
+            productMap.set(code.toLowerCase(), result);
+          }
+        } catch (error) {
+          failed.push(`${index + 2}행 ${code}: ${error instanceof Error ? error.message : "등록 실패"}`);
+        }
+      }
+
+      await Promise.all([loadProducts(), loadSuppliers()]);
+      alert(
+        `엑셀 업로드가 완료되었습니다.\n신규 등록: ${created}개\n수정: ${updated}개\n실패: ${failed.length}개` +
+          (failed.length ? `\n\n${failed.slice(0, 10).join("\n")}` : "")
+      );
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "엑셀 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setImportingExcel(false);
     }
   }
 
@@ -264,10 +500,54 @@ export default function ProductManager() {
     field: keyof ProductForm,
     value: string | boolean
   ) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setForm((current) => {
+      const next = {
+        ...current,
+        [field]: value,
+      } as ProductForm;
+
+      // 상품코드가 영문 대문자 2자리 + 숫자로 시작하면 해당 업체를 공급업체 1로 자동 선택합니다.
+      if (field === "code" && typeof value === "string") {
+        const supplierCode = supplierCodeFromProductCode(value);
+        const matchedSupplier = suppliers.find(
+          (supplier) => supplier.code.trim().toUpperCase() === supplierCode
+        );
+        if (matchedSupplier && !current.supplierId) {
+          next.supplierId = String(matchedSupplier.id);
+        }
+      }
+
+      return next;
+    });
+  }
+
+  function changePrimarySupplier(nextSupplierId: string) {
+    setForm((current) => {
+      if (nextSupplierId === current.supplier2Id) {
+        return {
+          ...current,
+          supplierId: current.supplier2Id,
+          cost: current.cost2,
+          supplier2Id: current.supplierId,
+          cost2: current.cost,
+        };
+      }
+
+      if (nextSupplierId === current.supplier3Id) {
+        return {
+          ...current,
+          supplierId: current.supplier3Id,
+          cost: current.cost3,
+          supplier3Id: current.supplierId,
+          cost3: current.cost,
+        };
+      }
+
+      return {
+        ...current,
+        supplierId: nextSupplierId,
+      };
+    });
   }
 
   async function uploadImage(file: File) {
@@ -325,6 +605,14 @@ export default function ProductManager() {
     try {
       setSaving(true);
 
+      let resolvedSupplierId = form.supplierId;
+      if (!resolvedSupplierId) {
+        const supplierCode = supplierCodeFromProductCode(form.code);
+        if (supplierCode) {
+          resolvedSupplierId = await findOrCreateSupplierId(supplierCode);
+        }
+      }
+
       const response = await fetch("/api/product", {
         method: editingId ? "PUT" : "POST",
         headers: {
@@ -333,6 +621,7 @@ export default function ProductManager() {
         body: JSON.stringify({
           id: editingId,
           ...form,
+          supplierId: resolvedSupplierId,
         }),
       });
 
@@ -1017,6 +1306,45 @@ export default function ProductManager() {
             >
               {showProductForm ? "닫기" : "+ 상품등록"}
             </button>
+
+            <button
+              type="button"
+              onClick={downloadProductExcel}
+              style={{
+  ...secondaryButtonStyle,
+  backgroundColor: "#16a34a",
+  color: "#ffffff",
+  border: "none",
+}}
+              className="pm-excel-button"
+            >
+              엑셀 다운로드
+            </button>
+
+            <button
+              type="button"
+              onClick={() => excelInputRef.current?.click()}
+              disabled={importingExcel}
+              style={{
+  ...secondaryButtonStyle,
+  backgroundColor: "#ef4444",
+  color: "#ffffff",
+  border: "none",
+  opacity: importingExcel ? 0.65 : 1,
+  cursor: importingExcel ? "not-allowed" : "pointer",
+}}
+              className="pm-excel-button"
+            >
+              {importingExcel ? "업로드 중..." : "엑셀 업로드"}
+            </button>
+
+            <input
+              ref={excelInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={uploadProductExcel}
+              style={{ display: "none" }}
+            />
           </div>
 
           <p style={subtitleStyle}>
@@ -1125,7 +1453,7 @@ export default function ProductManager() {
                 <span style={fieldLabelStyle}>공급업체 1</span>
                 <select
                   value={form.supplierId}
-                  onChange={(event) => updateForm("supplierId", event.target.value)}
+                  onChange={(event) => changePrimarySupplier(event.target.value)}
                   style={inputStyle}
                 >
                   <option value="">공급업체 선택</option>
@@ -1233,17 +1561,10 @@ export default function ProductManager() {
               />
 
               <Field
-                label="밴드 게시글 ID"
-                value={form.bandPostId}
-                onChange={(value) => updateForm("bandPostId", value)}
-                placeholder="자동 연동 시 저장"
-              />
-
-              <Field
-                label="밴드 게시글 주소"
+                label="밴드 원본 게시글 주소"
                 value={form.bandPostUrl}
                 onChange={(value) => updateForm("bandPostUrl", value)}
-                placeholder="https://band.us/..."
+                placeholder="밴드에서 가져오면 자동으로 저장됩니다"
               />
 
               <label

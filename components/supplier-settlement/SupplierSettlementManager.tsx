@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 
+type SortOrder = "dateDesc" | "dateAsc" | "inputDesc" | "inputAsc";
+
 type LedgerDetail = {
   id: number;
   transactionDate: string;
@@ -54,6 +56,7 @@ export default function SupplierSettlementManager() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
   const [isAdmin, setIsAdmin] = useState(false);
 
   async function loadCurrentUser() {
@@ -122,16 +125,20 @@ export default function SupplierSettlementManager() {
           .includes(keyword);
       })
       .sort((a, b) => {
+        if (sortOrder === "inputDesc") return b.id - a.id;
+        if (sortOrder === "inputAsc") return a.id - b.id;
+
         const dateDiff =
           new Date(a.transactionDate).getTime() -
           new Date(b.transactionDate).getTime();
 
-        if (dateDiff !== 0) return dateDiff;
+        if (sortOrder === "dateAsc") {
+          return dateDiff !== 0 ? dateDiff : a.id - b.id;
+        }
 
-        // 같은 거래일이면 먼저 등록된 거래(id가 작은 거래)를 위에 표시
-        return a.id - b.id;
+        return dateDiff !== 0 ? -dateDiff : b.id - a.id;
       });
-  }, [data, search, startDate, endDate]);
+  }, [data, search, startDate, endDate, sortOrder]);
 
   function downloadExcel() {
     const excelRows = filteredRows.map((row) => ({
@@ -196,6 +203,22 @@ export default function SupplierSettlementManager() {
 
   return (
     <div style={{ width: "100%" }}>
+      <style jsx global>{`
+        .supplier-settlement-table-wrap {
+          max-height: clamp(260px, calc(100vh - 390px), 680px);
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          scrollbar-gutter: stable;
+          overscroll-behavior: contain;
+        }
+
+        .supplier-settlement-table-wrap thead th {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: #f8fafc;
+        }
+      `}</style>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ marginBottom: 8 }}>📕 공급업체 정산</h1>
         <p style={{ margin: 0, color: "#6b7280" }}>
@@ -267,26 +290,40 @@ export default function SupplierSettlementManager() {
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={downloadExcel}
-          style={excelButtonStyle}
-        >
-          엑셀 다운로드
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            style={sortSelectStyle}
+            aria-label="정렬 순서"
+          >
+            <option value="dateDesc">최근순서</option>
+            <option value="dateAsc">오래된순서</option>
+            <option value="inputDesc">최근 입력순</option>
+            <option value="inputAsc">오래된 입력순</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={downloadExcel}
+            style={excelButtonStyle}
+          >
+            엑셀 다운로드
+          </button>
+        </div>
       </div>
 
-      <div style={tableWrapStyle}>
+      <div style={tableWrapStyle} className="supplier-settlement-table-wrap">
         <table style={tableStyle}>
           <colgroup>
-            <col style={{ width: 92 }} />
-            <col style={{ width: 82 }} />
-            <col style={{ width: 205 }} />
-            <col style={{ width: 95 }} />
-            <col style={{ width: 48 }} />
-            <col style={{ width: 76 }} />
-            <col style={{ width: 105 }} />
-            <col style={{ width: 132 }} />
+            <col style={{ width: 100 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 280 }} />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 60 }} />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 180 }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
@@ -462,6 +499,19 @@ const dateResetButtonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+
+const sortSelectStyle: React.CSSProperties = {
+  width: 128,
+  height: 36,
+  padding: "0 10px",
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  background: "#fff",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
 const excelButtonStyle: React.CSSProperties = {
   height: 42,
   padding: "0 18px",
@@ -485,10 +535,14 @@ const searchStyle: React.CSSProperties = {
 };
 
 const tableWrapStyle: React.CSSProperties = {
-  width: "min(835px, 100%)",
+  width: "min(1080px, 100%)",
   minWidth: 0,
-  overflow: "hidden",
+  maxHeight: "clamp(260px, calc(100vh - 390px), 680px)",
+  overflowX: "auto",
+  overflowY: "auto",
   marginRight: "auto",
+  scrollbarGutter: "stable",
+  overscrollBehavior: "contain",
   border: "1px solid #e5e7eb",
   borderRadius: 12,
   backgroundColor: "#fff",
@@ -496,15 +550,15 @@ const tableWrapStyle: React.CSSProperties = {
 
 const tableStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: 835,
+  maxWidth: 1080,
   minWidth: 0,
   borderCollapse: "collapse",
   tableLayout: "fixed",
 };
 
 const thStyle: React.CSSProperties = {
-  padding: "7px 2px",
-  fontSize: 12,
+  padding: "7px 4px",
+  fontSize: 11,
   whiteSpace: "nowrap",
   verticalAlign: "middle",
   borderBottom: "1px solid #e5e7eb",
@@ -526,7 +580,7 @@ const rightThStyle: React.CSSProperties = {
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "9px 4px",
+  padding: "12px 10px",
   fontSize: 14,
   verticalAlign: "middle",
   lineHeight: 1.45,

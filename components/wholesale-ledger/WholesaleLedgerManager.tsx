@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type LedgerRow = {
   id: number;
@@ -17,6 +18,8 @@ type LedgerRow = {
   settlementStatus: string;
   memo: string | null;
 };
+
+type SortOrder = "dateDesc" | "dateAsc" | "inputDesc" | "inputAsc";
 
 type FormState = {
   transactionDate: string;
@@ -290,6 +293,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   const [inlineSavingId, setInlineSavingId] = useState<number | null>(null);
   const [inlineEdits, setInlineEdits] = useState<Record<number, {
     saleAmount: string;
@@ -299,6 +303,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [keyword, setKeyword] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
 
   const [productOptions, setProductOptions] = useState<SearchOption[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<SearchOption[]>([]);
@@ -315,7 +320,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setLoading(true);
 
     try {
-      const response = await fetch("/api/wholesale-ledger", {
+      const response = await fetch(`/api/wholesale-ledger?ts=${Date.now()}`, {
         cache: "no-store",
       });
       const data = await response.json();
@@ -324,7 +329,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         throw new Error(data.error || "목록 조회 실패");
       }
 
-      const nextRows = data.rows || [];
+      const nextRows = [...(data.rows || [])].sort(
+  (a, b) => Number(b.id || 0) - Number(a.id || 0)
+);
       setRows(nextRows);
       setInlineEdits((current) => {
         const next = { ...current };
@@ -367,7 +374,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const filteredRows = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
-    return rows.filter((row) => {
+    const nextRows = rows.filter((row) => {
       const rowDate = new Date(row.transactionDate);
 
       if (Number.isNaN(rowDate.getTime())) return false;
@@ -394,7 +401,22 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         row.memo || "",
       ].some((value) => value.toLowerCase().includes(normalizedKeyword));
     });
-  }, [rows, keyword, startDate, endDate]);
+
+    return nextRows.sort((a, b) => {
+      if (sortOrder === "inputDesc") return b.id - a.id;
+      if (sortOrder === "inputAsc") return a.id - b.id;
+
+      const dateDiff =
+        new Date(a.transactionDate).getTime() -
+        new Date(b.transactionDate).getTime();
+
+      if (sortOrder === "dateAsc") {
+        return dateDiff !== 0 ? dateDiff : a.id - b.id;
+      }
+
+      return dateDiff !== 0 ? -dateDiff : b.id - a.id;
+    });
+  }, [rows, keyword, startDate, endDate, sortOrder]);
 
   const summary = useMemo(() => {
     return filteredRows.reduce(
@@ -573,8 +595,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setProductCode("");
   }
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  async function saveTransaction() {
+    if (saving) return;
 
     if (!form.productName.trim()) {
       alert("상품을 선택하거나 입력해주세요.");
@@ -582,31 +604,81 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     }
 
     setSaving(true);
+    setSaveMessage("저장 중...");
 
     try {
-      const url = editingId
+      const editing = editingId !== null;
+      const url = editing
         ? `/api/wholesale-ledger/${editingId}`
         : "/api/wholesale-ledger";
 
       const response = await fetch(url, {
-        method: editingId ? "PUT" : "POST",
+        method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify(form),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "저장 실패");
+      const rawText = await response.text();
+      let data: any = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
       }
 
-      cancelEdit();
-      await loadRows();
+      if (!response.ok) {
+        throw new Error(data?.error || rawText || `저장 실패 (${response.status})`);
+      }
+
+      const savedRow = (data?.row ?? data?.savedRow ?? data) as LedgerRow;
+
+      if (savedRow && Number.isFinite(Number(savedRow.id))) {
+        setRows((currentRows) => {
+          const rowsWithoutSaved = currentRows.filter(
+            (item) => item.id !== savedRow.id
+          );
+
+          return [savedRow, ...rowsWithoutSaved].sort(
+            (a, b) => Number(b.id || 0) - Number(a.id || 0)
+          );
+        });
+
+        setInlineEdits((current) => ({
+          ...current,
+          [savedRow.id]: {
+            saleAmount: String(savedRow.saleAmount ?? 0),
+            shippingFee: String(savedRow.shippingFee ?? 0),
+            memo: savedRow.memo || "",
+          },
+        }));
+      } else {
+        await loadRows();
+      }
+
+      setSaveMessage(editing ? "수정 완료" : "거래 저장 완료");
+      setEditingId(null);
+      setForm(emptyForm());
+      setProductCode("");
+      setSelectedProductSuppliers([]);
+      setSelectedUnitCost(0);
+      setSelectedProductId("");
+      setSelectedDeliveryCustomerId("");
+      setSelectedCustomerUnitPrice(0);
+      setSaleUnitPriceInput("");
+      setSaving(false);
     } catch (error) {
-      alert(error instanceof Error ? error.message : "저장하지 못했습니다.");
-    } finally {
+      console.error("거래 저장 오류:", error);
+      const message = error instanceof Error ? error.message : "저장하지 못했습니다.";
+      setSaveMessage(`저장 실패: ${message}`);
+      alert(message);
       setSaving(false);
     }
+  }
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    void saveTransaction();
   }
 
   function changeInlineEdit(
@@ -691,96 +763,82 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     <div style={pageStyle}>
       <style>{`
         .wl-two-column-layout {
-          display: grid;
-          grid-template-columns: minmax(470px, 40%) minmax(0, 60%);
-          gap: 20px;
-          align-items: start;
+          display: block;
+          width: 100%;
         }
 
         .wl-left-pane,
         .wl-right-pane {
           min-width: 0;
-        }
-
-        .wl-left-pane .wl-form-grid {
-          max-width: none !important;
-          width: 100% !important;
+          width: 100%;
         }
 
         .wl-left-pane form {
+          display: flex;
+          align-items: flex-end;
+          gap: 10px;
           width: 100%;
+          overflow-x: auto !important;
+          overflow-y: visible !important;
+          padding: 10px 10px 8px !important;
+          scrollbar-gutter: stable;
         }
 
         .wl-left-pane .wl-form-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        }
-
-        .wl-left-pane > form > div:last-child {
-          max-width: none !important;
-        }
-
-        .wl-right-pane .wl-toolbar {
-          max-width: 100% !important;
-          margin-top: 0 !important;
-        }
-
-        .wl-right-pane .wl-toolbar > input {
-          flex: 1 1 auto !important;
+          flex: 0 0 auto;
+          display: grid !important;
+          grid-template-columns: 110px 110px 88px 98px 125px 105px !important;
+          grid-template-rows: repeat(4, auto) !important;
+          gap: 6px !important;
+          align-items: end !important;
           width: auto !important;
           max-width: none !important;
+          min-width: 666px !important;
         }
 
-        .wl-right-pane {
-          align-self: start;
-        }
-
-        .wl-right-pane .wl-table-wrap {
-          width: 100%;
-          overflow-x: auto !important;
-          overflow-y: scroll !important;
-          max-height: 520px !important;
-          height: 520px !important;
-          scrollbar-gutter: stable both-edges;
-          overscroll-behavior: contain;
-        }
-
-        .wl-right-pane .wl-table-wrap::-webkit-scrollbar {
-          width: 12px;
-        }
-
-        .wl-right-pane .wl-table-wrap::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 10px;
-        }
-
-        .wl-right-pane .wl-table-wrap::-webkit-scrollbar-thumb {
-          background: #94a3b8;
-          border-radius: 10px;
-          border: 3px solid #f1f5f9;
-        }
-
-        .wl-right-pane .wl-table-wrap::-webkit-scrollbar-thumb:hover {
-          background: #64748b;
-        }
-
-        .wl-table-wrap thead th {
-          position: sticky !important;
-          top: 0 !important;
-          z-index: 5;
-          background: #f8fafc !important;
-        }
-
-        .wl-form-grid {
-          display: grid !important;
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          gap: 18px 12px !important;
-          align-items: end !important;
-          width: 100% !important;
-          max-width: 760px !important;
-        }
+        /*
+          1줄: 날짜
+          2줄: 상품번호 / 상품
+          3줄: 공급업체 / 단가 / 수량
+          4줄: 납품업체 / 판매금액 / 배송비 / 고객이름 / 전화번호 / 메모
+        */
+        .wl-form-grid > label:nth-child(1)  { grid-row: 1; grid-column: 1; }
+        .wl-form-grid > label:nth-child(2)  { grid-row: 2; grid-column: 1; }
+        .wl-form-grid > label:nth-child(4)  { grid-row: 2; grid-column: 2 / span 2; }
+        .wl-form-grid > label:nth-child(5)  { grid-row: 3; grid-column: 1; }
+        .wl-form-grid > label:nth-child(7)  { grid-row: 3; grid-column: 2; }
+        .wl-form-grid > label:nth-child(3)  { grid-row: 3; grid-column: 3; }
+        .wl-form-grid > label:nth-child(6)  { grid-row: 4; grid-column: 1; }
+        .wl-form-grid > label:nth-child(8)  { grid-row: 4; grid-column: 2; }
+        .wl-form-grid > label:nth-child(9)  { grid-row: 4; grid-column: 3; }
+        .wl-form-grid > label:nth-child(10) { grid-row: 4; grid-column: 4; }
+        .wl-form-grid > label:nth-child(11) { grid-row: 4; grid-column: 5; }
+        .wl-form-grid > label:nth-child(12) { grid-row: 4; grid-column: 6; }
 
         .wl-form-grid > label {
           min-width: 0 !important;
+          gap: 4px !important;
+        }
+
+        .wl-form-grid > label > span:first-child {
+          font-size: 11px !important;
+          line-height: 1.15 !important;
+        }
+
+        .wl-form-grid [style*="display: flex"][style*="border: 1px solid rgb(147, 197, 253)"],
+        .wl-form-grid .wl-search-drop-button {
+          min-height: 34px !important;
+          height: 34px !important;
+          box-sizing: border-box !important;
+        }
+
+        .wl-form-grid .wl-search-drop-button {
+          width: 28px !important;
+          min-width: 28px !important;
+          flex: 0 0 28px !important;
+          padding: 0 !important;
+          font-size: 10px !important;
+          line-height: 1 !important;
         }
 
         .wl-form-grid input,
@@ -788,97 +846,140 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         .wl-form-grid button:not(.wl-search-drop-button) {
           width: 100% !important;
           max-width: 100% !important;
+          min-width: 0 !important;
           box-sizing: border-box !important;
-          font-size: 14px !important;
+          font-size: 12px !important;
         }
 
-        .wl-toolbar {
+        .wl-form-grid input {
+          min-height: 34px !important;
+          height: 34px !important;
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+
+        .wl-left-pane form > div:last-child {
+          flex: 0 0 auto;
           display: flex !important;
-          gap: 10px !important;
-          align-items: center !important;
-          justify-content: flex-start !important;
-          max-width: 760px !important;
-        }
-
-        .wl-toolbar > input {
-          flex: 0 1 560px !important;
-          width: min(560px, 100%) !important;
-        }
-
-        .wl-toolbar select {
-          flex: 0 0 130px !important;
-          width: 130px !important;
-        }
-
-        .wl-table-wrap table {
-          font-size: clamp(10px, 0.75vw, 13px) !important;
-        }
-
-        .wl-table-wrap th,
-        .wl-table-wrap td {
-          padding-left: clamp(4px, 0.45vw, 7px) !important;
-          padding-right: clamp(4px, 0.45vw, 7px) !important;
-        }
-
-        .wl-product-name-cell {
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          white-space: nowrap !important;
-          max-width: 0 !important;
-        }
-
-        .wl-list-only-table th,
-        .wl-list-only-table td {
-          padding-left: 4px !important;
-          padding-right: 4px !important;
-        }
-
-        .wl-list-only-table .wl-product-name-cell {
-          white-space: normal !important;
-          overflow: visible !important;
-          text-overflow: clip !important;
+          align-items: flex-end !important;
+          gap: 6px !important;
+          width: auto !important;
           max-width: none !important;
-          overflow-wrap: anywhere !important;
-          word-break: keep-all !important;
-          line-height: 1.35 !important;
+          margin: 0 0 1px 0 !important;
         }
 
-        .wl-date-cell {
-          font-size: 10px !important;
-          letter-spacing: -0.2px !important;
-          white-space: nowrap !important;
-        }
-
-        .wl-compact-ledger-table th,
-        .wl-compact-ledger-table td {
-          padding: 7px 5px !important;
+        .wl-left-pane form > div:last-child button {
+          min-width: 78px;
+          min-height: 34px;
+          height: 34px;
+          padding: 6px 10px !important;
+          white-space: nowrap;
           font-size: 11px !important;
+          border-radius: 8px !important;
         }
 
-        .wl-compact-ledger-table .wl-product-name-cell {
-          font-size: 11px !important;
+        .wl-right-pane {
+          margin-top: 18px;
+        }
+
+        .wl-right-pane .wl-toolbar {
+          max-width: 100% !important;
+        }
+
+        .wl-right-pane .wl-table-wrap,
+        .wl-list-only-pane .wl-table-wrap {
+          width: fit-content;
+          max-width: 100%;
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          max-height: clamp(280px, calc(100vh - 250px), 760px) !important;
+          height: clamp(280px, calc(100vh - 250px), 760px) !important;
+          scrollbar-gutter: stable both-edges;
+          overscroll-behavior: contain;
+        }
+
+        .wl-list-only-pane .wl-table-wrap {
+          max-height: clamp(300px, calc(100vh - 245px), 820px) !important;
+          height: clamp(300px, calc(100vh - 245px), 820px) !important;
+        }
+
+        .wl-right-pane .wl-table-wrap thead th,
+        .wl-list-only-pane .wl-table-wrap thead th {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          background: #f8fafc;
         }
 
         .wl-compact-ledger-table button {
-          padding: 5px 7px !important;
+          padding: 3px 6px !important;
+          min-height: 26px !important;
           font-size: 11px !important;
+          border-radius: 6px !important;
+        }
+
+        .wl-compact-ledger-table th {
+          padding: 5px 4px !important;
+          font-size: 12px !important;
+          line-height: 1.2 !important;
+        }
+
+        .wl-compact-ledger-table td {
+          padding: 3px 4px !important;
+          font-size: 12px !important;
+          line-height: 1.2 !important;
+          height: 30px !important;
+        }
+
+        .wl-compact-ledger-table .wl-product-name-cell {
+          font-size: 12px !important;
+          line-height: 1.2 !important;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+
+        /* 전체 거래내역: 거래처 정산·미수 내역과 같은 보기 좋은 크기 */
+        .wl-list-only-table {
+          width: 1080px !important;
+          min-width: 1080px !important;
+        }
+
+        .wl-list-only-table th {
+          padding: 7px 4px !important;
+          font-size: 13px !important;
+          line-height: 1.25 !important;
+        }
+
+        .wl-list-only-table td {
+          padding: 12px 10px !important;
+          font-size: 14px !important;
+          line-height: 1.35 !important;
+          height: 45px !important;
+        }
+
+        .wl-list-only-table .wl-product-name-cell {
+          font-size: 14px !important;
+          line-height: 1.35 !important;
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: clip !important;
         }
 
         .wl-inline-input {
           width: 100%;
           min-width: 0;
-          height: 30px;
-          padding: 4px 6px;
+          height: 25px;
+          padding: 1px 4px;
           border: 1px solid #cbd5e1;
           border-radius: 6px;
           box-sizing: border-box;
           font-size: 11px;
+          line-height: 1;
           background: #fff;
         }
 
-        .wl-inline-money {
-          text-align: right;
-        }
+        .wl-inline-money { text-align: right; }
 
         .wl-return-row,
         .wl-return-row td,
@@ -886,41 +987,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           color: #dc2626 !important;
         }
 
-        @media (max-width: 1180px) {
-          .wl-two-column-layout {
-            grid-template-columns: 1fr;
+        @media (max-width: 900px) {
+          .wl-left-pane form {
+            padding-bottom: 12px !important;
           }
 
-          .wl-right-pane {
-            margin-top: 0;
-          }
-        }
-
-        @media (max-width: 1100px) {
-          .wl-form-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-        }
-
-        @media (max-width: 760px) {
-          .wl-form-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .wl-toolbar {
-            flex-direction: column !important;
-            max-width: 100% !important;
-          }
-
-          .wl-toolbar > * {
-            width: 100% !important;
-            min-width: 0 !important;
-            flex: 1 1 auto !important;
-          }
-
-          .wl-table-wrap {
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch;
+          .wl-right-pane .wl-toolbar {
+            align-items: stretch !important;
           }
         }
       `}</style>
@@ -975,8 +1048,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
           <Field label="수량">
             <input
-              type="number"
-              step="1"
+              type="text"
+              inputMode="numeric"
               placeholder="예: 1 / 반품은 -1"
               title="반품 거래는 수량을 음수로 입력하세요. 예: -1"
               value={form.quantity}
@@ -995,13 +1068,15 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   }
                 }
 
-                if (selectedCustomerUnitPrice > 0) {
-                  if (Number.isFinite(parsedQuantity) && parsedQuantity !== 0) {
-                    changeForm(
-                      "saleAmount",
-                      String(selectedCustomerUnitPrice * parsedQuantity)
-                    );
-                  }
+                if (saleUnitPriceInput !== "") {
+                  const safeQuantity = Number.isFinite(parsedQuantity)
+                    ? parsedQuantity
+                    : 0;
+                  const unitPrice = Number(parseWonInput(saleUnitPriceInput || "0"));
+                  changeForm(
+                    "saleAmount",
+                    String((Number.isFinite(unitPrice) ? unitPrice : 0) * safeQuantity)
+                  );
                 }
               }}
               style={inputStyle}
@@ -1120,7 +1195,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="판매단가">
+          <Field
+            label={
+              <span style={{ color: "#2563eb" }}>
+                판매금액: {money(Number(form.saleAmount) || 0)}
+              </span>
+            }
+          >
             <div>
               <WonInput
                 value={saleUnitPriceInput}
@@ -1137,9 +1218,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 }}
                 placeholder="1개 가격 입력"
               />
-              <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#2563eb" }}>
-                판매금액: {money(Number(form.saleAmount) || 0)}
-              </div>
             </div>
           </Field>
 
@@ -1147,8 +1225,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <WonInput
               value={form.shippingFee}
               onChange={(value) => changeForm("shippingFee", value)}
-              placeholder="직접 입력 또는 목록 선택"
-              suggestions={["0", "0.4", "0.7"]}
+              placeholder="직접 입력"
             />
           </Field>
 
@@ -1159,15 +1236,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               placeholder="고객 이름"
               style={inputStyle}
               autoComplete="off"
-            />
-          </Field>
-
-          <Field label="메모">
-            <input
-              value={form.memo}
-              onChange={(e) => changeForm("memo", e.target.value)}
-              placeholder="선택"
-              style={inputStyle}
             />
           </Field>
 
@@ -1182,6 +1250,15 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
+          <Field label="메모">
+            <input
+              value={form.memo}
+              onChange={(e) => changeForm("memo", e.target.value)}
+              placeholder="선택"
+              style={inputStyle}
+            />
+          </Field>
+
 
         </div>
 
@@ -1191,15 +1268,31 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               수정 취소
             </button>
           )}
-          <button type="submit" disabled={saving} style={saveButtonStyle}>
+          <button
+            type="submit"
+            disabled={saving}
+            style={saveButtonStyle}
+          >
             {saving ? "저장 중..." : editingId ? "수정 저장" : "거래 저장"}
           </button>
+          {saveMessage && (
+            <span
+              style={{
+                fontSize: "12px",
+                fontWeight: 700,
+                color: saveMessage.startsWith("저장 실패") ? "#dc2626" : "#2563eb",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {saveMessage}
+            </span>
+          )}
         </div>
       </form>
         </div>
         )}
 
-        <div className={listOnly ? "" : "wl-right-pane"}>
+        <div className={listOnly ? "wl-list-only-pane" : "wl-right-pane"}>
       <div style={toolbarStyle} className="wl-toolbar">
         <input
           value={keyword}
@@ -1242,37 +1335,49 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             날짜 초기화
           </button>
         </div>
+
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+          style={sortSelectStyle}
+          aria-label="정렬 순서"
+        >
+          <option value="dateDesc">최근순서</option>
+          <option value="dateAsc">오래된순서</option>
+          <option value="inputDesc">최근 입력순</option>
+          <option value="inputAsc">오래된 입력순</option>
+        </select>
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={{ ...tableStyle, minWidth: listOnly ? "820px" : "860px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
+        <table style={{ ...tableStyle, width: listOnly ? "1080px" : "850px", minWidth: listOnly ? "1080px" : "850px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
           <colgroup>
             {listOnly ? (
               <>
-                <col style={{ width: "62px" }} />
-                <col style={{ width: "128px" }} />
-                <col style={{ width: "34px" }} />
-                <col style={{ width: "56px" }} />
-                <col style={{ width: "62px" }} />
-                <col style={{ width: "64px" }} />
-                <col style={{ width: "66px" }} />
-                <col style={{ width: "66px" }} />
-                <col style={{ width: "58px" }} />
-                <col style={{ width: "58px" }} />
-                <col style={{ width: "66px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "240px" }} />
+                <col style={{ width: "55px" }} />
+                <col style={{ width: "85px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "95px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "75px" }} />
+                <col style={{ width: "75px" }} />
+                <col style={{ width: "95px" }} />
               </>
             ) : (
               <>
                 <col style={{ width: "70px" }} />
-                <col style={{ width: "164px" }} />
-                <col style={{ width: "42px" }} />
-                <col style={{ width: "66px" }} />
-                <col style={{ width: "72px" }} />
-                <col style={{ width: "76px" }} />
+                <col style={{ width: "220px" }} />
+                <col style={{ width: "38px" }} />
+                <col style={{ width: "60px" }} />
+                <col style={{ width: "64px" }} />
+                <col style={{ width: "70px" }} />
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "74px" }} />
                 <col style={{ width: "92px" }} />
-                <col style={{ width: "82px" }} />
-                <col style={{ width: "100px" }} />
-                <col style={{ width: "140px" }} />
+                <col style={{ width: "84px" }} />
               </>
             )}
           </colgroup>
@@ -1322,7 +1427,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 <td colSpan={listOnly ? 11 : 10} style={emptyStyle}>등록된 거래가 없습니다.</td>
               </tr>
             ) : (
-              [...filteredRows].reverse().map((row) => {
+              filteredRows.map((row) => {
                 const profit = row.saleAmount - row.purchaseAmount;
 
                 return (
@@ -1344,14 +1449,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       style={{
                         ...tdStyle,
                         fontWeight: 800,
-                        fontSize:
-                          row.productName.length >= 22
-                            ? "10px"
-                            : row.productName.length >= 16
-                            ? "11px"
-                            : row.productName.length >= 11
-                            ? "12px"
-                            : "13px",
+                        fontSize: listOnly ? "14px" : "12px",
                       }}
                       title={row.productName}
                     >
@@ -1502,12 +1600,15 @@ function SearchSelect({
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<React.CSSProperties>({});
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
+        !wrapperRef.current.contains(event.target as Node) &&
+        !dropdownRef.current?.contains(event.target as Node)
       ) {
         setOpen(false);
       }
@@ -1539,6 +1640,39 @@ function SearchSelect({
 
     setHighlightedIndex(filtered.length > 0 ? 0 : -1);
   }, [open, filtered.length]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updateDropdownPosition = () => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom - 12;
+      const spaceAbove = rect.top - 12;
+      const openAbove = spaceBelow < 180 && spaceAbove > spaceBelow;
+      const maxHeight = Math.max(120, Math.min(260, openAbove ? spaceAbove : spaceBelow));
+
+      setDropdownPosition({
+        position: "fixed",
+        left: rect.left,
+        width: rect.width,
+        top: openAbove ? undefined : rect.bottom + 4,
+        bottom: openAbove ? window.innerHeight - rect.top + 4 : undefined,
+        maxHeight,
+      });
+    };
+
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
+  }, [open]);
 
   return (
     <div
@@ -1626,8 +1760,8 @@ function SearchSelect({
         </button>
       </div>
 
-      {open && (
-        <div style={dropdownStyle}>
+      {open && typeof document !== "undefined" && createPortal(
+        <div ref={dropdownRef} style={{ ...dropdownStyle, ...dropdownPosition }}>
           {filtered.length > 0 ? (
             filtered.map((option, index) => (
               <button
@@ -1656,13 +1790,14 @@ function SearchSelect({
                 : "검색 결과가 없습니다."}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <label style={fieldStyle}>
       <span style={labelStyle}>{label}</span>
@@ -1763,6 +1898,7 @@ const inputStyle: React.CSSProperties = {
   padding: "8px 10px",
   background: "white",
   color: "#0f172a",
+  fontSize: "12px",
 };
 
 const searchSelectWrapStyle: React.CSSProperties = {
@@ -1774,7 +1910,9 @@ const searchSelectWrapStyle: React.CSSProperties = {
 const searchSelectInputWrapStyle: React.CSSProperties = {
   display: "flex",
   width: "100%",
-  minHeight: "42px",
+  minHeight: "34px",
+  height: "34px",
+  boxSizing: "border-box",
   border: "1px solid #93c5fd",
   borderRadius: "9px",
   overflow: "hidden",
@@ -1785,17 +1923,27 @@ const searchSelectInputStyle: React.CSSProperties = {
   flex: 1,
   width: "100%",
   minWidth: 0,
+  height: "32px",
+  minHeight: "32px",
+  boxSizing: "border-box",
   border: 0,
   outline: "none",
-  padding: "8px 10px",
+  padding: "6px 8px",
   color: "#0f172a",
   background: "transparent",
+  fontSize: "12px",
 };
 
 const dropButtonStyle: React.CSSProperties = {
-  width: "40px",
-  minWidth: "40px",
-  flex: "0 0 40px",
+  width: "28px",
+  minWidth: "28px",
+  height: "32px",
+  minHeight: "32px",
+  flex: "0 0 28px",
+  boxSizing: "border-box",
+  padding: 0,
+  fontSize: "10px",
+  lineHeight: 1,
   border: 0,
   borderLeft: "1px solid #bfdbfe",
   background: "#eff6ff",
@@ -1804,10 +1952,7 @@ const dropButtonStyle: React.CSSProperties = {
 };
 
 const dropdownStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 4px)",
-  left: 0,
-  right: 0,
+  position: "fixed",
   maxHeight: "260px",
   overflowY: "auto",
   background: "white",
@@ -1891,6 +2036,20 @@ const searchStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
+
+const sortSelectStyle: React.CSSProperties = {
+  width: 128,
+  height: 36,
+  padding: "0 10px",
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  background: "#fff",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+  flexShrink: 0,
+};
+
 const dateFilterStyle: React.CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
@@ -1908,9 +2067,11 @@ const dateLabelStyle: React.CSSProperties = {
 };
 
 const dateInputStyle: React.CSSProperties = {
-  minWidth: "145px",
-  height: "48px",
-  padding: "0 12px",
+  width: "118px",
+  minWidth: "118px",
+  height: "38px",
+  padding: "0 9px",
+  fontSize: "12px",
   border: "1px solid #cbd5e1",
   borderRadius: "10px",
   background: "white",
@@ -1918,13 +2079,14 @@ const dateInputStyle: React.CSSProperties = {
 };
 
 const dateSeparatorStyle: React.CSSProperties = {
-  paddingBottom: "15px",
+  paddingBottom: "11px",
   color: "#64748b",
 };
 
 const resetButtonStyle: React.CSSProperties = {
-  height: "48px",
-  padding: "0 14px",
+  height: "38px",
+  padding: "0 11px",
+  fontSize: "12px",
   border: "1px solid #cbd5e1",
   borderRadius: "10px",
   background: "white",
@@ -1941,8 +2103,8 @@ const tableWrapStyle: React.CSSProperties = {
 };
 
 const tableStyle: React.CSSProperties = {
-  width: "100%",
-  minWidth: "980px",
+  width: "850px",
+  minWidth: "850px",
   borderCollapse: "collapse",
   tableLayout: "fixed",
 };
@@ -1950,7 +2112,7 @@ const tableStyle: React.CSSProperties = {
 const thStyle: React.CSSProperties = {
   background: "#f8fafc",
   color: "#475569",
-  padding: "11px 8px",
+  padding: "7px 6px",
   borderBottom: "1px solid #e2e8f0",
   textAlign: "left",
   fontSize: "12px",
@@ -1959,9 +2121,9 @@ const thStyle: React.CSSProperties = {
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "11px 8px",
+  padding: "5px 6px",
   borderBottom: "1px solid #f1f5f9",
-  fontSize: "13px",
+  fontSize: "12px",
   color: "#334155",
   whiteSpace: "nowrap",
 };
@@ -1984,8 +2146,9 @@ const emptyStyle: React.CSSProperties = {
 
 const actionStyle: React.CSSProperties = {
   display: "flex",
-  gap: "6px",
+  gap: "4px",
   justifyContent: "flex-start",
+  whiteSpace: "nowrap",
 };
 
 const editButtonStyle: React.CSSProperties = {

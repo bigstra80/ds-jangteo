@@ -425,6 +425,88 @@ export default function BandImportManager() {
     Record<string, "created" | "updated">
   >({});
   const [message, setMessage] = useState("");
+  const [bandUrl, setBandUrl] = useState("");
+  const [autoSync, setAutoSync] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "checking" | "connected" | "error"
+  >("idle");
+  const [lastConnectedAt, setLastConnectedAt] = useState("");
+
+  function normalizeBandUrl(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const withProtocol = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    return withProtocol.replace(/\/$/, "");
+  }
+
+  function isValidBandUrl(value: string) {
+    try {
+      const url = new URL(normalizeBandUrl(value));
+      return (
+        ["band.us", "www.band.us"].includes(url.hostname) &&
+        /\/band\/[^/]+(?:\/post)?/.test(url.pathname)
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  async function connectBand() {
+    if (!isValidBandUrl(bandUrl)) {
+      setConnectionStatus("error");
+      setMessage("밴드 주소를 확인해주세요. 예: https://band.us/band/100552754/post");
+      return;
+    }
+
+    setConnectionStatus("checking");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/band/bands", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "밴드 연결 확인 실패");
+
+      const loadedBands: Band[] = data.bands || [];
+      setBands(loadedBands);
+      const current = loadedBands.find((band) => band.band_key === selectedBandKey);
+      const preferred =
+        current ||
+        loadedBands.find((band) => band.name.trim() === "덩크") ||
+        loadedBands[0];
+
+      if (!preferred) throw new Error("연결 가능한 밴드를 찾지 못했습니다.");
+
+      setSelectedBandKey(preferred.band_key);
+      const normalized = normalizeBandUrl(bandUrl);
+      setBandUrl(normalized);
+      localStorage.setItem("erpBandUrl", normalized);
+      localStorage.setItem("erpBandAutoSync", String(autoSync));
+      localStorage.setItem("erpBandKey", preferred.band_key);
+      const now = new Date().toLocaleString("ko-KR");
+      setLastConnectedAt(now);
+      setConnectionStatus("connected");
+      setMessage(`밴드 연결을 확인했습니다. 연결 대상: ${preferred.name}`);
+    } catch (error) {
+      setConnectionStatus("error");
+      setMessage(error instanceof Error ? error.message : "밴드 연결을 확인하지 못했습니다.");
+    }
+  }
+
+  function saveBandSetting() {
+    if (!isValidBandUrl(bandUrl)) {
+      setConnectionStatus("error");
+      setMessage("올바른 밴드 주소를 입력해주세요.");
+      return;
+    }
+    const normalized = normalizeBandUrl(bandUrl);
+    setBandUrl(normalized);
+    localStorage.setItem("erpBandUrl", normalized);
+    localStorage.setItem("erpBandAutoSync", String(autoSync));
+    if (selectedBandKey) localStorage.setItem("erpBandKey", selectedBandKey);
+    setMessage("밴드 연결 설정을 저장했습니다.");
+  }
 
   async function loadBands() {
     setLoadingBands(true);
@@ -549,6 +631,12 @@ export default function BandImportManager() {
   }
 
   useEffect(() => {
+    const savedUrl = localStorage.getItem("erpBandUrl") || "https://band.us/band/100552754/post";
+    const savedAutoSync = localStorage.getItem("erpBandAutoSync");
+    const savedBandKey = localStorage.getItem("erpBandKey") || "";
+    setBandUrl(savedUrl);
+    setAutoSync(savedAutoSync !== "false");
+    if (savedBandKey) setSelectedBandKey(savedBandKey);
     loadBands();
     loadSuppliers();
   }, []);
@@ -751,63 +839,87 @@ export default function BandImportManager() {
       </div>
 
       <div style={controlCardStyle}>
-        <div style={controlRowStyle}>
-          <label style={fieldStyle}>
-            <span style={labelStyle}>밴드 선택</span>
-            <select
-              value={selectedBandKey}
-              onChange={(e) => setSelectedBandKey(e.target.value)}
-              style={selectStyle}
-            >
-              <option value="">밴드를 선택하세요</option>
-              {bands.map((band) => (
-                <option key={band.band_key} value={band.band_key}>
-                  {band.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div style={connectionPanelStyle}>
+          <div style={connectionTitleRowStyle}>
+            <div>
+              <div style={connectionTitleStyle}>밴드 연결 설정</div>
+              <div style={connectionHelpStyle}>
+                밴드 주소만 입력하면 게시글 ID는 프로그램이 자동으로 관리합니다.
+              </div>
+            </div>
+            <div style={connectionBadgeStyle(connectionStatus)}>
+              {connectionStatus === "checking"
+                ? "연결 확인 중"
+                : connectionStatus === "connected"
+                  ? "연결됨"
+                  : connectionStatus === "error"
+                    ? "확인 필요"
+                    : "연결 전"}
+            </div>
+          </div>
 
+          <div style={urlRowStyle}>
+            <label style={urlFieldStyle}>
+              <span style={labelStyle}>밴드 주소</span>
+              <input
+                value={bandUrl}
+                onChange={(e) => {
+                  setBandUrl(e.target.value);
+                  setConnectionStatus("idle");
+                }}
+                placeholder="https://band.us/band/100552754/post"
+                style={urlInputStyle}
+              />
+            </label>
+            <button type="button" onClick={connectBand} disabled={connectionStatus === "checking"} style={connectButtonStyle}>
+              {connectionStatus === "checking" ? "확인 중..." : "연결 확인"}
+            </button>
+            <button type="button" onClick={saveBandSetting} style={saveSettingButtonStyle}>
+              저장
+            </button>
+          </div>
+
+          <div style={connectionBottomStyle}>
+            <label style={autoSyncLabelStyle}>
+              <input
+                type="checkbox"
+                checked={autoSync}
+                onChange={(e) => {
+                  setAutoSync(e.target.checked);
+                  localStorage.setItem("erpBandAutoSync", String(e.target.checked));
+                }}
+              />
+              새 게시글 자동 동기화
+            </label>
+            <span style={connectionSummaryStyle}>
+              연결 밴드: <strong>{selectedBand?.name || "확인 전"}</strong>
+              {lastConnectedAt ? ` · 마지막 확인: ${lastConnectedAt}` : ""}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ ...controlRowStyle, marginTop: "14px" }}>
           <button
             type="button"
             onClick={loadPosts}
             disabled={!selectedBandKey || loadingPosts}
             style={primaryButtonStyle}
           >
-            {loadingPosts ? "불러오는 중..." : "최신 상품글 가져오기"}
+            {loadingPosts ? "불러오는 중..." : "새 상품 가져오기"}
           </button>
 
-          <button
-            type="button"
-            onClick={loadBands}
-            disabled={loadingBands}
-            style={secondaryButtonStyle}
-          >
-            밴드 목록 새로고침
+          <button type="button" onClick={loadBands} disabled={loadingBands} style={secondaryButtonStyle}>
+            연결 정보 새로고침
           </button>
 
-          <button
-            type="button"
-            onClick={loadTestPosts}
-            style={testButtonStyle}
-          >
+          <button type="button" onClick={loadTestPosts} style={testButtonStyle}>
             테스트 상품 불러오기
           </button>
 
-          <button
-            type="button"
-            onClick={loadUpdateTestPosts}
-            style={updateTestButtonStyle}
-          >
+          <button type="button" onClick={loadUpdateTestPosts} style={updateTestButtonStyle}>
             기존상품 업데이트 테스트
           </button>
         </div>
-
-        {selectedBand && (
-          <div style={bandInfoStyle}>
-            선택된 밴드: <strong>{selectedBand.name}</strong>
-          </div>
-        )}
 
         {message && <div style={errorStyle}>{message}</div>}
 
@@ -1112,6 +1224,42 @@ const cardCheckStyle: React.CSSProperties = {
   fontWeight: 800,
   zIndex: 5,
 };
+
+function connectionBadgeStyle(
+  status: "idle" | "checking" | "connected" | "error"
+): React.CSSProperties {
+  const palette = {
+    idle: { background: "#f1f5f9", color: "#475569" },
+    checking: { background: "#dbeafe", color: "#1d4ed8" },
+    connected: { background: "#dcfce7", color: "#166534" },
+    error: { background: "#fee2e2", color: "#b91c1c" },
+  }[status];
+  return {
+    padding: "7px 11px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: 900,
+    ...palette,
+  };
+}
+
+const connectionPanelStyle: React.CSSProperties = {
+  padding: "16px",
+  border: "1px solid #bfdbfe",
+  borderRadius: "12px",
+  background: "#f8fbff",
+};
+const connectionTitleRowStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center", marginBottom: "12px" };
+const connectionTitleStyle: React.CSSProperties = { fontSize: "17px", fontWeight: 900, color: "#0f172a" };
+const connectionHelpStyle: React.CSSProperties = { marginTop: "4px", fontSize: "13px", color: "#64748b" };
+const urlRowStyle: React.CSSProperties = { display: "flex", gap: "10px", alignItems: "end", flexWrap: "wrap" };
+const urlFieldStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "6px", minWidth: "420px", flex: 1 };
+const urlInputStyle: React.CSSProperties = { minHeight: "44px", border: "1px solid #94a3b8", borderRadius: "9px", padding: "8px 12px", background: "white", fontSize: "14px" };
+const connectButtonStyle: React.CSSProperties = { minHeight: "44px", border: 0, borderRadius: "9px", padding: "0 18px", background: "#16a34a", color: "white", fontWeight: 900, cursor: "pointer" };
+const saveSettingButtonStyle: React.CSSProperties = { minHeight: "44px", border: "1px solid #94a3b8", borderRadius: "9px", padding: "0 18px", background: "white", color: "#0f172a", fontWeight: 900, cursor: "pointer" };
+const connectionBottomStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", flexWrap: "wrap", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #dbeafe" };
+const autoSyncLabelStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: "7px", color: "#0f172a", fontSize: "13px", fontWeight: 800 };
+const connectionSummaryStyle: React.CSSProperties = { color: "#475569", fontSize: "13px" };
 
 const pageStyle: React.CSSProperties = {
   width: "100%",

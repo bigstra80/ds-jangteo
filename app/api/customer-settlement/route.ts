@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const [customers, ledgerRows] = await Promise.all([
@@ -15,15 +18,15 @@ export async function GET() {
       }),
 
       prisma.wholesaleLedger.findMany({
-        orderBy: [
-          { transactionDate: "desc" },
-          { id: "desc" },
-        ],
+        orderBy: { id: "desc" },
       }),
     ]);
 
+    const normalizeName = (value: string) =>
+      value.trim().replace(/\s+/g, " ").toLocaleLowerCase("ko-KR");
+
     const customerByName = new Map(
-      customers.map((customer) => [customer.name.trim(), customer])
+      customers.map((customer) => [normalizeName(customer.name), customer])
     );
 
     const grouped = new Map<
@@ -51,6 +54,7 @@ export async function GET() {
           shippingFee: number;
           settlementStatus: string;
           memo: string | null;
+          createdAt: Date;
         }>;
       }
     >();
@@ -63,8 +67,9 @@ export async function GET() {
       // 납품업체가 없는 장부는 거래처 정산 대상에서 제외
       if (!deliveryCompanyName) continue;
 
-      const matchedCustomer = customerByName.get(deliveryCompanyName);
-      const key = deliveryCompanyName;
+      const normalizedDeliveryName = normalizeName(deliveryCompanyName);
+      const matchedCustomer = customerByName.get(normalizedDeliveryName);
+      const key = normalizedDeliveryName;
 
       if (!grouped.has(key)) {
         grouped.set(key, {
@@ -83,19 +88,25 @@ export async function GET() {
 
       const item = grouped.get(key)!;
       const saleAmount = Number(row.saleAmount || 0);
+      const shippingFee = Number(row.shippingFee || 0);
+      const totalAmount = saleAmount + shippingFee;
+      const isReturn =
+        saleAmount < 0 ||
+        row.quantity < 0 ||
+        String(row.memo || "").includes("반품");
 
       item.tradeCount += 1;
 
-      if (saleAmount >= 0) {
-        item.grossSalesAmount += saleAmount;
+      if (isReturn) {
+        item.returnAmount += Math.abs(totalAmount);
       } else {
-        item.returnAmount += Math.abs(saleAmount);
+        item.grossSalesAmount += totalAmount;
       }
 
-      item.netSalesAmount += saleAmount;
+      item.netSalesAmount += totalAmount;
 
-      if (row.settlementStatus === "미정산") {
-        item.receivableAmount += saleAmount;
+      if (row.settlementStatus !== "정산완료") {
+        item.receivableAmount += totalAmount;
       }
 
       if (
@@ -118,14 +129,35 @@ export async function GET() {
         shippingFee: row.shippingFee || 0,
         settlementStatus: row.settlementStatus,
         memo: row.memo,
+        createdAt: row.createdAt,
       });
     }
 
-    const result = Array.from(grouped.values()).sort((a, b) =>
-      a.customerName.localeCompare(b.customerName, "ko")
-    );
+    const result = Array.from(grouped.values())
+      .map((item) => ({
+        ...item,
+        rows: [...item.rows].sort((a, b) => {
+          const createdDiff =
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return createdDiff !== 0 ? createdDiff : b.id - a.id;
+        }),
+      }))
+      .sort((a, b) => {
+        const aLatest = a.rows[0];
+        const bLatest = b.rows[0];
 
-    return NextResponse.json(result);
+        const createdDiff =
+          new Date(bLatest?.createdAt ?? 0).getTime() -
+          new Date(aLatest?.createdAt ?? 0).getTime();
+
+        return createdDiff !== 0
+          ? createdDiff
+          : (bLatest?.id ?? 0) - (aLatest?.id ?? 0);
+      });
+
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("거래처 정산 조회 오류:", error);
 

@@ -9,10 +9,7 @@ export async function GET() {
           not: null,
         },
       },
-      orderBy: [
-        { transactionDate: "desc" },
-        { id: "desc" },
-      ],
+      orderBy: { id: "desc" },
     });
 
     const grouped = new Map<
@@ -73,7 +70,20 @@ export async function GET() {
       item.rows.push(row);
     }
 
-    return NextResponse.json(Array.from(grouped.values()));
+    const result = Array.from(grouped.values())
+      .map((item) => ({
+        ...item,
+        rows: [...item.rows].sort((a, b) => b.id - a.id),
+      }))
+      .sort((a, b) => {
+        const aLatestId = a.rows[0]?.id ?? 0;
+        const bLatestId = b.rows[0]?.id ?? 0;
+        return bLatestId - aLatestId;
+      });
+
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("공급업체 정산 조회 오류:", error);
 
