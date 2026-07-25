@@ -143,3 +143,164 @@ input, select, textarea, button {
     font-size: 16px;
   }
 }
+
+/* 2026-07 mobile viewport hardening */
+@media (max-width: 768px) {
+  html, body, .app-shell, .app-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-main {
+    padding-top: 68px !important;
+  }
+
+  .app-main > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 도매 한 줄 장부 입력영역: 휴대폰 안에서 2열로 배치 */
+  .wl-left-pane form {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    padding: 10px !important;
+  }
+
+  .wl-left-pane .wl-form-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    gap: 10px !important;
+  }
+
+  .wl-form-grid > label {
+    grid-row: auto !important;
+    grid-column: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .wl-form-grid > label:nth-child(1),
+  .wl-form-grid > label:nth-child(4),
+  .wl-form-grid > label:nth-child(12) {
+    grid-column: 1 / -1 !important;
+  }
+
+  .wl-left-pane form > div:last-child {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    margin-top: 10px !important;
+  }
+
+  .wl-left-pane form > div:last-child button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 검색/날짜/정렬 도구: 화면 안에서 자연스럽게 줄바꿈 */
+  .wl-toolbar,
+  .customer-settlement-toolbar {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: end !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 10px !important;
+  }
+
+  .wl-toolbar > *,
+  .customer-settlement-toolbar > *,
+  .customer-settlement-filter-left > *,
+  .customer-settlement-toolbar-right > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .customer-settlement-filter-left,
+  .customer-settlement-toolbar-right {
+    display: contents !important;
+  }
+
+  .wl-toolbar input[type="text"],
+  .customer-settlement-search {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* 요약카드 */
+  .wl-transaction-summary,
+  .customer-settlement-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 10px !important;
+  }
+
+  .wl-transaction-summary-card,
+  .customer-settlement-summary > * {
+    min-width: 0 !important;
+    padding: 14px !important;
+  }
+
+  /* 표가 페이지 자체를 밀어내지 않도록 표 영역 안에서만 좌우 이동 */
+  .wl-table-wrap,
+  .customer-settlement-table-wrap,
+  [class*="table-wrap"],
+  [class*="tableWrap"] {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .wl-list-only-table,
+  .wl-compact-ledger-table {
+    width: 980px !important;
+    min-width: 980px !important;
+    table-layout: fixed !important;
+  }
+
+  .customer-settlement-table {
+    width: 1000px !important;
+    min-width: 1000px !important;
+    table-layout: fixed !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .app-main > main {
+    padding: 10px !important;
+  }
+
+  .wl-toolbar,
+  .customer-settlement-toolbar {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .wl-transaction-summary,
+  .customer-settlement-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .wl-transaction-summary-title,
+  .customer-settlement-summary > * > div:first-child {
+    font-size: 12px !important;
+  }
+
+  .wl-transaction-summary-value {
+    font-size: 20px !important;
+  }
+}
