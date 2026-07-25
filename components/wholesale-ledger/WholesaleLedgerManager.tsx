@@ -1443,7 +1443,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         <div className={listOnly ? "wl-list-only-pane" : "wl-right-pane"}>
       <div style={toolbarStyle} className="wl-toolbar">
-        <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택">
+        <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} className="wl-search-type" aria-label="검색 항목 선택">
           <option value="all">전체</option><option value="product">상품명</option><option value="supplier">공급업체</option><option value="deliveryCompany">납품업체</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
         </select>
         <input
@@ -1451,9 +1451,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           onChange={(e) => setKeyword(e.target.value)}
           placeholder="상품·공급업체·납품업체·고객이름·전화번호·메모 검색"
           style={searchStyle}
+          className="wl-search-input"
         />
 
-        <div style={dateFilterStyle}>
+        <div style={dateFilterStyle} className="wl-date-filter">
           <label style={dateLabelStyle}>
             시작일
             <input
@@ -1492,6 +1493,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value as SortOrder)}
           style={sortSelectStyle}
+          className="wl-sort-select"
           aria-label="정렬 순서"
         >
           <option value="dateDesc">최근순서</option>

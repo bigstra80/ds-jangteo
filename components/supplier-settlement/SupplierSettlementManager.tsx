@@ -198,7 +198,7 @@ export default function SupplierSettlementManager() {
   }, [filteredRows]);
 
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ width: "100%" }} className="supplier-settlement-page">
       <style jsx global>{`
         .supplier-settlement-table-wrap {
           max-height: clamp(260px, calc(100vh - 390px), 680px);
@@ -223,7 +223,7 @@ export default function SupplierSettlementManager() {
         </p>
       </div>
 
-      <div style={summaryGridStyle}>
+      <div style={summaryGridStyle} className="supplier-settlement-summary">
         <SummaryCard
           title="전체 거래건수"
           value={`${totalSummary.tradeCount.toLocaleString()}건`}
@@ -243,9 +243,9 @@ export default function SupplierSettlementManager() {
         />
       </div>
 
-      <div style={toolbarStyle}>
-        <div style={filterLeftStyle}>
-          <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택">
+      <div style={toolbarStyle} className="supplier-settlement-toolbar">
+        <div style={filterLeftStyle} className="supplier-settlement-filter-left">
+          <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} className="supplier-settlement-search-type" aria-label="검색 항목 선택">
             <option value="all">전체</option><option value="supplier">공급업체</option><option value="product">상품명</option><option value="customer">고객명</option><option value="memo">메모</option>
           </select>
           <input
@@ -253,9 +253,10 @@ export default function SupplierSettlementManager() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="공급업체·상품명·이름·메모 검색"
             style={searchStyle}
+            className="supplier-settlement-search"
           />
 
-          <div style={dateGroupStyle}>
+          <div style={dateGroupStyle} className="supplier-settlement-date-group">
             <label style={dateLabelStyle}>시작일</label>
             <input
               type="date"
@@ -265,9 +266,9 @@ export default function SupplierSettlementManager() {
             />
           </div>
 
-          <span style={{ paddingBottom: 9 }}>~</span>
+          <span style={{ paddingBottom: 9 }} className="supplier-settlement-date-separator">~</span>
 
-          <div style={dateGroupStyle}>
+          <div style={dateGroupStyle} className="supplier-settlement-date-group">
             <label style={dateLabelStyle}>종료일</label>
             <input
               type="date"
@@ -284,15 +285,17 @@ export default function SupplierSettlementManager() {
               setEndDate("");
             }}
             style={dateResetButtonStyle}
+            className="supplier-settlement-reset-button"
           >
             날짜 초기화
           </button>
 
-          <div style={toolbarActionStyle}>
+          <div style={toolbarActionStyle} className="supplier-settlement-toolbar-action">
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as SortOrder)}
               style={sortSelectStyle}
+              className="supplier-settlement-sort-select"
               aria-label="정렬 순서"
             >
               <option value="dateDesc">최근순서</option>
@@ -305,6 +308,7 @@ export default function SupplierSettlementManager() {
               type="button"
               onClick={downloadExcel}
               style={excelButtonStyle}
+              className="supplier-settlement-excel-button"
             >
               엑셀 다운로드
             </button>
