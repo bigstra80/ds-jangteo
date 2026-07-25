@@ -1068,7 +1068,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           font-weight: 900;
         }
 
-        .wl-transaction-summary-value.is-receivable {
+        .wl-transaction-summary-value.is-receivable,
+        .wl-transaction-summary-value.is-profit {
           color: #dc2626;
         }
 
@@ -1148,7 +1149,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </div>
           <div className="wl-transaction-summary-card">
             <div className="wl-transaction-summary-title">수익</div>
-            <div className="wl-transaction-summary-value">
+            <div className="wl-transaction-summary-value is-profit">
               {money(transactionSummary.profitAmount)}
             </div>
           </div>
