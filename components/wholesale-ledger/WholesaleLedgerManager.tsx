@@ -372,6 +372,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     loadSearchOptions();
   }, []);
 
+  const productCodeByName = useMemo(() => {
+    const codeMap = new Map<string, string>();
+
+    productOptions.forEach((option) => {
+      const productName = String(option.productName || option.label || "").trim().toLowerCase();
+      const productCode = String(option.productCode || "").trim();
+
+      if (productName && productCode && !codeMap.has(productName)) {
+        codeMap.set(productName, productCode);
+      }
+    });
+
+    return codeMap;
+  }, [productOptions]);
+
   const filteredRows = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
@@ -392,9 +407,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
       if (!normalizedKeyword) return true;
 
+      const rowProductCode = productCodeByName.get(row.productName.trim().toLowerCase()) || "";
       const fields: Record<string, unknown[]> = {
-        all: [row.productName, row.supplierName, row.deliveryCompanyName, row.customerName, row.customerPhone, row.shippingFee, row.memo],
-        product: [row.productName], supplier: [row.supplierName], deliveryCompany: [row.deliveryCompanyName], customer: [row.customerName], phone: [row.customerPhone], memo: [row.memo],
+        all: [rowProductCode, row.productName, row.supplierName, row.deliveryCompanyName, row.customerName, row.customerPhone, row.shippingFee, row.memo],
+        product: [rowProductCode, row.productName], supplier: [row.supplierName], deliveryCompany: [row.deliveryCompanyName], customer: [row.customerName], phone: [row.customerPhone], memo: [row.memo],
       };
       return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(normalizedKeyword));
     });
@@ -413,7 +429,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
       return dateDiff !== 0 ? -dateDiff : b.id - a.id;
     });
-  }, [rows, keyword, searchField, startDate, endDate, sortOrder]);
+  }, [rows, keyword, searchField, startDate, endDate, sortOrder, productCodeByName]);
 
   const summary = useMemo(() => {
     return filteredRows.reduce(
@@ -1380,10 +1396,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={{ ...tableStyle, width: listOnly ? "1080px" : "850px", minWidth: listOnly ? "1080px" : "850px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
+        <table style={{ ...tableStyle, width: listOnly ? "1170px" : "925px", minWidth: listOnly ? "1170px" : "925px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
           <colgroup>
             {listOnly ? (
               <>
+                <col style={{ width: "90px" }} />
                 <col style={{ width: "90px" }} />
                 <col style={{ width: "240px" }} />
                 <col style={{ width: "55px" }} />
@@ -1399,6 +1416,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             ) : (
               <>
                 <col style={{ width: "70px" }} />
+                <col style={{ width: "75px" }} />
                 <col style={{ width: "220px" }} />
                 <col style={{ width: "38px" }} />
                 <col style={{ width: "60px" }} />
@@ -1416,6 +1434,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               {(listOnly
                 ? [
                     "날짜",
+                    "상품번호",
                     "상품",
                     "수량",
                     "공급업체",
@@ -1429,6 +1448,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   ]
                 : [
                     "날짜",
+                    "상품번호",
                     "상품",
                     "수량",
                     "공급업체",
@@ -1450,11 +1470,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={listOnly ? 11 : 10} style={emptyStyle}>불러오는 중...</td>
+                <td colSpan={listOnly ? 12 : 11} style={emptyStyle}>불러오는 중...</td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={listOnly ? 11 : 10} style={emptyStyle}>등록된 거래가 없습니다.</td>
+                <td colSpan={listOnly ? 12 : 11} style={emptyStyle}>등록된 거래가 없습니다.</td>
               </tr>
             ) : (
               filteredRows.map((row, rowIndex) => {
@@ -1473,6 +1493,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   >
                     <td className="wl-date-cell" style={tdStyle}>
                       {dateOnly(row.transactionDate)}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 700 }} title={productCodeByName.get(row.productName.trim().toLowerCase()) || ""}>
+                      {productCodeByName.get(row.productName.trim().toLowerCase()) || "-"}
                     </td>
                     <td
                       className="wl-product-name-cell"
