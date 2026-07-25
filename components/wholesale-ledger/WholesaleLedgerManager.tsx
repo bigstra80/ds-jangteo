@@ -314,6 +314,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
+  const [isOrderFormOpen, setIsOrderFormOpen] = useState(false);
 
   const [productOptions, setProductOptions] = useState<SearchOption[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<SearchOption[]>([]);
@@ -593,6 +594,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
   function startEdit(row: LedgerRow) {
     setEditingId(row.id);
+    setIsOrderFormOpen(true);
     const matchedProduct = productOptions.find(
       (option) => option.label === row.productName
     );
@@ -637,6 +639,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setSelectedCustomerUnitPrice(0);
     setSaleUnitPriceInput("");
     setProductCode("");
+    setIsOrderFormOpen(false);
   }
 
   async function saveTransaction() {
@@ -710,6 +713,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       setSelectedDeliveryCustomerId("");
       setSelectedCustomerUnitPrice(0);
       setSaleUnitPriceInput("");
+      setIsOrderFormOpen(false);
       setSaving(false);
     } catch (error) {
       console.error("거래 저장 오류:", error);
@@ -1116,6 +1120,97 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             align-items: stretch !important;
           }
         }
+
+        .wl-order-toggle-row {
+          display: flex;
+          justify-content: flex-start;
+          margin-bottom: 12px;
+        }
+
+        .wl-order-toggle-button {
+          min-width: 112px;
+          height: 44px;
+          padding: 0 22px;
+          border: 0;
+          border-radius: 10px;
+          background: #2563eb;
+          color: #fff;
+          font-size: 15px;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .wl-order-toggle-button.is-open {
+          background: #475569;
+        }
+
+        .wl-left-pane form.wl-order-form {
+          display: block !important;
+          width: 100% !important;
+          overflow: visible !important;
+          padding: 18px !important;
+        }
+
+        .wl-left-pane form.wl-order-form .wl-form-grid {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          grid-template-rows: none !important;
+          gap: 12px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 720px !important;
+          margin: 0 auto !important;
+        }
+
+        .wl-left-pane form.wl-order-form .wl-form-grid > label {
+          grid-column: 1 !important;
+          grid-row: auto !important;
+          width: 100% !important;
+        }
+
+        .wl-left-pane form.wl-order-form .wl-form-grid input,
+        .wl-left-pane form.wl-order-form .wl-form-grid select,
+        .wl-left-pane form.wl-order-form .wl-form-grid [style*="display: flex"] {
+          min-height: 46px !important;
+          height: 46px !important;
+          font-size: 15px !important;
+        }
+
+        .wl-left-pane form.wl-order-form .wl-form-grid > label > span:first-child {
+          font-size: 14px !important;
+          font-weight: 800 !important;
+          margin-bottom: 4px !important;
+        }
+
+        .wl-left-pane form.wl-order-form > div:last-child {
+          display: flex !important;
+          width: 100% !important;
+          max-width: 720px !important;
+          margin: 16px auto 0 !important;
+        }
+
+        .wl-left-pane form.wl-order-form > div:last-child button {
+          flex: 1 1 auto !important;
+          min-height: 48px !important;
+          height: 48px !important;
+          font-size: 15px !important;
+        }
+
+        @media (max-width: 600px) {
+          .wl-order-toggle-row {
+            margin-bottom: 10px;
+          }
+
+          .wl-order-toggle-button {
+            width: 100%;
+            height: 48px;
+            font-size: 16px;
+          }
+
+          .wl-left-pane form.wl-order-form {
+            padding: 14px !important;
+          }
+        }
       `}</style>
       <div style={headerStyle}>
         <div>
@@ -1160,7 +1255,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       <div className={listOnly ? "" : "wl-two-column-layout"}>
         {!listOnly && (
         <div className="wl-left-pane">
-      <form onSubmit={submit} style={formCardStyle}>
+          <div className="wl-order-toggle-row">
+            <button
+              type="button"
+              className={`wl-order-toggle-button${isOrderFormOpen ? " is-open" : ""}`}
+              onClick={() => {
+                if (isOrderFormOpen && editingId) cancelEdit();
+                else setIsOrderFormOpen((open) => !open);
+              }}
+              aria-expanded={isOrderFormOpen}
+            >
+              {isOrderFormOpen ? "주문 닫기" : "주문"}
+            </button>
+          </div>
+      {isOrderFormOpen && (
+      <form onSubmit={submit} style={formCardStyle} className="wl-order-form">
         <div style={formGridStyle} className="wl-form-grid">
           <Field label="날짜">
             <input
@@ -1438,6 +1547,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           )}
         </div>
       </form>
+      )}
         </div>
         )}
 
