@@ -145,6 +145,7 @@ export default function ProductManager() {
   const [searchField, setSearchField] = useState("all");
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingProductImageId, setUploadingProductImageId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [inlineSupplierDrafts, setInlineSupplierDrafts] = useState<Record<number, string>>({});
@@ -682,6 +683,7 @@ export default function ProductManager() {
     changes: {
       supplierName?: string;
       cost?: string;
+      imageUrl?: string;
     }
   ) {
     try {
@@ -766,7 +768,10 @@ export default function ProductManager() {
           cost2: Number(product.cost2 || 0),
           cost3: Number(product.cost3 || 0),
           price: Number(product.price || 0),
-          imageUrl: product.imageUrl || "",
+          imageUrl:
+            changes.imageUrl !== undefined
+              ? changes.imageUrl
+              : product.imageUrl || "",
           productType: product.productType,
           supplierId,
           supplier2Id: product.supplier2Id,
@@ -803,6 +808,32 @@ export default function ProductManager() {
       await loadProducts();
     } finally {
       setInlineSavingId(null);
+    }
+  }
+
+  async function uploadProductImageDirect(product: Product, file: File) {
+    try {
+      setUploadingProductImageId(product.id);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await fetch("/api/upload/product-image", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadResult = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        throw new Error(uploadResult.message || "이미지 업로드에 실패했습니다.");
+      }
+
+      await saveInlineProduct(product, { imageUrl: uploadResult.url });
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "이미지 등록 중 오류가 발생했습니다.");
+    } finally {
+      setUploadingProductImageId(null);
     }
   }
 
@@ -1699,19 +1730,91 @@ export default function ProductManager() {
                 >
                 <div style={productMainRowStyle} className="pm-product-main-row">
                   {/* 상품 이미지 */}
-                  <div style={productImageBoxStyle} className="pm-product-image-box">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        style={productImageStyle}
+                  <div
+                    className="pm-product-image-control"
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      gap: "4px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        ...productImageBoxStyle,
+                        cursor: "default",
+                        position: "relative",
+                      }}
+                      className="pm-product-image-box"
+                    >
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          style={productImageStyle}
+                        />
+                      ) : (
+                        <div style={noImageStyle}>
+                          <span style={{ fontSize: "28px" }}>📦</span>
+                          <span>이미지 없음</span>
+                        </div>
+                      )}
+                      {uploadingProductImageId === product.id && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "rgba(255,255,255,0.86)",
+                            fontSize: "11px",
+                            fontWeight: 800,
+                            borderRadius: "8px",
+                          }}
+                        >
+                          업로드 중...
+                        </div>
+                      )}
+                    </div>
+
+                    <label
+                      title="상품 이미지 등록 또는 변경"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: "22px",
+                        padding: "2px 5px",
+                        border: "1px solid #2563eb",
+                        borderRadius: "5px",
+                        background: uploadingProductImageId === product.id ? "#93c5fd" : "#2563eb",
+                        color: "#ffffff",
+                        fontSize: "10px",
+                        fontWeight: 800,
+                        lineHeight: 1.2,
+                        cursor: uploadingProductImageId !== null ? "not-allowed" : "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {uploadingProductImageId === product.id
+                        ? "업로드 중"
+                        : product.imageUrl
+                          ? "이미지 변경"
+                          : "이미지 선택"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        disabled={uploadingProductImageId !== null}
+                        style={{ display: "none" }}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) uploadProductImageDirect(product, file);
+                          event.target.value = "";
+                        }}
                       />
-                    ) : (
-                      <div style={noImageStyle}>
-                        <span style={{ fontSize: "28px" }}>📦</span>
-                        <span>이미지 없음</span>
-                      </div>
-                    )}
+                    </label>
                   </div>
 
                   {/* 상품코드 + 상품명 */}

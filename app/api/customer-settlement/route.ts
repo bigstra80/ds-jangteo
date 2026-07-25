@@ -6,7 +6,7 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    const [customers, ledgerRows] = await Promise.all([
+    const [customers, products, ledgerRows] = await Promise.all([
       prisma.customer.findMany({
         where: { isActive: true },
         select: {
@@ -15,6 +15,13 @@ export async function GET() {
           name: true,
         },
         orderBy: { name: "asc" },
+      }),
+
+      prisma.product.findMany({
+        select: {
+          code: true,
+          name: true,
+        },
       }),
 
       prisma.wholesaleLedger.findMany({
@@ -27,6 +34,10 @@ export async function GET() {
 
     const customerByName = new Map(
       customers.map((customer) => [normalizeName(customer.name), customer])
+    );
+
+    const productCodeByName = new Map(
+      products.map((product) => [normalizeName(product.name), product.code])
     );
 
     const grouped = new Map<
@@ -44,12 +55,14 @@ export async function GET() {
         rows: Array<{
           id: number;
           transactionDate: Date;
+          productCode: string | null;
           productName: string;
           quantity: number;
           supplierName: string | null;
           purchaseAmount: number;
           deliveryCompanyName: string | null;
           customerName: string | null;
+          customerPhone: string | null;
           saleAmount: number;
           shippingFee: number;
           settlementStatus: string;
@@ -119,12 +132,14 @@ export async function GET() {
       item.rows.push({
         id: row.id,
         transactionDate: row.transactionDate,
+        productCode: productCodeByName.get(normalizeName(row.productName)) ?? null,
         productName: row.productName,
         quantity: row.quantity,
         supplierName: row.supplierName,
         purchaseAmount: row.purchaseAmount,
         deliveryCompanyName: row.deliveryCompanyName,
         customerName: row.customerName,
+        customerPhone: row.customerPhone,
         saleAmount: row.saleAmount,
         shippingFee: row.shippingFee || 0,
         settlementStatus: row.settlementStatus,

@@ -88,6 +88,15 @@ function shouldHighlightMemo(memo: string | null | undefined) {
   return redMemoKeywords.some((keyword) => normalizedMemo.includes(keyword));
 }
 
+// 붙여넣기할 때 함께 들어오는 줄바꿈, 여러 공백, ** 등의 특수문자를
+// 모두 무시하여 화면에 보이는 상품명 전체를 그대로 복사해도 검색되게 한다.
+function normalizeSearchText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\p{P}\p{S}\s]+/gu, "");
+}
+
 
 function oneDecimalSignedInput(value: string) {
   const negative = value.startsWith("-");
@@ -388,7 +397,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   }, [productOptions]);
 
   const filteredRows = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
+    const normalizedKeyword = normalizeSearchText(keyword);
 
     const nextRows = rows.filter((row) => {
       const rowDate = new Date(row.transactionDate);
@@ -412,7 +421,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         all: [rowProductCode, row.productName, row.supplierName, row.deliveryCompanyName, row.customerName, row.customerPhone, row.shippingFee, row.memo],
         product: [rowProductCode, row.productName], supplier: [row.supplierName], deliveryCompany: [row.deliveryCompanyName], customer: [row.customerName], phone: [row.customerPhone], memo: [row.memo],
       };
-      return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(normalizedKeyword));
+      return (fields[searchField] || fields.all).some((value) => normalizeSearchText(value).includes(normalizedKeyword));
     });
 
     return nextRows.sort((a, b) => {
@@ -440,6 +449,28 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         return acc;
       },
       { purchase: 0, sale: 0, profit: 0 }
+    );
+  }, [filteredRows]);
+
+  const transactionSummary = useMemo(() => {
+    return filteredRows.reduce(
+      (result, row) => {
+        const purchaseAmount = Number(row.purchaseAmount || 0);
+        const saleAmount = Number(row.saleAmount || 0);
+
+        result.tradeCount += 1;
+        result.purchaseAmount += purchaseAmount;
+        result.saleAmount += saleAmount;
+        result.profitAmount += saleAmount - purchaseAmount;
+
+        return result;
+      },
+      {
+        tradeCount: 0,
+        purchaseAmount: 0,
+        saleAmount: 0,
+        profitAmount: 0,
+      }
     );
   }, [filteredRows]);
 
@@ -1009,6 +1040,50 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           text-overflow: clip !important;
         }
 
+        .wl-transaction-summary {
+          display: grid;
+          grid-template-columns: repeat(4, 190px);
+          gap: 10px;
+          margin-bottom: 16px;
+          justify-content: start;
+        }
+
+        .wl-transaction-summary-card {
+          padding: 18px;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          box-sizing: border-box;
+        }
+
+        .wl-transaction-summary-title {
+          color: #6b7280;
+          font-size: 13px;
+          margin-bottom: 8px;
+        }
+
+        .wl-transaction-summary-value {
+          color: #111827;
+          font-size: 22px;
+          font-weight: 900;
+        }
+
+        .wl-transaction-summary-value.is-receivable {
+          color: #dc2626;
+        }
+
+        @media (max-width: 850px) {
+          .wl-transaction-summary {
+            grid-template-columns: repeat(2, minmax(150px, 190px));
+          }
+        }
+
+        @media (max-width: 430px) {
+          .wl-transaction-summary {
+            grid-template-columns: minmax(0, 190px);
+          }
+        }
+
         .wl-inline-input {
           width: 100%;
           min-width: 0;
@@ -1050,6 +1125,35 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </p>
         </div>
       </div>
+
+      {listOnly && (
+        <div className="wl-transaction-summary">
+          <div className="wl-transaction-summary-card">
+            <div className="wl-transaction-summary-title">전체 거래건수</div>
+            <div className="wl-transaction-summary-value">
+              {transactionSummary.tradeCount.toLocaleString()}건
+            </div>
+          </div>
+          <div className="wl-transaction-summary-card">
+            <div className="wl-transaction-summary-title">매입금액</div>
+            <div className="wl-transaction-summary-value">
+              {money(transactionSummary.purchaseAmount)}
+            </div>
+          </div>
+          <div className="wl-transaction-summary-card">
+            <div className="wl-transaction-summary-title">판매금액</div>
+            <div className="wl-transaction-summary-value">
+              {money(transactionSummary.saleAmount)}
+            </div>
+          </div>
+          <div className="wl-transaction-summary-card">
+            <div className="wl-transaction-summary-title">수익</div>
+            <div className="wl-transaction-summary-value">
+              {money(transactionSummary.profitAmount)}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={listOnly ? "" : "wl-two-column-layout"}>
         {!listOnly && (

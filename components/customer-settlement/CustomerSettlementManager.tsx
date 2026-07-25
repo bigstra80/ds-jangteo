@@ -8,12 +8,14 @@ type SortOrder = "dateDesc" | "dateAsc" | "inputDesc" | "inputAsc";
 type LedgerDetail = {
   id: number;
   transactionDate: string;
+  productCode: string | null;
   productName: string;
   quantity: number;
   supplierName: string | null;
   purchaseAmount: number;
   deliveryCompanyName: string | null;
   customerName: string | null;
+  customerPhone: string | null;
   saleAmount: number;
   shippingFee: number;
   settlementStatus: string;
@@ -93,10 +95,12 @@ export default function CustomerSettlementManager() {
         if (!keyword) return true;
 
         const fields: Record<string, unknown[]> = {
-          all: [row.deliveryCompanyName, row.productName, row.customerName, row.memo],
+          all: [row.deliveryCompanyName, row.productCode, row.productName, row.customerName, row.customerPhone, row.memo],
           deliveryCompany: [row.deliveryCompanyName],
+          productCode: [row.productCode],
           product: [row.productName],
           customer: [row.customerName],
+          phone: [row.customerPhone],
           memo: [row.memo],
         };
         return (fields[searchField] || fields.all).some((value) =>
@@ -132,8 +136,10 @@ export default function CustomerSettlementManager() {
     const excelRows = filteredRows.map((row) => ({
       거래일: new Date(row.transactionDate).toLocaleDateString("ko-KR"),
       거래처: row.deliveryCompanyName || "-",
+      상품번호: row.productCode || "-",
       상품명: row.productName,
       이름: row.customerName || "-",
+      전화번호: row.customerPhone || "-",
       수량: row.quantity,
       금액: row.saleAmount || 0,
       배송비: row.shippingFee || 0,
@@ -146,7 +152,9 @@ export default function CustomerSettlementManager() {
     worksheet["!cols"] = [
       { wch: 14 },
       { wch: 18 },
+      { wch: 16 },
       { wch: 34 },
+      { wch: 16 },
       { wch: 16 },
       { wch: 8 },
       { wch: 14 },
@@ -483,12 +491,12 @@ export default function CustomerSettlementManager() {
       <div className="customer-settlement-toolbar">
         <div className="customer-settlement-filter-left">
           <select value={searchField} onChange={(e) => setSearchField(e.target.value)} className="customer-settlement-search-type" style={searchTypeStyle} aria-label="검색 항목 선택">
-            <option value="all">전체</option><option value="deliveryCompany">납품업체</option><option value="product">상품명</option><option value="customer">고객명</option><option value="memo">메모</option>
+            <option value="all">전체</option><option value="deliveryCompany">납품업체</option><option value="productCode">상품번호</option><option value="product">상품명</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
           </select>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="거래처·상품명·이름·메모 검색"
+            placeholder="거래처·상품번호·상품명·이름·전화번호·메모 검색"
             className="customer-settlement-search"
             style={searchStyle}
           />
@@ -550,22 +558,26 @@ export default function CustomerSettlementManager() {
       <div className="customer-settlement-table-wrap" style={tableWrapStyle}>
         <table className="customer-settlement-table" style={tableStyle}>
           <colgroup>
-            <col style={{ width: 95 }} />
-            <col style={{ width: 95 }} />
-            <col style={{ width: 240 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 55 }} />
+            <col style={{ width: 92 }} />
+            <col style={{ width: 82 }} />
             <col style={{ width: 105 }} />
+            <col style={{ width: 205 }} />
             <col style={{ width: 90 }} />
-            <col style={{ width: 105 }} />
-            <col style={{ width: 160 }} />
+            <col style={{ width: 125 }} />
+            <col style={{ width: 48 }} />
+            <col style={{ width: 90 }} />
+            <col style={{ width: 78 }} />
+            <col style={{ width: 92 }} />
+            <col style={{ width: 145 }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
               <th style={centerThStyle}>거래일</th>
               <th style={leftThStyle}>거래처</th>
+              <th style={leftThStyle}>상품번호</th>
               <th style={leftThStyle}>상품명</th>
               <th style={leftThStyle}>이름</th>
+              <th style={leftThStyle}>전화번호</th>
               <th style={centerThStyle}>수량</th>
               <th style={rightThStyle}>금액</th>
               <th style={rightThStyle}>배송비</th>
@@ -577,11 +589,11 @@ export default function CustomerSettlementManager() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={emptyStyle}>불러오는 중...</td>
+                <td colSpan={11} style={emptyStyle}>불러오는 중...</td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={9} style={emptyStyle}>
+                <td colSpan={11} style={emptyStyle}>
                   표시할 거래내역이 없습니다.
                 </td>
               </tr>
@@ -609,8 +621,10 @@ export default function CustomerSettlementManager() {
                     {new Date(row.transactionDate).toLocaleDateString("ko-KR")}
                   </td>
                   <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
+                  <td style={tdStyle}>{row.productCode || "-"}</td>
                   <td className="product-cell" style={tdStyle}><strong>{row.productName}</strong></td>
                   <td style={tdStyle}>{row.customerName || "-"}</td>
+                  <td style={tdStyle}>{row.customerPhone || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
                   <td style={moneyStyle}>{money(row.saleAmount)}</td>
                   <td style={moneyStyle}>{money(row.shippingFee || 0)}</td>
