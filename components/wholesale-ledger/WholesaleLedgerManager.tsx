@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 type LedgerRow = {
@@ -692,6 +692,36 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         [key]: value,
       },
     }));
+  }
+
+  function moveInlineInputWithArrow(
+    event: KeyboardEvent<HTMLInputElement>,
+    rowIndex: number,
+    columnIndex: number
+  ) {
+    const directions: Record<string, [number, number]> = {
+      ArrowUp: [-1, 0],
+      ArrowDown: [1, 0],
+      ArrowLeft: [0, -1],
+      ArrowRight: [0, 1],
+    };
+
+    const direction = directions[event.key];
+    if (!direction || event.nativeEvent.isComposing) return;
+
+    event.preventDefault();
+
+    const [rowMove, columnMove] = direction;
+    const targetRow = rowIndex + rowMove;
+    const targetColumn = columnIndex + columnMove;
+    const target = document.querySelector<HTMLInputElement>(
+      `[data-ledger-row="${targetRow}"][data-ledger-column="${targetColumn}"]`
+    );
+
+    if (target) {
+      target.focus();
+      target.select();
+    }
   }
 
   async function saveInlineRow(row: LedgerRow) {
@@ -1427,7 +1457,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 <td colSpan={listOnly ? 11 : 10} style={emptyStyle}>등록된 거래가 없습니다.</td>
               </tr>
             ) : (
-              filteredRows.map((row) => {
+              filteredRows.map((row, rowIndex) => {
                 const profit = row.saleAmount - row.purchaseAmount;
 
                 return (
@@ -1471,6 +1501,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input wl-inline-money"
+                          data-ledger-row={rowIndex}
+                          data-ledger-column={0}
                           value={inlineEdits[row.id]?.saleAmount ?? String(row.saleAmount ?? 0)}
                           onChange={(e) =>
                             changeInlineEdit(
@@ -1485,7 +1517,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                               e.preventDefault();
                               void saveInlineRow(row);
                               e.currentTarget.blur();
+                              return;
                             }
+                            moveInlineInputWithArrow(e, rowIndex, 0);
                           }}
                         />
                       </td>
@@ -1497,6 +1531,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input wl-inline-money"
+                          data-ledger-row={rowIndex}
+                          data-ledger-column={1}
                           value={inlineEdits[row.id]?.shippingFee ?? String(row.shippingFee ?? 0)}
                           onChange={(e) =>
                             changeInlineEdit(
@@ -1511,7 +1547,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                               e.preventDefault();
                               void saveInlineRow(row);
                               e.currentTarget.blur();
+                              return;
                             }
+                            moveInlineInputWithArrow(e, rowIndex, 1);
                           }}
                         />
                       </td>
@@ -1533,6 +1571,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input"
+                          data-ledger-row={rowIndex}
+                          data-ledger-column={2}
                           value={inlineEdits[row.id]?.memo ?? (row.memo || "")}
                           onChange={(e) =>
                             changeInlineEdit(row.id, "memo", e.target.value)
@@ -1542,7 +1582,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                               e.preventDefault();
                               void saveInlineRow(row);
                               e.currentTarget.blur();
+                              return;
                             }
+                            moveInlineInputWithArrow(e, rowIndex, 2);
                           }}
                           placeholder="-"
                         />
