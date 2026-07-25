@@ -287,28 +287,28 @@ export default function SupplierSettlementManager() {
           >
             날짜 초기화
           </button>
-        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            style={sortSelectStyle}
-            aria-label="정렬 순서"
-          >
-            <option value="dateDesc">최근순서</option>
-            <option value="dateAsc">오래된순서</option>
-            <option value="inputDesc">최근 입력순</option>
-            <option value="inputAsc">오래된 입력순</option>
-          </select>
+          <div style={toolbarActionStyle}>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+              style={sortSelectStyle}
+              aria-label="정렬 순서"
+            >
+              <option value="dateDesc">최근순서</option>
+              <option value="dateAsc">오래된순서</option>
+              <option value="inputDesc">최근 입력순</option>
+              <option value="inputAsc">오래된 입력순</option>
+            </select>
 
-          <button
-            type="button"
-            onClick={downloadExcel}
-            style={excelButtonStyle}
-          >
-            엑셀 다운로드
-          </button>
+            <button
+              type="button"
+              onClick={downloadExcel}
+              style={excelButtonStyle}
+            >
+              엑셀 다운로드
+            </button>
+          </div>
         </div>
       </div>
 
@@ -449,7 +449,7 @@ const summaryTitleStyle: React.CSSProperties = {
 const toolbarStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-end",
-  justifyContent: "space-between",
+  justifyContent: "flex-start",
   gap: 10,
   marginBottom: 12,
   flexWrap: "wrap",
@@ -498,6 +498,15 @@ const dateResetButtonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+
+
+const toolbarActionStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-end",
+  gap: 8,
+  flexWrap: "nowrap",
+  marginLeft: 12,
+};
 
 const sortSelectStyle: React.CSSProperties = {
   width: 128,
