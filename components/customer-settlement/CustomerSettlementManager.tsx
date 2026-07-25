@@ -175,33 +175,19 @@ export default function CustomerSettlementManager() {
       (result, row) => {
         const saleAmount = Number(row.saleAmount || 0);
         const shippingFee = Number(row.shippingFee || 0);
-        const totalAmount = saleAmount + shippingFee;
-        const isReturn =
-          saleAmount < 0 ||
-          String(row.memo || "").trim().toLowerCase().includes("반품");
 
         result.tradeCount += 1;
-
-        if (isReturn) {
-          result.returnAmount += Math.abs(totalAmount);
-        } else {
-          result.grossSalesAmount += totalAmount;
-        }
-
-        result.netSalesAmount += totalAmount;
-
-        if (row.settlementStatus !== "정산완료") {
-          result.receivableAmount += totalAmount;
-        }
+        result.saleAmount += saleAmount;
+        result.shippingFee += shippingFee;
+        result.totalAmount += saleAmount + shippingFee;
 
         return result;
       },
       {
         tradeCount: 0,
-        grossSalesAmount: 0,
-        returnAmount: 0,
-        netSalesAmount: 0,
-        receivableAmount: 0,
+        saleAmount: 0,
+        shippingFee: 0,
+        totalAmount: 0,
       }
     );
   }, [filteredRows]);
@@ -470,21 +456,20 @@ export default function CustomerSettlementManager() {
 
       <div className="customer-settlement-summary">
         <SummaryCard
-          title="전체 거래건수"
+          title="건수"
           value={`${totalSummary.tradeCount.toLocaleString()}건`}
         />
         <SummaryCard
-          title="총 판매금액"
-          value={`${money(totalSummary.grossSalesAmount)}`}
+          title="판매"
+          value={`${money(totalSummary.saleAmount)}`}
         />
         <SummaryCard
-          title="반품금액"
-          value={`${money(totalSummary.returnAmount)}`}
+          title="배송비"
+          value={`${money(totalSummary.shippingFee)}`}
         />
         <SummaryCard
-          title="현재 미수금"
-          value={`${money(totalSummary.receivableAmount)}`}
-          emphasize
+          title="총금액"
+          value={`${money(totalSummary.totalAmount)}`}
         />
       </div>
 
