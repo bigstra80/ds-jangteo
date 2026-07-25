@@ -49,7 +49,8 @@ export default function AppShell({
             width: 100%;
             min-width: 0;
             padding-top: 68px;
-            overflow-x: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
           }
         }
       `}</style>

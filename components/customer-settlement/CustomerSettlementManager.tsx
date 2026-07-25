@@ -393,7 +393,8 @@ export default function CustomerSettlementManager() {
 
         @media (max-width: 700px) {
           .customer-settlement-summary {
-            grid-template-columns: 190px;
+            grid-template-columns: 1fr;
+            width: 100%;
           }
 
           .customer-settlement-toolbar {

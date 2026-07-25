@@ -24,3 +24,122 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Mobile layout safety: prevent controls and cards from being clipped on phones. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+input, select, textarea, button {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .app-main > main {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 14px !important;
+    margin: 0 !important;
+  }
+
+  .app-main h1 {
+    font-size: 26px !important;
+    line-height: 1.2 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-main p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .app-main form,
+  .app-main section,
+  .app-main article {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Common filter/tool bars stack instead of running off screen. */
+  .wl-toolbar,
+  .customer-settlement-toolbar,
+  [class*="toolbar"],
+  [class*="filter-row"],
+  [class*="filterRow"] {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex-wrap: wrap !important;
+  }
+
+  .wl-toolbar > *,
+  .customer-settlement-toolbar > *,
+  [class*="toolbar"] > * {
+    min-width: 0 !important;
+  }
+
+  /* Tables stay fully accessible by horizontal swipe rather than being cut off. */
+  .wl-table-wrap,
+  [class*="table-wrap"],
+  [class*="tableWrap"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+  }
+
+  table {
+    max-width: none;
+  }
+
+  /* Summary cards use the whole phone width. */
+  .wl-transaction-summary,
+  .customer-settlement-summary {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .wl-transaction-summary-card,
+  .customer-settlement-summary > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .app-main > main {
+    padding: 10px !important;
+  }
+
+  .wl-transaction-summary,
+  .customer-settlement-summary {
+    grid-template-columns: 1fr !important;
+  }
+
+  .wl-transaction-summary-card {
+    padding: 14px !important;
+  }
+
+  .wl-transaction-summary-value {
+    font-size: 21px !important;
+  }
+
+  input, select, textarea, button {
+    font-size: 16px;
+  }
+}

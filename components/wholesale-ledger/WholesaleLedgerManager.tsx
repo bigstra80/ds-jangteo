@@ -1081,7 +1081,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         @media (max-width: 430px) {
           .wl-transaction-summary {
-            grid-template-columns: minmax(0, 190px);
+            grid-template-columns: 1fr;
+            width: 100%;
           }
         }
 
