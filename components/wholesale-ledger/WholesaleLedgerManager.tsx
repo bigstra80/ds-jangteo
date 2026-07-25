@@ -301,6 +301,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     memo: string;
   }>>({});
   const [keyword, setKeyword] = useState("");
+  const [searchField, setSearchField] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
@@ -391,15 +392,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
       if (!normalizedKeyword) return true;
 
-      return [
-        row.productName,
-        row.supplierName || "",
-        row.deliveryCompanyName || "",
-        row.customerName || "",
-        row.customerPhone || "",
-        String(row.shippingFee || 0),
-        row.memo || "",
-      ].some((value) => value.toLowerCase().includes(normalizedKeyword));
+      const fields: Record<string, unknown[]> = {
+        all: [row.productName, row.supplierName, row.deliveryCompanyName, row.customerName, row.customerPhone, row.shippingFee, row.memo],
+        product: [row.productName], supplier: [row.supplierName], deliveryCompany: [row.deliveryCompanyName], customer: [row.customerName], phone: [row.customerPhone], memo: [row.memo],
+      };
+      return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(normalizedKeyword));
     });
 
     return nextRows.sort((a, b) => {
@@ -416,7 +413,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
       return dateDiff !== 0 ? -dateDiff : b.id - a.id;
     });
-  }, [rows, keyword, startDate, endDate, sortOrder]);
+  }, [rows, keyword, searchField, startDate, endDate, sortOrder]);
 
   const summary = useMemo(() => {
     return filteredRows.reduce(
@@ -1294,6 +1291,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         <div className={listOnly ? "wl-list-only-pane" : "wl-right-pane"}>
       <div style={toolbarStyle} className="wl-toolbar">
+        <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택">
+          <option value="all">전체</option><option value="product">상품명</option><option value="supplier">공급업체</option><option value="deliveryCompany">납품업체</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
+        </select>
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
@@ -2023,6 +2023,10 @@ const toolbarStyle: React.CSSProperties = {
   marginTop: "0",
   marginBottom: "12px",
   alignItems: "flex-end",
+};
+
+const searchTypeStyle: React.CSSProperties = {
+  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
 };
 
 const searchStyle: React.CSSProperties = {

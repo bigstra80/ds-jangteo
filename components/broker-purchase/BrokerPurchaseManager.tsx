@@ -38,6 +38,7 @@ export default function BrokerPurchaseManager() {
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState("all");
   const [isAdmin, setIsAdmin] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -124,17 +125,8 @@ export default function BrokerPurchaseManager() {
 
         if (!keyword) return true;
 
-        return [
-          row.supplierName,
-          row.productName,
-          row.deliveryCompanyName,
-          row.customerName,
-          row.memo,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(keyword);
+        const fields: Record<string, unknown[]> = { all: [row.supplierName, row.productName, row.deliveryCompanyName, row.customerName, row.memo], supplier: [row.supplierName], product: [row.productName], deliveryCompany: [row.deliveryCompanyName], customer: [row.customerName], memo: [row.memo] };
+        return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
       })
       .sort((a, b) => {
         const dateDiff =
@@ -144,7 +136,7 @@ export default function BrokerPurchaseManager() {
         if (dateDiff !== 0) return dateDiff;
         return a.id - b.id;
       });
-  }, [rows, search, startDate, endDate]);
+  }, [rows, search, searchField, startDate, endDate]);
 
   const groupedBySupplier = useMemo<SupplierGroup[]>(() => {
     const map = new Map<string, SupplierGroup>();
@@ -205,6 +197,7 @@ export default function BrokerPurchaseManager() {
       </div>
 
       <div style={toolbarStyle}>
+        <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택"><option value="all">전체</option><option value="supplier">공급업체</option><option value="product">상품명</option><option value="deliveryCompany">납품업체</option><option value="customer">고객명</option><option value="memo">메모</option></select>
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -403,6 +396,10 @@ const toolbarStyle: React.CSSProperties = {
   alignItems: "flex-end",
   gap: "12px",
   marginBottom: "18px",
+};
+
+const searchTypeStyle: React.CSSProperties = {
+  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
 };
 
 const searchStyle: React.CSSProperties = {

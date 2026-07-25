@@ -44,6 +44,7 @@ export default function CustomerManager() {
   const [editingId, setEditingId] =
     useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState("all");
   const [statusFilter, setStatusFilter] =
     useState("전체");
   const [loading, setLoading] = useState(false);
@@ -272,22 +273,17 @@ export default function CustomerManager() {
             return true;
           }
 
-          return [
-            customer.code,
-            customer.name,
-            customer.phone,
-            customer.email,
-            customer.address,
-          ].some((value) =>
-            (value || "")
-              .toLowerCase()
-              .includes(keyword)
-          );
+          const fields: Record<string, unknown[]> = {
+            all: [customer.code, customer.name, customer.phone, customer.email, customer.address],
+            code: [customer.code], name: [customer.name], phone: [customer.phone], email: [customer.email], address: [customer.address],
+          };
+          return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
         }
       );
     }, [
       customers,
       search,
+      searchField,
       statusFilter,
     ]);
 
@@ -460,6 +456,9 @@ export default function CustomerManager() {
         </div>
 
         <div style={filterRow}>
+          <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={filterSelect} aria-label="검색 항목 선택">
+            <option value="all">전체</option><option value="code">거래처 코드</option><option value="name">이름</option><option value="phone">연락처</option><option value="email">이메일</option><option value="address">주소</option>
+          </select>
           <input
             style={searchInput}
             value={search}

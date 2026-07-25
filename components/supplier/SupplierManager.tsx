@@ -57,6 +57,7 @@ export default function SupplierManager() {
   const [form, setForm] = useState<SupplierForm>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState("all");
   const [loading, setLoading] = useState(false);
   const [forceDeletingId, setForceDeletingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -326,21 +327,13 @@ export default function SupplierManager() {
     }
 
     return suppliers.filter((supplier) => {
-      const values = [
-        supplier.code,
-        supplier.name,
-        supplier.businessNumber,
-        supplier.representative,
-        supplier.phone,
-        supplier.contactName,
-        supplier.contactPhone,
-      ];
-
-      return values.some((value) =>
-        (value || "").toLowerCase().includes(keyword)
-      );
+      const fields: Record<string, unknown[]> = {
+        all: [supplier.code, supplier.name, supplier.businessNumber, supplier.representative, supplier.phone, supplier.contactName, supplier.contactPhone],
+        code: [supplier.code], name: [supplier.name], businessNumber: [supplier.businessNumber], representative: [supplier.representative], phone: [supplier.phone], contact: [supplier.contactName, supplier.contactPhone],
+      };
+      return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
     });
-  }, [suppliers, search]);
+  }, [suppliers, search, searchField]);
 
   return (
     <div style={{ width: "100%", maxWidth: "1180px", margin: "0", boxSizing: "border-box" }}>
@@ -510,12 +503,17 @@ export default function SupplierManager() {
       <section style={{ marginTop: "24px" }}>
         <h2>거래처 목록</h2>
 
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+        <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택">
+          <option value="all">전체</option><option value="code">거래처 코드</option><option value="name">거래처명</option><option value="businessNumber">사업자번호</option><option value="representative">대표자</option><option value="phone">전화번호</option><option value="contact">담당자</option>
+        </select>
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="거래처 코드, 거래처명, 대표자, 담당자 검색"
           style={searchStyle}
         />
+        </div>
 
         <div style={{ overflowX: "auto" }}>
           <table style={tableStyle}>
@@ -722,6 +720,8 @@ const cancelButtonStyle: React.CSSProperties = {
   color: "white",
   cursor: "pointer",
 };
+
+const searchTypeStyle: React.CSSProperties = { height: 42, minWidth: 110, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer" };
 
 const searchStyle: React.CSSProperties = {
   ...inputStyle,

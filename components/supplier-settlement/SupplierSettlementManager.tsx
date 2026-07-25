@@ -54,6 +54,7 @@ export default function SupplierSettlementManager() {
   const [data, setData] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
@@ -113,16 +114,11 @@ export default function SupplierSettlementManager() {
         if (endDate && rowDate > endDate) return false;
         if (!keyword) return true;
 
-        return [
-          row.supplierName,
-          row.productName,
-          row.customerName,
-          row.memo,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(keyword);
+        const fields: Record<string, unknown[]> = {
+          all: [row.supplierName, row.productName, row.customerName, row.memo],
+          supplier: [row.supplierName], product: [row.productName], customer: [row.customerName], memo: [row.memo],
+        };
+        return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
       })
       .sort((a, b) => {
         if (sortOrder === "inputDesc") return b.id - a.id;
@@ -138,7 +134,7 @@ export default function SupplierSettlementManager() {
 
         return dateDiff !== 0 ? -dateDiff : b.id - a.id;
       });
-  }, [data, search, startDate, endDate, sortOrder]);
+  }, [data, search, searchField, startDate, endDate, sortOrder]);
 
   function downloadExcel() {
     const excelRows = filteredRows.map((row) => ({
@@ -249,6 +245,9 @@ export default function SupplierSettlementManager() {
 
       <div style={toolbarStyle}>
         <div style={filterLeftStyle}>
+          <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택">
+            <option value="all">전체</option><option value="supplier">공급업체</option><option value="product">상품명</option><option value="customer">고객명</option><option value="memo">메모</option>
+          </select>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -522,6 +521,10 @@ const excelButtonStyle: React.CSSProperties = {
   fontWeight: 800,
   cursor: "pointer",
   whiteSpace: "nowrap",
+};
+
+const searchTypeStyle: React.CSSProperties = {
+  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
 };
 
 const searchStyle: React.CSSProperties = {

@@ -42,6 +42,7 @@ export default function CustomerSettlementManager() {
   const [data, setData] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
@@ -91,16 +92,16 @@ export default function CustomerSettlementManager() {
         if (endDate && rowDate > endDate) return false;
         if (!keyword) return true;
 
-        return [
-          row.deliveryCompanyName,
-          row.productName,
-          row.customerName,
-          row.memo,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(keyword);
+        const fields: Record<string, unknown[]> = {
+          all: [row.deliveryCompanyName, row.productName, row.customerName, row.memo],
+          deliveryCompany: [row.deliveryCompanyName],
+          product: [row.productName],
+          customer: [row.customerName],
+          memo: [row.memo],
+        };
+        return (fields[searchField] || fields.all).some((value) =>
+          String(value || "").toLowerCase().includes(keyword)
+        );
       })
       .sort((a, b) => {
         if (sortOrder === "inputDesc") {
@@ -125,7 +126,7 @@ export default function CustomerSettlementManager() {
 
         return dateDiff !== 0 ? -dateDiff : b.id - a.id;
       });
-  }, [data, search, startDate, endDate, sortOrder]);
+  }, [data, search, searchField, startDate, endDate, sortOrder]);
 
   function downloadExcel() {
     const excelRows = filteredRows.map((row) => ({
@@ -211,8 +212,9 @@ export default function CustomerSettlementManager() {
         .customer-settlement-toolbar {
           display: flex;
           align-items: flex-end;
-          justify-content: space-between;
-          gap: 10px;
+          gap: 8px;
+          width: min(1080px, 100%);
+          min-width: 0;
           margin-bottom: 12px;
         }
 
@@ -220,12 +222,45 @@ export default function CustomerSettlementManager() {
           display: flex;
           align-items: flex-end;
           gap: 8px;
-          flex-wrap: nowrap;
+          flex: 1 1 auto;
           min-width: 0;
+        }
+
+        .customer-settlement-search-type {
+          flex: 0 1 96px;
+          min-width: 72px !important;
+          width: 96px;
+        }
+
+        .customer-settlement-search {
+          flex: 1 1 260px;
+          width: auto !important;
+          min-width: 90px;
+        }
+
+        .customer-settlement-toolbar-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 0 1 auto;
+          min-width: 0;
+        }
+
+        .customer-settlement-sort-select {
+          flex: 0 1 128px;
+          min-width: 92px;
+          width: 128px !important;
+        }
+
+        .customer-settlement-excel-button {
+          flex: 0 1 auto;
+          min-width: 104px;
         }
 
         .customer-settlement-date-group {
           display: flex;
+          flex: 0 1 128px;
+          min-width: 104px;
           flex-direction: column;
           gap: 4px;
         }
@@ -237,7 +272,8 @@ export default function CustomerSettlementManager() {
         }
 
         .customer-settlement-date-input {
-          width: 128px;
+          width: 100%;
+          min-width: 0;
           height: 36px;
           padding: 0 9px;
           border: 1px solid #cbd5e1;
@@ -250,7 +286,8 @@ export default function CustomerSettlementManager() {
         .customer-settlement-reset-button {
           height: 36px;
           padding: 0 10px;
-          min-width: 88px;
+          flex: 0 1 88px;
+          min-width: 72px;
           white-space: nowrap;
           font-size: 12px;
           border: 1px solid #cbd5e1;
@@ -336,7 +373,16 @@ export default function CustomerSettlementManager() {
           }
 
           .customer-settlement-toolbar {
-            align-items: stretch;
+            flex-wrap: wrap;
+            align-items: flex-end;
+          }
+
+          .customer-settlement-filter-left {
+            flex: 1 1 100%;
+          }
+
+          .customer-settlement-toolbar-right {
+            margin-left: auto;
           }
 
           .customer-settlement-table th {
@@ -358,10 +404,40 @@ export default function CustomerSettlementManager() {
 
           .customer-settlement-toolbar {
             flex-direction: column;
+            align-items: stretch;
+          }
+
+          .customer-settlement-filter-left {
+            flex-wrap: wrap;
+            align-items: flex-end;
+          }
+
+          .customer-settlement-search-type {
+            flex: 0 1 92px;
           }
 
           .customer-settlement-search {
+            flex: 1 1 calc(100% - 100px);
             max-width: none !important;
+          }
+
+          .customer-settlement-date-group {
+            flex: 1 1 140px;
+          }
+
+          .customer-settlement-reset-button {
+            flex: 0 1 92px;
+          }
+
+          .customer-settlement-toolbar-right {
+            width: 100%;
+            margin-left: 0;
+          }
+
+          .customer-settlement-sort-select,
+          .customer-settlement-excel-button {
+            flex: 1 1 0;
+            width: auto !important;
           }
 
           .customer-settlement-table th {
@@ -406,6 +482,9 @@ export default function CustomerSettlementManager() {
 
       <div className="customer-settlement-toolbar">
         <div className="customer-settlement-filter-left">
+          <select value={searchField} onChange={(e) => setSearchField(e.target.value)} className="customer-settlement-search-type" style={searchTypeStyle} aria-label="검색 항목 선택">
+            <option value="all">전체</option><option value="deliveryCompany">납품업체</option><option value="product">상품명</option><option value="customer">고객명</option><option value="memo">메모</option>
+          </select>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -448,10 +527,11 @@ export default function CustomerSettlementManager() {
           </button>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="customer-settlement-toolbar-right">
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            className="customer-settlement-sort-select"
             style={sortSelectStyle}
             aria-label="정렬 순서"
           >
@@ -461,7 +541,7 @@ export default function CustomerSettlementManager() {
             <option value="inputAsc">오래된 입력순</option>
           </select>
 
-          <button onClick={downloadExcel} style={excelButtonStyle}>
+          <button onClick={downloadExcel} className="customer-settlement-excel-button" style={excelButtonStyle}>
             엑셀 다운로드
           </button>
         </div>
@@ -629,6 +709,10 @@ const excelButtonStyle: React.CSSProperties = {
   fontWeight: 800,
   cursor: "pointer",
   whiteSpace: "nowrap",
+};
+
+const searchTypeStyle: React.CSSProperties = {
+  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
 };
 
 const searchStyle: React.CSSProperties = {

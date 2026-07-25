@@ -142,6 +142,7 @@ export default function ProductManager() {
   const [openedProductIds, setOpenedProductIds] = useState<number[]>([]);
   const [openedMobileProductIds, setOpenedMobileProductIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState("all");
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -420,25 +421,13 @@ export default function ProductManager() {
 
       if (!keyword) return true;
 
-      const text = [
-        product.code,
-        product.name,
-        product.brand,
-        product.category,
-        product.colors,
-        product.sizes,
-        product.sourceProductName,
-        product.supplier?.name,
-        product.supplier2?.name,
-        product.supplier3?.name,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return text.includes(keyword);
+      const fields: Record<string, unknown[]> = {
+        all: [product.code, product.name, product.brand, product.category, product.colors, product.sizes, product.sourceProductName, product.supplier?.name, product.supplier2?.name, product.supplier3?.name],
+        code: [product.code], name: [product.name, product.sourceProductName], supplier: [product.supplier?.name, product.supplier2?.name, product.supplier3?.name], brand: [product.brand], category: [product.category],
+      };
+      return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
     });
-  }, [products, search]);
+  }, [products, search, searchField]);
 
   function resetForm() {
     setForm(emptyForm);
@@ -1631,6 +1620,9 @@ export default function ProductManager() {
             flexWrap: "wrap",
           }}
         >
+          <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택">
+            <option value="all">전체</option><option value="code">상품코드</option><option value="name">상품명</option><option value="supplier">공급업체</option><option value="brand">브랜드</option><option value="category">카테고리</option>
+          </select>
           <input
             value={search}
             onChange={(event) =>
@@ -2128,6 +2120,10 @@ const toolbarStyle: React.CSSProperties = {
   border: "1px solid #e5e7eb",
   borderRadius: "12px",
   backgroundColor: "white",
+};
+
+const searchTypeStyle: React.CSSProperties = {
+  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
 };
 
 const searchInputStyle: React.CSSProperties = {
