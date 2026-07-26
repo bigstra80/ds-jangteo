@@ -774,8 +774,8 @@ export default function ProductManager() {
       return;
     }
 
-    if (!form.name.trim()) {
-      alert("상품명을 입력해주세요.");
+    if (!form.sourceProductName.trim()) {
+      alert("상품을 입력해주세요.");
       return;
     }
 
@@ -794,6 +794,9 @@ export default function ProductManager() {
       const primaryPayload = {
         id: editingId,
         ...form,
+        // 상품명은 선택 입력입니다. 비어 있으면 화면에는 자동 복사하지 않고,
+        // 저장 시에만 필수값인 상품을 내부 상품명으로 사용합니다.
+        name: form.name.trim() || form.sourceProductName.trim(),
         supplierId: resolvedSupplierId,
       };
 
@@ -1848,10 +1851,10 @@ export default function ProductManager() {
                   placeholder="선택사항"
                 />
                 <Field
-                  label="공급업체 원상품명"
+                  label="상품"
                   value={form.sourceProductName}
                   onChange={(value) => updateForm("sourceProductName", value)}
-                  placeholder="공급업체에서 사용하는 상품명"
+                  placeholder="상품을 입력하세요"
                 />
               </div>
 

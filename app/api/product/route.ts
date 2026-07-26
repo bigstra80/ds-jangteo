@@ -86,9 +86,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!String(body.name || "").trim()) {
+    if (!String(body.sourceProductName || "").trim()) {
       return NextResponse.json(
-        { message: "상품명을 입력해주세요." },
+        { message: "상품을 입력해주세요." },
         { status: 400 }
       );
     }
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const product = await prisma.product.create({
       data: {
         code: String(body.code).trim(),
-        name: String(body.name).trim(),
+        name: String(body.name || body.sourceProductName).trim(),
         brand: nullableText(body.brand),
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
@@ -255,9 +255,9 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (!String(body.name || "").trim()) {
+    if (!String(body.sourceProductName || "").trim()) {
       return NextResponse.json(
-        { message: "상품명을 입력해주세요." },
+        { message: "상품을 입력해주세요." },
         { status: 400 }
       );
     }
@@ -327,7 +327,7 @@ export async function PUT(request: Request) {
 
       data: {
         code: productCode,
-        name: String(body.name || "").trim(),
+        name: String(body.name || body.sourceProductName).trim(),
         brand: nullableText(body.brand),
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
