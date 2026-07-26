@@ -185,11 +185,11 @@ export default function CustomerDeliveryManager() {
       </div>
 
       <div style={toolbarStyle}>
-        <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택"><option value="all">전체</option><option value="deliveryCompany">납품업체</option><option value="product">상품명</option><option value="supplier">공급업체</option><option value="customer">고객명</option><option value="memo">메모</option></select>
+        <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} aria-label="검색 항목 선택"><option value="all">전체</option><option value="deliveryCompany">납품업체</option><option value="product">상품</option><option value="supplier">공급업체</option><option value="customer">고객명</option><option value="memo">메모</option></select>
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="거래처, 상품명, 공급업체, 고객 이름, 메모 검색"
+          placeholder="거래처, 상품, 공급업체, 고객 이름, 메모 검색"
           style={searchStyle}
         />
 
@@ -263,7 +263,7 @@ export default function CustomerDeliveryManager() {
                     <thead>
                       <tr>
                         <th style={thStyle}>거래일</th>
-                        <th style={thStyle}>상품명</th>
+                        <th style={thStyle}>상품</th>
                         <th style={thStyle}>수량</th>
                         <th style={thStyle}>판매금액</th>
                         <th style={thStyle}>배송비</th>

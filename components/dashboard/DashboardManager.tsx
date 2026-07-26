@@ -398,7 +398,7 @@ export default function DashboardManager() {
             <thead>
               <tr>
                 <th style={thStyle}>
-                  상품명
+                  상품
                 </th>
 
                 <th style={thStyle}>
@@ -580,7 +580,7 @@ export default function DashboardManager() {
               <thead>
                 <tr>
                   <th style={thStyle}>순위</th>
-                  <th style={thStyle}>상품명</th>
+                  <th style={thStyle}>상품</th>
                   <th style={thStyle}>판매수량</th>
                   <th style={thStyle}>매출</th>
                 </tr>

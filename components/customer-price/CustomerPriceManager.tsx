@@ -346,7 +346,7 @@ export default function CustomerPriceManager() {
                 >
                   <th style={thStyle}>상품코드</th>
                   <th style={thStyle}>브랜드</th>
-                  <th style={thStyle}>상품명</th>
+                  <th style={thStyle}>상품</th>
                   <th style={thStyle}>기본 판매가</th>
                   <th style={thStyle}>거래처 판매가</th>
                   <th style={thStyle}>관리</th>

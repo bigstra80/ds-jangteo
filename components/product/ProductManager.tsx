@@ -2243,17 +2243,17 @@ export default function ProductManager() {
                       style={{
                         ...productNameStyle,
                         fontSize:
-                          product.name.length >= 24
+                          (product.sourceProductName || product.name || "").length >= 24
                             ? "11px"
-                            : product.name.length >= 18
+                            : (product.sourceProductName || product.name || "").length >= 18
                               ? "12px"
-                              : product.name.length >= 13
+                              : (product.sourceProductName || product.name || "").length >= 13
                                 ? "13px"
                                 : "15px",
                       }}
-                      title={product.name}
+                      title={product.sourceProductName || product.name}
                     >
-                      {product.name}
+                      {product.sourceProductName || product.name}
                     </div>
 
                   </div>

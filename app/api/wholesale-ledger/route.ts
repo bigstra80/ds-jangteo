@@ -22,14 +22,36 @@ function toNullableText(value: unknown) {
 
 export async function GET() {
   try {
-    const rows = await prisma.wholesaleLedger.findMany({
-      orderBy: [
-        { transactionDate: "desc" },
-        { id: "desc" },
-      ],
-    });
+    const [rows, products] = await Promise.all([
+      prisma.wholesaleLedger.findMany({
+        orderBy: [
+          { transactionDate: "desc" },
+          { id: "desc" },
+        ],
+      }),
+      prisma.product.findMany({
+        select: { name: true, sourceProductName: true },
+      }),
+    ]);
 
-    return NextResponse.json({ rows }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } });
+    const normalizeName = (value: string) =>
+      value.trim().replace(/\s+/g, " ").toLocaleLowerCase("ko-KR");
+    const sourceNameByAnyName = new Map<string, string>();
+
+    for (const product of products) {
+      const sourceName = String(product.sourceProductName || "").trim();
+      if (!sourceName) continue;
+      if (product.name) sourceNameByAnyName.set(normalizeName(product.name), sourceName);
+      sourceNameByAnyName.set(normalizeName(sourceName), sourceName);
+    }
+
+    const displayRows = rows.map((row) => ({
+      ...row,
+      productName:
+        sourceNameByAnyName.get(normalizeName(row.productName)) || row.productName,
+    }));
+
+    return NextResponse.json({ rows: displayRows }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } });
   } catch (error) {
     console.error("도매 거래 목록 조회 오류:", error);
 
@@ -48,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (!productName) {
       return NextResponse.json(
-        { error: "상품명이 필요합니다." },
+        { error: "상품이 필요합니다." },
         { status: 400 }
       );
     }

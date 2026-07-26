@@ -137,7 +137,7 @@ export default function CustomerSettlementManager() {
       거래일: new Date(row.transactionDate).toLocaleDateString("ko-KR"),
       거래처: row.deliveryCompanyName || "-",
       상품번호: row.productCode || "-",
-      상품명: row.productName,
+      상품: row.productName,
       이름: row.customerName || "-",
       전화번호: row.customerPhone || "-",
       수량: row.quantity,
@@ -477,12 +477,12 @@ export default function CustomerSettlementManager() {
       <div className="customer-settlement-toolbar">
         <div className="customer-settlement-filter-left">
           <select value={searchField} onChange={(e) => setSearchField(e.target.value)} className="customer-settlement-search-type" style={searchTypeStyle} aria-label="검색 항목 선택">
-            <option value="all">전체</option><option value="deliveryCompany">납품업체</option><option value="productCode">상품번호</option><option value="product">상품명</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
+            <option value="all">전체</option><option value="deliveryCompany">납품업체</option><option value="productCode">상품번호</option><option value="product">상품</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
           </select>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="거래처·상품번호·상품명·이름·전화번호·메모 검색"
+            placeholder="거래처·상품번호·상품·이름·전화번호·메모 검색"
             className="customer-settlement-search"
             style={searchStyle}
           />
@@ -561,7 +561,7 @@ export default function CustomerSettlementManager() {
               <th style={centerThStyle}>거래일</th>
               <th style={leftThStyle}>거래처</th>
               <th style={leftThStyle}>상품번호</th>
-              <th style={leftThStyle}>상품명</th>
+              <th style={leftThStyle}>상품</th>
               <th style={leftThStyle}>이름</th>
               <th style={leftThStyle}>전화번호</th>
               <th style={centerThStyle}>수량</th>
