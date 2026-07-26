@@ -497,7 +497,7 @@ export default function CustomerSettlementManager() {
             />
           </div>
 
-          <span style={{ paddingBottom: 9 }}>~</span>
+          <span className="customer-settlement-date-separator" style={{ paddingBottom: 9 }}>~</span>
 
           <div className="customer-settlement-date-group">
             <label className="customer-settlement-date-label">종료일</label>

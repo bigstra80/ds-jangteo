@@ -722,3 +722,150 @@ input, select, textarea, button {
     font-size: 16px !important;
   }
 }
+
+
+/* 2026-07-26 모바일 날짜 필터: 가로 한 줄 유지 + 폭 축소
+   적용: 도매거래 한 줄 장부 / 전체 거래내역 / 거래처 정산·미수금 */
+@media (max-width: 768px) {
+  /* 도매거래 한 줄 장부 + 전체 거래내역 */
+  .wl-toolbar .wl-date-filter {
+    display: grid !important;
+    grid-template-columns:
+      minmax(88px, 112px)
+      8px
+      minmax(88px, 112px)
+      80px !important;
+    justify-content: start !important;
+    align-items: end !important;
+    column-gap: 4px !important;
+    row-gap: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  .wl-toolbar .wl-date-filter label {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 112px !important;
+  }
+
+  .wl-toolbar .wl-date-filter input[type="date"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 112px !important;
+    height: 36px !important;
+    padding: 0 3px !important;
+    font-size: 11px !important;
+  }
+
+  .wl-toolbar .wl-date-filter > span {
+    width: 8px !important;
+    min-width: 8px !important;
+    padding: 0 0 9px !important;
+    text-align: center !important;
+  }
+
+  .wl-toolbar .wl-date-filter button {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+    height: 36px !important;
+    padding: 0 3px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  /* 거래처 정산·미수금 */
+  .customer-settlement-filter-left {
+    grid-template-columns:
+      72px
+      minmax(0, 1fr)
+      8px
+      80px !important;
+    column-gap: 4px !important;
+    row-gap: 7px !important;
+  }
+
+  .customer-settlement-date-group:nth-of-type(1) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: clamp(88px, 27vw, 112px) !important;
+    min-width: 88px !important;
+    max-width: 112px !important;
+  }
+
+  .customer-settlement-date-separator {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    width: 8px !important;
+    min-width: 8px !important;
+    align-self: end !important;
+    padding: 0 0 9px !important;
+    text-align: center !important;
+  }
+
+  .customer-settlement-date-group:nth-of-type(2) {
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+    width: clamp(88px, 27vw, 112px) !important;
+    min-width: 88px !important;
+    max-width: 112px !important;
+  }
+
+  .customer-settlement-date-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 112px !important;
+    height: 36px !important;
+    padding: 0 3px !important;
+    font-size: 11px !important;
+  }
+
+  .customer-settlement-reset-button {
+    grid-column: 4 !important;
+    grid-row: 2 !important;
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+    height: 36px !important;
+    padding: 0 3px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .wl-toolbar .wl-date-filter {
+    grid-template-columns:
+      minmax(84px, 1fr)
+      6px
+      minmax(84px, 1fr)
+      72px !important;
+    column-gap: 3px !important;
+  }
+
+  .wl-toolbar .wl-date-filter button,
+  .customer-settlement-reset-button {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    font-size: 10px !important;
+  }
+
+  .customer-settlement-filter-left {
+    grid-template-columns:
+      minmax(84px, 1fr)
+      6px
+      minmax(84px, 1fr)
+      72px !important;
+    column-gap: 3px !important;
+  }
+
+  .customer-settlement-date-group:nth-of-type(1),
+  .customer-settlement-date-group:nth-of-type(2) {
+    width: 100% !important;
+    min-width: 84px !important;
+  }
+}
