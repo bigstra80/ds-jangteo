@@ -126,7 +126,7 @@ export default function Sidebar() {
           }}
         >
           <span style={iconStyle}>📘</span>
-          <span className="sidebar-text">도매 거래 한 줄 장부</span>
+          <span className="sidebar-text">주문</span>
         </Link>
       )}
 
@@ -139,7 +139,7 @@ export default function Sidebar() {
           }}
         >
           <span style={iconStyle}>📋</span>
-          <span className="sidebar-text">전체 거래내역</span>
+          <span className="sidebar-text">입·출고</span>
         </Link>
       )}
 
@@ -154,7 +154,7 @@ export default function Sidebar() {
   }}
 >
   <span style={iconStyle}>📒</span>
-  <span className="sidebar-text">거래처 정산·미수금</span>
+  <span className="sidebar-text">출고</span>
 </Link>
       )}
 
@@ -169,22 +169,7 @@ export default function Sidebar() {
           }}
         >
           <span style={iconStyle}>📕</span>
-          <span className="sidebar-text">공급업체 정산</span>
-        </Link>
-      )}
-
-{canAccess("broker-purchases") && (
-        <Link
-          href="/broker-purchases"
-          style={{
-            ...menuLinkStyle,
-            ...(isActive("/broker-purchases")
-              ? activeMenuStyle
-              : {}),
-          }}
-        >
-          <span style={iconStyle}>🏪</span>
-          <span className="sidebar-text">업체별 매입목록</span>
+          <span className="sidebar-text">입고</span>
         </Link>
       )}
 
@@ -199,7 +184,22 @@ export default function Sidebar() {
           }}
         >
           <span style={iconStyle}>🚚</span>
-          <span className="sidebar-text">거래처별 납품목록</span>
+          <span className="sidebar-text">출고목록</span>
+        </Link>
+      )}
+
+{canAccess("broker-purchases") && (
+        <Link
+          href="/broker-purchases"
+          style={{
+            ...menuLinkStyle,
+            ...(isActive("/broker-purchases")
+              ? activeMenuStyle
+              : {}),
+          }}
+        >
+          <span style={iconStyle}>🏪</span>
+          <span className="sidebar-text">입고목록</span>
         </Link>
       )}
 
@@ -214,7 +214,7 @@ export default function Sidebar() {
           }}
         >
           <span style={iconStyle}>💵</span>
-          <span className="sidebar-text">거래처별 판매단가</span>
+          <span className="sidebar-text">단가 적용</span>
         </Link>
       )}
 
@@ -227,7 +227,7 @@ export default function Sidebar() {
           }}
         >
           <span style={iconStyle}>🟢</span>
-          <span className="sidebar-text">네이버 밴드 상품수집</span>
+          <span className="sidebar-text">상품수집</span>
         </Link>
       )}
 
