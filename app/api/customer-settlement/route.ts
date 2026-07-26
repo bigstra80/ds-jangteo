@@ -13,7 +13,6 @@ export async function GET() {
           id: true,
           code: true,
           name: true,
-          sourceProductName: true,
         },
         orderBy: { name: "asc" },
       }),
@@ -22,7 +21,6 @@ export async function GET() {
         select: {
           code: true,
           name: true,
-          sourceProductName: true,
         },
       }),
 
@@ -38,17 +36,9 @@ export async function GET() {
       customers.map((customer) => [normalizeName(customer.name), customer])
     );
 
-    const productCodeByName = new Map<string, string>();
-    const sourceNameByAnyName = new Map<string, string>();
-
-    for (const product of products) {
-      const sourceName = String(product.sourceProductName || "").trim();
-      const displayName = sourceName || product.name;
-      productCodeByName.set(normalizeName(product.name), product.code);
-      productCodeByName.set(normalizeName(displayName), product.code);
-      sourceNameByAnyName.set(normalizeName(product.name), displayName);
-      sourceNameByAnyName.set(normalizeName(displayName), displayName);
-    }
+    const productCodeByName = new Map(
+      products.map((product) => [normalizeName(product.name), product.code])
+    );
 
     const grouped = new Map<
       string,
@@ -143,8 +133,7 @@ export async function GET() {
         id: row.id,
         transactionDate: row.transactionDate,
         productCode: productCodeByName.get(normalizeName(row.productName)) ?? null,
-        productName:
-          sourceNameByAnyName.get(normalizeName(row.productName)) || row.productName,
+        productName: row.productName,
         quantity: row.quantity,
         supplierName: row.supplierName,
         purchaseAmount: row.purchaseAmount,

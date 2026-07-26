@@ -3,36 +3,14 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const [ledgerRows, products] = await Promise.all([
-      prisma.wholesaleLedger.findMany({
-        where: {
-          supplierName: {
-            not: null,
-          },
+    const ledgerRows = await prisma.wholesaleLedger.findMany({
+      where: {
+        supplierName: {
+          not: null,
         },
-        orderBy: { id: "desc" },
-      }),
-      prisma.product.findMany({
-        select: { name: true, sourceProductName: true },
-      }),
-    ]);
-
-    const normalizeName = (value: string) =>
-      value.trim().replace(/\s+/g, " ").toLocaleLowerCase("ko-KR");
-    const sourceNameByAnyName = new Map<string, string>();
-
-    for (const product of products) {
-      const sourceName = String(product.sourceProductName || "").trim();
-      if (!sourceName) continue;
-      if (product.name) sourceNameByAnyName.set(normalizeName(product.name), sourceName);
-      sourceNameByAnyName.set(normalizeName(sourceName), sourceName);
-    }
-
-    const displayLedgerRows = ledgerRows.map((row) => ({
-      ...row,
-      productName:
-        sourceNameByAnyName.get(normalizeName(row.productName)) || row.productName,
-    }));
+      },
+      orderBy: { id: "desc" },
+    });
 
     const grouped = new Map<
       string,
@@ -44,11 +22,11 @@ export async function GET() {
         netPurchaseAmount: number;
         payableAmount: number;
         recentTradeDate: Date | null;
-        rows: typeof displayLedgerRows;
+        rows: typeof ledgerRows;
       }
     >();
 
-    for (const row of displayLedgerRows) {
+    for (const row of ledgerRows) {
       const supplierName = String(row.supplierName || "").trim();
       if (!supplierName) continue;
 

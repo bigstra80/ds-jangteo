@@ -148,10 +148,8 @@ function productOptionsFromPayload(payload: unknown): SearchOption[] {
 
   return products
     .map((product: any, index) => {
-      const registeredProductName =
-        String(product?.name ?? product?.productName ?? product?.title ?? "").trim();
       const productName =
-        String(product?.sourceProductName ?? "").trim() || registeredProductName;
+        String(product?.name ?? product?.productName ?? product?.title ?? "").trim();
       const productCode =
         String(product?.code ?? product?.productCode ?? "").trim();
 
@@ -174,7 +172,7 @@ function productOptionsFromPayload(payload: unknown): SearchOption[] {
         label: productName,
         productName,
         productCode,
-        keywords: [productCode, productName, registeredProductName].filter(Boolean).join(" "),
+        keywords: [productCode, productName].filter(Boolean).join(" "),
         supplierCosts,
       };
     })
@@ -1552,7 +1550,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         <div className={listOnly ? "wl-list-only-pane" : "wl-right-pane"}>
       <div style={toolbarStyle} className="wl-toolbar">
         <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} className="wl-search-type" aria-label="검색 항목 선택">
-          <option value="all">전체</option><option value="product">상품</option><option value="supplier">공급업체</option><option value="deliveryCompany">납품업체</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
+          <option value="all">전체</option><option value="product">상품명</option><option value="supplier">공급업체</option><option value="deliveryCompany">납품업체</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
         </select>
         <input
           value={keyword}

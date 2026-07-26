@@ -140,7 +140,7 @@ export default function SupplierSettlementManager() {
     const excelRows = filteredRows.map((row) => ({
       거래일: new Date(row.transactionDate).toLocaleDateString("ko-KR"),
       공급업체: row.supplierName || "-",
-      상품: row.productName,
+      상품명: row.productName,
       이름: row.customerName || "-",
       수량: row.quantity,
       금액: row.purchaseAmount || 0,
@@ -246,12 +246,12 @@ export default function SupplierSettlementManager() {
       <div style={toolbarStyle} className="supplier-settlement-toolbar">
         <div style={filterLeftStyle} className="supplier-settlement-filter-left">
           <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} className="supplier-settlement-search-type" aria-label="검색 항목 선택">
-            <option value="all">전체</option><option value="supplier">공급업체</option><option value="product">상품</option><option value="customer">고객명</option><option value="memo">메모</option>
+            <option value="all">전체</option><option value="supplier">공급업체</option><option value="product">상품명</option><option value="customer">고객명</option><option value="memo">메모</option>
           </select>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="공급업체·상품·이름·메모 검색"
+            placeholder="공급업체·상품명·이름·메모 검색"
             style={searchStyle}
             className="supplier-settlement-search"
           />
@@ -332,7 +332,7 @@ export default function SupplierSettlementManager() {
             <tr style={{ background: "#f8fafc" }}>
               <th style={centerThStyle}>거래일</th>
               <th style={leftThStyle}>공급업체</th>
-              <th style={leftThStyle}>상품</th>
+              <th style={leftThStyle}>상품명</th>
               <th style={leftThStyle}>이름</th>
               <th style={centerThStyle}>수량</th>
               <th style={rightThStyle}>금액</th>
