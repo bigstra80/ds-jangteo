@@ -1816,24 +1816,21 @@ export default function ProductManager() {
               <div style={imageHelpStyle}>
                 사진을 끌어다 놓거나 캡처 후 Ctrl+V로 붙여넣으세요 · JPG, PNG, WEBP, GIF / 최대 10MB
               </div>
-               {!editingId && (
-            <div style={bandPasteBoxStyle}>
-             <div style={bandPasteTitleStyle}>📋 게시글</div>
-
-
-              <textarea
-                value={bandPostText}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setBandPostText(value);
-                  applyBandPostText(value);
-                }}
-                placeholder=""
-                style={bandPasteTextareaStyle}
-              />
-          
-            </div>
-          )}
+              {!editingId ? (
+                <div style={bandPasteBoxStyle}>
+                  <div style={bandPasteTitleStyle}>📋 게시글</div>
+                  <textarea
+                    value={bandPostText}
+                    onChange={(event) => {
+                      const nextBandPostText = event.target.value;
+                      setBandPostText(nextBandPostText);
+                      applyBandPostText(nextBandPostText);
+                    }}
+                    placeholder=""
+                    style={bandPasteTextareaStyle}
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div style={formGridStyle} className="pm-form-grid">
