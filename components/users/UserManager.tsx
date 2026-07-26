@@ -12,6 +12,8 @@ const MENUS = [
   ["broker-purchases", "입고목록"],
   ["customer-prices", "단가 적용"],
   ["band-import", "상품수집"],
+  ["suppliers", "공급업체 관리"],
+  ["customers", "거래처 관리"],
 ];
 
 type User = { id: number; username: string; name: string; role: string; permissions: string[]; isActive: boolean };
