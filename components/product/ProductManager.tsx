@@ -1826,6 +1826,12 @@ export default function ProductManager() {
                       setBandPostText(nextBandPostText);
                       applyBandPostText(nextBandPostText);
                     }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Tab" && !event.shiftKey) {
+                        event.preventDefault();
+                        document.getElementById("product-cost-1")?.focus();
+                      }
+                    }}
                     placeholder=""
                     style={bandPasteTextareaStyle}
                   />
@@ -1870,6 +1876,7 @@ export default function ProductManager() {
                   </select>
                 </label>
                 <Field
+                  id="product-cost-1"
                   label="매입단가 1"
                   value={form.cost}
                   onChange={(value) => updateForm("cost", normalizeOneDecimal(value))}
@@ -2382,12 +2389,14 @@ export default function ProductManager() {
 }
 
 function Field({
+  id,
   label,
   value,
   onChange,
   placeholder,
   inputMode,
 }: {
+  id?: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -2398,6 +2407,7 @@ function Field({
     <label style={fieldStyle}>
       <span style={fieldLabelStyle}>{label}</span>
       <input
+        id={id}
         value={value}
         onChange={(event) =>
           onChange(event.target.value)
