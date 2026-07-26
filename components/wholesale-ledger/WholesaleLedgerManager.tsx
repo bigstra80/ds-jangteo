@@ -1121,38 +1121,47 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           }
         }
 
+        /* PC에서는 주문 폼을 항상 표시하고 주문 버튼은 숨김 */
         .wl-order-toggle-row {
-          display: flex;
-          justify-content: flex-start;
-          margin-bottom: 12px;
+          display: none;
         }
 
-        .wl-order-toggle-button {
-          min-width: 112px;
-          height: 44px;
-          padding: 0 22px;
-          border: 0;
-          border-radius: 10px;
-          background: #2563eb;
-          color: #fff;
-          font-size: 15px;
-          font-weight: 800;
-          cursor: pointer;
-        }
-
-        .wl-order-toggle-button.is-open {
-          background: #475569;
-        }
-
-        /* 주문 입력폼 세로형은 모바일/좁은 화면에만 적용합니다. */
+        /* 모바일/좁은 창에서만 주문 버튼과 세로형 폼 사용 */
         @media (max-width: 768px) {
-          .wl-left-pane form.wl-order-form {
+          .wl-order-toggle-row {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 10px;
+          }
+
+          .wl-order-toggle-button {
+            width: 100%;
+            height: 48px;
+            padding: 0 22px;
+            border: 0;
+            border-radius: 10px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+          }
+
+          .wl-order-toggle-button.is-open {
+            background: #475569;
+          }
+
+          .wl-left-pane form.wl-order-form:not(.is-open) {
+            display: none !important;
+          }
+
+          .wl-left-pane form.wl-order-form.is-open {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
             height: auto !important;
             overflow: visible !important;
-            padding: 16px 14px 20px !important;
+            padding: 14px !important;
           }
 
           .wl-left-pane form.wl-order-form .wl-form-grid {
@@ -1160,10 +1169,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             flex-direction: column !important;
             align-items: stretch !important;
             width: 100% !important;
-            min-width: 0 !important;
             max-width: 100% !important;
+            min-width: 0 !important;
             height: auto !important;
-            gap: 16px !important;
+            gap: 0 !important;
             margin: 0 !important;
           }
 
@@ -1179,23 +1188,25 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             max-width: 100% !important;
             height: auto !important;
             overflow: visible !important;
-            margin: 0 !important;
+            margin: 0 0 18px !important;
             padding: 0 !important;
             gap: 8px !important;
+          }
+
+          .wl-left-pane form.wl-order-form .wl-form-grid > label:last-child {
+            margin-bottom: 0 !important;
           }
 
           .wl-left-pane form.wl-order-form .wl-form-grid > label > span:first-child {
             display: block !important;
             position: static !important;
-            inset: auto !important;
-            transform: none !important;
             width: 100% !important;
             height: auto !important;
-            min-height: 21px !important;
+            min-height: 22px !important;
             margin: 0 !important;
             padding: 0 !important;
-            font-size: 14px !important;
-            line-height: 21px !important;
+            font-size: 15px !important;
+            line-height: 22px !important;
             font-weight: 800 !important;
             white-space: normal !important;
           }
@@ -1204,55 +1215,26 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           .wl-left-pane form.wl-order-form .wl-form-grid select,
           .wl-left-pane form.wl-order-form .wl-form-grid [style*="display: flex"] {
             width: 100% !important;
-            max-width: 100% !important;
             min-width: 0 !important;
-            min-height: 50px !important;
-            height: 50px !important;
-            margin: 0 !important;
+            max-width: 100% !important;
+            min-height: 48px !important;
+            height: 48px !important;
             font-size: 16px !important;
-            box-sizing: border-box !important;
+            margin: 0 !important;
           }
 
           .wl-left-pane form.wl-order-form > div:last-child {
             display: flex !important;
             width: 100% !important;
             max-width: 100% !important;
-            margin: 20px 0 0 !important;
+            margin: 4px 0 0 !important;
           }
 
           .wl-left-pane form.wl-order-form > div:last-child button {
             width: 100% !important;
-            flex: 1 1 auto !important;
-            min-height: 50px !important;
-            height: 50px !important;
+            min-height: 52px !important;
+            height: 52px !important;
             font-size: 16px !important;
-          }
-        }
-
-        @media (max-width: 600px) {
-          .wl-order-toggle-row {
-            margin-bottom: 10px;
-          }
-
-          .wl-order-toggle-button {
-            width: 100%;
-            height: 48px;
-            font-size: 16px;
-          }
-
-          .wl-left-pane form.wl-order-form {
-            padding: 14px !important;
-          }
-
-          .wl-left-pane form.wl-order-form .wl-form-grid {
-            gap: 14px !important;
-          }
-
-          .wl-left-pane form.wl-order-form .wl-form-grid input,
-          .wl-left-pane form.wl-order-form .wl-form-grid select,
-          .wl-left-pane form.wl-order-form .wl-form-grid [style*="display: flex"] {
-            min-height: 48px !important;
-            height: 48px !important;
           }
         }
       `}</style>
@@ -1312,8 +1294,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               {isOrderFormOpen ? "주문 닫기" : "주문"}
             </button>
           </div>
-      {isOrderFormOpen && (
-      <form onSubmit={submit} style={formCardStyle} className="wl-order-form">
+      <form onSubmit={submit} style={formCardStyle} className={`wl-order-form${isOrderFormOpen ? " is-open" : ""}`}>
         <div style={formGridStyle} className="wl-form-grid">
           <Field label="날짜">
             <input
@@ -1500,7 +1481,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           <Field
             label={
               <span style={{ color: "#2563eb" }}>
-                판매금액 (1개 가격)
+                판매금액: {money(Number(form.saleAmount) || 0)}
               </span>
             }
           >
@@ -1520,9 +1501,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 }}
                 placeholder="1개 가격 입력"
               />
-              <div style={{ marginTop: 5, color: "#2563eb", fontSize: 12, fontWeight: 800 }}>
-                판매금액: {money(Number(form.saleAmount) || 0)}
-              </div>
             </div>
           </Field>
 
@@ -1594,7 +1572,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           )}
         </div>
       </form>
-      )}
         </div>
         )}
 
