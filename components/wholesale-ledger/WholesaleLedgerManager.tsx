@@ -2112,8 +2112,8 @@ function SearchSelect({
 
 function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
-    <label style={fieldStyle}>
-      <span style={labelStyle}>{label}</span>
+    <label style={fieldStyle} className="wl-form-field">
+      <span style={labelStyle} className="wl-form-label">{label}</span>
       {children}
     </label>
   );
