@@ -1785,7 +1785,6 @@ export default function ProductManager() {
             <div style={bandPasteBoxStyle}>
              <div style={bandPasteTitleStyle}>📋 게시글</div>
 
-<textarea
               <textarea
                 value={bandPostText}
                 onChange={(event) => {
@@ -1793,7 +1792,7 @@ export default function ProductManager() {
                   setBandPostText(value);
                   applyBandPostText(value);
                 }}
-                placeholder={""}
+                placeholder=""
                 style={bandPasteTextareaStyle}
               />
           
@@ -2455,9 +2454,9 @@ const formHelpStyle: React.CSSProperties = {
 
 const bandPasteBoxStyle: React.CSSProperties = {
   margin: "0",
-  padding: "8px",
+  padding: "6px",
   border: "2px dashed #2563eb",
-  borderRadius: "10px",
+  borderRadius: "8px",
   background: "#eff6ff",
 };
 
