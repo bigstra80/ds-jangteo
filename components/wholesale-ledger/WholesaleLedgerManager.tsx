@@ -1165,14 +1165,15 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           }
 
           .wl-left-pane form.wl-order-form .wl-form-grid {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+            align-items: end !important;
             width: 100% !important;
             max-width: 100% !important;
             min-width: 0 !important;
             height: auto !important;
-            gap: 0 !important;
+            column-gap: 10px !important;
+            row-gap: 14px !important;
             margin: 0 !important;
           }
 
@@ -1180,7 +1181,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             display: flex !important;
             flex-direction: column !important;
             align-items: stretch !important;
-            position: static !important;
+            position: relative !important;
             grid-column: auto !important;
             grid-row: auto !important;
             width: 100% !important;
@@ -1188,14 +1189,33 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             max-width: 100% !important;
             height: auto !important;
             overflow: visible !important;
-            margin: 0 0 18px !important;
+            margin: 0 !important;
             padding: 0 !important;
-            gap: 8px !important;
+            gap: 6px !important;
           }
 
-          .wl-left-pane form.wl-order-form .wl-form-grid > label:last-child {
-            margin-bottom: 0 !important;
-          }
+          /* 모바일 주문 입력 배열
+             날짜
+             상품번호 | 상품
+             수량
+             공급업체 | 단가
+             납품업체 | 판매금액
+             배송비   | 고객 이름
+             전화 번호
+             메모
+          */
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-date { grid-column: 1 !important; grid-row: 1 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-product-code { grid-column: 1 !important; grid-row: 2 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-product { grid-column: 2 !important; grid-row: 2 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-quantity { grid-column: 1 !important; grid-row: 3 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-supplier { grid-column: 1 !important; grid-row: 4 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-unit-price { grid-column: 2 !important; grid-row: 4 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-delivery-company { grid-column: 1 !important; grid-row: 5 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-sale-amount { grid-column: 2 !important; grid-row: 5 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-shipping-fee { grid-column: 1 !important; grid-row: 6 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-customer-name { grid-column: 2 !important; grid-row: 6 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-customer-phone { grid-column: 1 !important; grid-row: 7 !important; }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label.wl-field-memo { grid-column: 1 !important; grid-row: 8 !important; }
 
           .wl-left-pane form.wl-order-form .wl-form-grid > label > span:first-child {
             display: block !important;
@@ -1217,9 +1237,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             width: 100% !important;
             min-width: 0 !important;
             max-width: 100% !important;
-            min-height: 48px !important;
-            height: 48px !important;
-            font-size: 16px !important;
+            min-height: 44px !important;
+            height: 44px !important;
+            font-size: 14px !important;
             margin: 0 !important;
           }
 
@@ -1296,7 +1316,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </div>
       <form onSubmit={submit} style={formCardStyle} className={`wl-order-form${isOrderFormOpen ? " is-open" : ""}`}>
         <div style={formGridStyle} className="wl-form-grid">
-          <Field label="날짜">
+          <Field label="날짜" className="wl-field-date">
             <input
               type="date"
               value={form.transactionDate}
@@ -1305,7 +1325,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="상품번호">
+          <Field label="상품번호" className="wl-field-product-code">
             <SearchSelect
               value={productCode}
               onChange={(value) => {
@@ -1329,7 +1349,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="수량">
+          <Field label="수량" className="wl-field-quantity">
             <input
               type="text"
               inputMode="numeric"
@@ -1366,7 +1386,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="상품">
+          <Field label="상품" className="wl-field-product">
             <SearchSelect
               value={form.productName}
               onChange={(value) => {
@@ -1403,7 +1423,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="공급업체">
+          <Field label="공급업체" className="wl-field-supplier">
             <SearchSelect
               value={form.supplierName}
               onChange={(value) => {
@@ -1432,7 +1452,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="단가">
+          <Field label="단가" className="wl-field-unit-price">
             <WonInput
               value={form.purchaseAmount}
               onChange={(value) => changeForm("purchaseAmount", value)}
@@ -1440,7 +1460,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="납품업체">
+          <Field label="납품업체" className="wl-field-delivery-company">
             <SearchSelect
               value={form.deliveryCompanyName}
               onChange={(value) => {
@@ -1479,6 +1499,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </Field>
 
           <Field
+            className="wl-field-sale-amount"
             label={
               <span style={{ color: "#2563eb" }}>
                 판매금액: {money(Number(form.saleAmount) || 0)}
@@ -1504,7 +1525,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             </div>
           </Field>
 
-          <Field label="배송비">
+          <Field label="배송비" className="wl-field-shipping-fee">
             <WonInput
               value={form.shippingFee}
               onChange={(value) => changeForm("shippingFee", value)}
@@ -1512,7 +1533,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="고객 이름">
+          <Field label="고객 이름" className="wl-field-customer-name">
             <input
               value={form.customerName}
               onChange={(e) => changeForm("customerName", e.target.value)}
@@ -1522,7 +1543,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="전화 번호">
+          <Field label="전화 번호" className="wl-field-customer-phone">
             <input
               type="tel"
               value={form.customerPhone}
@@ -1533,7 +1554,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="메모">
+          <Field label="메모" className="wl-field-memo">
             <input
               value={form.memo}
               onChange={(e) => changeForm("memo", e.target.value)}
@@ -2104,9 +2125,17 @@ function SearchSelect({
   );
 }
 
-function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <label style={fieldStyle}>
+    <label style={fieldStyle} className={className}>
       <span style={labelStyle}>{label}</span>
       {children}
     </label>
