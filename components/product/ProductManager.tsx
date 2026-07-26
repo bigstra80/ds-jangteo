@@ -78,6 +78,7 @@ function supplierCodeFromProductCode(productCode: string) {
 
 type ParsedBandPost = {
   code: string;
+  additionalCode: string;
   sourceProductName: string;
   colors: string;
   sizes: string;
@@ -101,16 +102,16 @@ function parseBandPost(text: string): ParsedBandPost | null {
 
   if (meaningful.length < 2) return null;
 
-  const codePattern = /^([A-Z]{1,3})\s*[-_]?\s*(\d{4,})$/i;
+  // 코드 뒤에 "티셔츠", "세트" 같은 구분 문구와 별표가 붙어도 인식합니다.
+  const codePattern = /^([A-Z]{1,3}\s*[-_]?\s*\d{4,})(?:\s+.*)?$/i;
   const codeCandidates = meaningful
     .map((line, index) => ({ line, index, match: line.match(codePattern) }))
     .filter((item) => item.match);
 
   if (codeCandidates.length === 0) return null;
 
-  // 공급업체가 게시글 마지막에 다시 적는 코드를 우선 사용합니다.
-  const selectedCode = codeCandidates[codeCandidates.length - 1];
-  const code = normalizeProductCode(selectedCode.line);
+  const code = normalizeProductCode(codeCandidates[0].match?.[1] || "");
+  const additionalCode = normalizeProductCode(codeCandidates[1]?.match?.[1] || "");
 
   const firstCodeIndex = codeCandidates[0].index;
   let sourceProductName = "";
@@ -166,6 +167,7 @@ function parseBandPost(text: string): ParsedBandPost | null {
 
   return {
     code,
+    additionalCode,
     sourceProductName,
     colors,
     sizes,
@@ -174,12 +176,14 @@ function parseBandPost(text: string): ParsedBandPost | null {
 
 type ProductForm = {
   code: string;
+  additionalCode: string;
   name: string;
   brand: string;
   category: string;
   colors: string;
   sizes: string;
   cost: string;
+  additionalCost: string;
   cost2: string;
   cost3: string;
   price: string;
@@ -196,12 +200,14 @@ type ProductForm = {
 
 const emptyForm: ProductForm = {
   code: "",
+  additionalCode: "",
   name: "",
   brand: "",
   category: "",
   colors: "",
   sizes: "",
   cost: "",
+  additionalCost: "",
   cost2: "",
   cost3: "",
   price: "",
@@ -554,12 +560,14 @@ export default function ProductManager() {
     setEditingId(product.id);
     setForm({
       code: product.code,
+      additionalCode: "",
       name: product.name,
       brand: product.brand || "",
       category: product.category || "",
       colors: product.colors || "",
       sizes: product.sizes || "",
       cost: String(product.cost || ""),
+      additionalCost: "",
       cost2: String(product.cost2 || ""),
       cost3: String(product.cost3 || ""),
       price: String(product.price || ""),
@@ -607,10 +615,6 @@ export default function ProductManager() {
         next.supplierId = matchedSupplier ? String(matchedSupplier.id) : "";
       }
 
-      // 공급업체 원상품명을 입력하면 상품명에도 동일하게 자동 입력합니다.
-      if (field === "sourceProductName" && typeof value === "string") {
-        next.name = value;
-      }
 
       return next;
     });
@@ -692,9 +696,9 @@ export default function ProductManager() {
     setForm((current) => ({
       ...current,
       code: parsed.code,
+      additionalCode: parsed.additionalCode,
       supplierId: matchedSupplier ? String(matchedSupplier.id) : current.supplierId,
       sourceProductName: parsed.sourceProductName,
-      name: parsed.sourceProductName,
       colors: parsed.colors || current.colors,
       sizes: parsed.sizes || current.sizes,
     }));
@@ -787,28 +791,46 @@ export default function ProductManager() {
         }
       }
 
+      const primaryPayload = {
+        id: editingId,
+        ...form,
+        supplierId: resolvedSupplierId,
+      };
+
       const response = await fetch("/api/product", {
         method: editingId ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: editingId,
-          ...form,
-          supplierId: resolvedSupplierId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(primaryPayload),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        alert(
-          result.message ||
-            (editingId
-              ? "상품 수정에 실패했습니다."
-              : "상품 등록에 실패했습니다.")
-        );
+        alert(result.message || (editingId ? "상품 수정에 실패했습니다." : "상품 등록에 실패했습니다."));
         return;
+      }
+
+      // 추가 상품코드는 같은 상품정보를 사용하되 별도의 상품/재고로 등록합니다.
+      // 따라서 추가 코드와 추가 매입단가는 기본 상품과 섞이지 않습니다.
+      if (!editingId && form.additionalCode.trim()) {
+        const additionalResponse = await fetch("/api/product", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...primaryPayload,
+            id: null,
+            code: form.additionalCode.trim(),
+            cost: form.additionalCost,
+            cost2: "",
+            cost3: "",
+          }),
+        });
+        const additionalResult = await additionalResponse.json();
+        if (!additionalResponse.ok) {
+          alert(`기본 상품은 등록되었지만 추가 상품 등록에 실패했습니다.\n${additionalResult.message || "추가 상품 등록 실패"}`);
+          await loadProducts();
+          return;
+        }
       }
 
       alert(
@@ -1247,6 +1269,11 @@ export default function ProductManager() {
   min-width: 0 !important;
   width: 100% !important;
   box-sizing: border-box !important;
+}
+
+.pm-compact-top-grid,
+.pm-supplier-cost-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
 }
 
 .pm-form-grid input,
@@ -1807,43 +1834,56 @@ export default function ProductManager() {
             </div>
 
             <div style={formGridStyle} className="pm-form-grid">
-              <Field
-                label="상품코드"
-                value={form.code}
-                onChange={(value) => updateForm("code", value)}
-                placeholder="예: TEST-001"
-              />
+              <div className="pm-compact-top-grid" style={compactTopGridStyle}>
+                <Field
+                  label="상품코드"
+                  value={form.code}
+                  onChange={(value) => updateForm("code", value)}
+                  placeholder="예: TEST-001"
+                />
+                <Field
+                  label="상품코드 추가"
+                  value={form.additionalCode}
+                  onChange={(value) => updateForm("additionalCode", value)}
+                  placeholder="선택사항"
+                />
+                <Field
+                  label="공급업체 원상품명"
+                  value={form.sourceProductName}
+                  onChange={(value) => updateForm("sourceProductName", value)}
+                  placeholder="공급업체에서 사용하는 상품명"
+                />
+              </div>
 
-              <Field
-                label="공급업체 원상품명"
-                value={form.sourceProductName}
-                onChange={(value) => updateForm("sourceProductName", value)}
-                placeholder="공급업체에서 사용하는 상품명"
-              />
-
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>공급업체 1</span>
-                <select
-                  value={form.supplierId}
-                  onChange={(event) => changePrimarySupplier(event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">공급업체 선택</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <Field
-                label="매입단가 1"
-                value={form.cost}
-                onChange={(value) => updateForm("cost", normalizeOneDecimal(value))}
-                placeholder="0"
-                inputMode="decimal"
-              />
+              <div className="pm-supplier-cost-grid" style={supplierCostGridStyle}>
+                <label style={fieldStyle}>
+                  <span style={fieldLabelStyle}>공급업체 1</span>
+                  <select
+                    value={form.supplierId}
+                    onChange={(event) => changePrimarySupplier(event.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">공급업체 선택</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.id}>{supplier.code}</option>
+                    ))}
+                  </select>
+                </label>
+                <Field
+                  label="매입단가 1"
+                  value={form.cost}
+                  onChange={(value) => updateForm("cost", normalizeOneDecimal(value))}
+                  placeholder="0"
+                  inputMode="decimal"
+                />
+                <Field
+                  label="매입단가 추가"
+                  value={form.additionalCost}
+                  onChange={(value) => updateForm("additionalCost", normalizeOneDecimal(value))}
+                  placeholder="0"
+                  inputMode="decimal"
+                />
+              </div>
 
               <label style={fieldStyle}>
                 <span style={fieldLabelStyle}>공급업체 2</span>
@@ -2594,6 +2634,20 @@ const imageHelpStyle: React.CSSProperties = {
   color: "#94a3b8",
   fontSize: "12px",
   textAlign: "center",
+};
+
+const compactTopGridStyle: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  display: "grid",
+  gridTemplateColumns: "minmax(150px, 0.72fr) minmax(150px, 0.72fr) minmax(280px, 1.7fr)",
+  gap: "14px",
+};
+
+const supplierCostGridStyle: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  display: "grid",
+  gridTemplateColumns: "minmax(280px, 1.65fr) minmax(150px, 0.75fr) minmax(150px, 0.75fr)",
+  gap: "14px",
 };
 
 const formGridStyle: React.CSSProperties = {
