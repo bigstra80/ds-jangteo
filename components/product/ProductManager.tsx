@@ -1201,7 +1201,69 @@ export default function ProductManager() {
             padding: 16px !important;
             border-radius: 12px !important;
           }
+          .pm-form-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+}
 
+.pm-form-header > div {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.pm-form-header h3 {
+  margin: 0 !important;
+  font-size: 20px !important;
+  line-height: 1.35 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.pm-form-header p {
+  margin-top: 6px !important;
+  line-height: 1.5 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.pm-form-header > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 46px !important;
+}
+
+.pm-form-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 14px !important;
+}
+
+.pm-form-grid label {
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.pm-form-grid input,
+.pm-form-grid select,
+.pm-form-grid textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.pm-image-editor {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.pm-image-editor > div:first-child {
+  width: 100% !important;
+  max-width: 280px !important;
+  margin: 0 auto !important;
+}
           .pm-form-header {
             flex-direction: column !important;
             align-items: stretch !important;
@@ -1608,40 +1670,23 @@ export default function ProductManager() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={cancelForm}
-              style={secondaryButtonStyle}
-            >
-              닫기
-            </button>
+          <button
+  type="submit"
+  disabled={saving || uploadingImage}
+  style={{
+    ...saveButtonStyle,
+    opacity: saving || uploadingImage ? 0.6 : 1,
+  }}
+>
+  {saving
+    ? "저장 중..."
+    : editingId
+      ? "상품 수정 저장"
+      : "상품 등록"}
+</button>
           </div>
 
-          {!editingId && (
-            <div style={bandPasteBoxStyle}>
-              <div style={bandPasteTitleStyle}>📋 밴드 게시글 붙여넣기</div>
-              <div style={bandPasteHelpStyle}>
-                게시글 전체를 복사한 뒤 여기에 Ctrl+V 하세요. 상품코드·공급업체·상품명·색상·사이즈가 자동 입력됩니다. 매입단가는 적용하지 않습니다.
-              </div>
-              <textarea
-                value={bandPostText}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setBandPostText(value);
-                  applyBandPostText(value);
-                }}
-                placeholder={"예)\nU44532\n사우스 S* 배색 삭스*\nCOLOR: 화이트, 블랙, 네이비\nSIZE: 여성용\n...\nUU 44532"}
-                style={bandPasteTextareaStyle}
-              />
-              <div style={bandPasteStatusStyle}>
-                {bandPostText.trim()
-                  ? parseBandPost(bandPostText)
-                    ? "✓ 게시글을 인식했습니다. 아래 입력값을 확인한 뒤 저장하세요."
-                    : "상품코드와 상품명을 아직 찾지 못했습니다. 게시글 전체를 붙여넣어 주세요."
-                  : "텍스트 게시글은 자동 분석하고, 이미지가 복사되어 있으면 자동 업로드합니다."}
-              </div>
-            </div>
-          )}
+         
 
           <div style={formContentStyle} className="pm-form-content">
             <div style={imageEditorStyle} className="pm-image-editor">
@@ -1736,6 +1781,24 @@ export default function ProductManager() {
               <div style={imageHelpStyle}>
                 사진을 끌어다 놓거나 캡처 후 Ctrl+V로 붙여넣으세요 · JPG, PNG, WEBP, GIF / 최대 10MB
               </div>
+               {!editingId && (
+            <div style={bandPasteBoxStyle}>
+             <div style={bandPasteTitleStyle}>📋 게시글</div>
+
+
+              <textarea
+                value={bandPostText}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setBandPostText(value);
+                  applyBandPostText(value);
+                }}
+                placeholder=""
+                style={bandPasteTextareaStyle}
+              />
+          
+            </div>
+          )}
             </div>
 
             <div style={formGridStyle} className="pm-form-grid">
@@ -1898,31 +1961,7 @@ export default function ProductManager() {
             </div>
           </div>
 
-          <div style={formFooterStyle} className="pm-form-footer">
-            <button
-              type="submit"
-              disabled={saving || uploadingImage}
-              style={{
-                ...saveButtonStyle,
-                opacity:
-                  saving || uploadingImage ? 0.6 : 1,
-              }}
-            >
-              {saving
-                ? "저장 중..."
-                : editingId
-                ? "상품 수정 저장"
-                : "상품 등록"}
-            </button>
-
-            <button
-              type="button"
-              onClick={cancelForm}
-              style={secondaryButtonStyle}
-            >
-              취소
-            </button>
-          </div>
+          
         </form>
       )}
 
@@ -2415,47 +2454,37 @@ const formHelpStyle: React.CSSProperties = {
 };
 
 const bandPasteBoxStyle: React.CSSProperties = {
-  margin: "0 20px 16px",
-  padding: "16px",
+  margin: "0",
+  padding: "6px",
   border: "2px dashed #2563eb",
-  borderRadius: "14px",
+  borderRadius: "8px",
   background: "#eff6ff",
 };
 
 const bandPasteTitleStyle: React.CSSProperties = {
-  fontSize: "16px",
-  fontWeight: 900,
-  color: "#1e3a8a",
-  marginBottom: "5px",
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "#1e3a8a",
+    marginBottom: "4px",
 };
 
-const bandPasteHelpStyle: React.CSSProperties = {
-  fontSize: "13px",
-  lineHeight: 1.55,
-  color: "#475569",
-  marginBottom: "10px",
-};
+
 
 const bandPasteTextareaStyle: React.CSSProperties = {
   width: "100%",
-  minHeight: "150px",
-  resize: "vertical",
+  minHeight: "70px",
+  resize: "none",
   boxSizing: "border-box",
-  padding: "12px",
+  padding: "8px",
   border: "1px solid #93c5fd",
-  borderRadius: "10px",
+  borderRadius: "8px",
   background: "#ffffff",
-  fontSize: "14px",
-  lineHeight: 1.55,
+  fontSize: "13px",
+  lineHeight: 1.4,
   outline: "none",
 };
 
-const bandPasteStatusStyle: React.CSSProperties = {
-  marginTop: "8px",
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "#1d4ed8",
-};
+
 
 const formContentStyle: React.CSSProperties = {
   display: "grid",
