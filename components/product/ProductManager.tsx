@@ -258,6 +258,7 @@ export default function ProductManager() {
   const [inlineSavingId, setInlineSavingId] = useState<number | null>(null);
   const [importingExcel, setImportingExcel] = useState(false);
   const excelInputRef = useRef<HTMLInputElement | null>(null);
+  const cost1InputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadProducts() {
     try {
@@ -1829,7 +1830,7 @@ export default function ProductManager() {
                     onKeyDown={(event) => {
                       if (event.key === "Tab" && !event.shiftKey) {
                         event.preventDefault();
-                        document.getElementById("product-cost-1")?.focus();
+                        cost1InputRef.current?.focus();
                       }
                     }}
                     placeholder=""
@@ -1877,6 +1878,7 @@ export default function ProductManager() {
                 </label>
                 <Field
                   id="product-cost-1"
+                  inputRef={cost1InputRef}
                   label="매입단가 1"
                   value={form.cost}
                   onChange={(value) => updateForm("cost", normalizeOneDecimal(value))}
@@ -2395,6 +2397,7 @@ function Field({
   onChange,
   placeholder,
   inputMode,
+  inputRef,
 }: {
   id?: string;
   label: string;
@@ -2402,11 +2405,13 @@ function Field({
   onChange: (value: string) => void;
   placeholder: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  inputRef?: React.Ref<HTMLInputElement>;
 }) {
   return (
     <label style={fieldStyle}>
       <span style={fieldLabelStyle}>{label}</span>
       <input
+        ref={inputRef}
         id={id}
         value={value}
         onChange={(event) =>
