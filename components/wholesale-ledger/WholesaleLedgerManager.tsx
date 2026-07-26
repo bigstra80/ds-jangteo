@@ -1144,72 +1144,89 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           background: #475569;
         }
 
-        .wl-left-pane form.wl-order-form {
-          display: block !important;
-          width: 100% !important;
-          overflow: visible !important;
-          padding: 18px !important;
-        }
+        /* 주문 입력폼 세로형은 모바일/좁은 화면에만 적용합니다. */
+        @media (max-width: 768px) {
+          .wl-left-pane form.wl-order-form {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding: 16px 14px 20px !important;
+          }
 
-        .wl-left-pane form.wl-order-form .wl-form-grid {
-          display: grid !important;
-          grid-template-columns: minmax(0, 1fr) !important;
-          grid-template-rows: none !important;
-          gap: 12px !important;
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: 720px !important;
-          margin: 0 auto !important;
-        }
+          .wl-left-pane form.wl-order-form .wl-form-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            height: auto !important;
+            gap: 16px !important;
+            margin: 0 !important;
+          }
 
-        .wl-left-pane form.wl-order-form .wl-form-grid > label {
-          grid-column: 1 !important;
-          grid-row: auto !important;
-          width: 100% !important;
-          min-width: 0 !important;
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: stretch !important;
-          gap: 7px !important;
-          position: relative !important;
-          overflow: visible !important;
-          margin: 0 !important;
-        }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            position: static !important;
+            grid-column: auto !important;
+            grid-row: auto !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            gap: 8px !important;
+          }
 
-        .wl-left-pane form.wl-order-form .wl-form-grid input,
-        .wl-left-pane form.wl-order-form .wl-form-grid select,
-        .wl-left-pane form.wl-order-form .wl-form-grid [style*="display: flex"] {
-          min-height: 46px !important;
-          height: 46px !important;
-          font-size: 15px !important;
-        }
+          .wl-left-pane form.wl-order-form .wl-form-grid > label > span:first-child {
+            display: block !important;
+            position: static !important;
+            inset: auto !important;
+            transform: none !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 21px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 14px !important;
+            line-height: 21px !important;
+            font-weight: 800 !important;
+            white-space: normal !important;
+          }
 
-        .wl-left-pane form.wl-order-form .wl-form-grid > label > span:first-child {
-          display: block !important;
-          position: static !important;
-          width: 100% !important;
-          height: auto !important;
-          min-height: 20px !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          font-size: 14px !important;
-          line-height: 1.35 !important;
-          font-weight: 800 !important;
-          white-space: normal !important;
-        }
+          .wl-left-pane form.wl-order-form .wl-form-grid input,
+          .wl-left-pane form.wl-order-form .wl-form-grid select,
+          .wl-left-pane form.wl-order-form .wl-form-grid [style*="display: flex"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            min-height: 50px !important;
+            height: 50px !important;
+            margin: 0 !important;
+            font-size: 16px !important;
+            box-sizing: border-box !important;
+          }
 
-        .wl-left-pane form.wl-order-form > div:last-child {
-          display: flex !important;
-          width: 100% !important;
-          max-width: 720px !important;
-          margin: 16px auto 0 !important;
-        }
+          .wl-left-pane form.wl-order-form > div:last-child {
+            display: flex !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 20px 0 0 !important;
+          }
 
-        .wl-left-pane form.wl-order-form > div:last-child button {
-          flex: 1 1 auto !important;
-          min-height: 48px !important;
-          height: 48px !important;
-          font-size: 15px !important;
+          .wl-left-pane form.wl-order-form > div:last-child button {
+            width: 100% !important;
+            flex: 1 1 auto !important;
+            min-height: 50px !important;
+            height: 50px !important;
+            font-size: 16px !important;
+          }
         }
 
         @media (max-width: 600px) {
@@ -2112,8 +2129,8 @@ function SearchSelect({
 
 function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
-    <label style={fieldStyle} className="wl-form-field">
-      <span style={labelStyle} className="wl-form-label">{label}</span>
+    <label style={fieldStyle}>
+      <span style={labelStyle}>{label}</span>
       {children}
     </label>
   );
