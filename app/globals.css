@@ -533,10 +533,10 @@ input, select, textarea, button {
   .wl-form-grid > label:nth-child(4) { grid-row: 1 !important; grid-column: 3 !important; }
   /* row 2: supplier / unit cost / quantity */
   .wl-form-grid > label:nth-child(5) { grid-row: 2 !important; grid-column: 1 !important; }
-  .wl-form-grid > label:nth-child(7) { grid-row: 2 !important; grid-column: 2 !important; }
+  .wl-form-grid > label:nth-child(6) { grid-row: 2 !important; grid-column: 2 !important; }
   .wl-form-grid > label:nth-child(3) { grid-row: 2 !important; grid-column: 3 !important; }
   /* row 3: delivery / sale / shipping */
-  .wl-form-grid > label:nth-child(6) { grid-row: 3 !important; grid-column: 1 !important; }
+  .wl-form-grid > label:nth-child(7) { grid-row: 3 !important; grid-column: 1 !important; }
   .wl-form-grid > label:nth-child(8) { grid-row: 3 !important; grid-column: 2 !important; }
   .wl-form-grid > label:nth-child(9) { grid-row: 3 !important; grid-column: 3 !important; }
   /* row 4: customer / memo / phone */

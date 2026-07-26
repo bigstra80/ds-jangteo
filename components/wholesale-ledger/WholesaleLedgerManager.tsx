@@ -884,9 +884,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         .wl-form-grid > label:nth-child(2)  { grid-row: 2; grid-column: 1; }
         .wl-form-grid > label:nth-child(4)  { grid-row: 2; grid-column: 2 / span 2; }
         .wl-form-grid > label:nth-child(5)  { grid-row: 3; grid-column: 1; }
-        .wl-form-grid > label:nth-child(7)  { grid-row: 3; grid-column: 2; }
+        .wl-form-grid > label:nth-child(6)  { grid-row: 3; grid-column: 2; }
         .wl-form-grid > label:nth-child(3)  { grid-row: 3; grid-column: 3; }
-        .wl-form-grid > label:nth-child(6)  { grid-row: 4; grid-column: 1; }
+        .wl-form-grid > label:nth-child(7)  { grid-row: 4; grid-column: 1; }
         .wl-form-grid > label:nth-child(8)  { grid-row: 4; grid-column: 2; }
         .wl-form-grid > label:nth-child(9)  { grid-row: 4; grid-column: 3; }
         .wl-form-grid > label:nth-child(10) { grid-row: 4; grid-column: 4; }
@@ -1166,6 +1166,14 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           grid-column: 1 !important;
           grid-row: auto !important;
           width: 100% !important;
+          min-width: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 7px !important;
+          position: relative !important;
+          overflow: visible !important;
+          margin: 0 !important;
         }
 
         .wl-left-pane form.wl-order-form .wl-form-grid input,
@@ -1177,9 +1185,17 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         }
 
         .wl-left-pane form.wl-order-form .wl-form-grid > label > span:first-child {
+          display: block !important;
+          position: static !important;
+          width: 100% !important;
+          height: auto !important;
+          min-height: 20px !important;
+          margin: 0 !important;
+          padding: 0 !important;
           font-size: 14px !important;
+          line-height: 1.35 !important;
           font-weight: 800 !important;
-          margin-bottom: 4px !important;
+          white-space: normal !important;
         }
 
         .wl-left-pane form.wl-order-form > div:last-child {
@@ -1209,6 +1225,17 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
           .wl-left-pane form.wl-order-form {
             padding: 14px !important;
+          }
+
+          .wl-left-pane form.wl-order-form .wl-form-grid {
+            gap: 14px !important;
+          }
+
+          .wl-left-pane form.wl-order-form .wl-form-grid input,
+          .wl-left-pane form.wl-order-form .wl-form-grid select,
+          .wl-left-pane form.wl-order-form .wl-form-grid [style*="display: flex"] {
+            min-height: 48px !important;
+            height: 48px !important;
           }
         }
       `}</style>
@@ -1407,6 +1434,14 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
+          <Field label="단가">
+            <WonInput
+              value={form.purchaseAmount}
+              onChange={(value) => changeForm("purchaseAmount", value)}
+              placeholder="직접 입력"
+            />
+          </Field>
+
           <Field label="납품업체">
             <SearchSelect
               value={form.deliveryCompanyName}
@@ -1445,18 +1480,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             />
           </Field>
 
-          <Field label="단가">
-            <WonInput
-              value={form.purchaseAmount}
-              onChange={(value) => changeForm("purchaseAmount", value)}
-              placeholder="직접 입력"
-            />
-          </Field>
-
           <Field
             label={
               <span style={{ color: "#2563eb" }}>
-                판매금액: {money(Number(form.saleAmount) || 0)}
+                판매금액 (1개 가격)
               </span>
             }
           >
@@ -1476,6 +1503,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 }}
                 placeholder="1개 가격 입력"
               />
+              <div style={{ marginTop: 5, color: "#2563eb", fontSize: 12, fontWeight: 800 }}>
+                판매금액: {money(Number(form.saleAmount) || 0)}
+              </div>
             </div>
           </Field>
 
