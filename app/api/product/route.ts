@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const product = await prisma.product.create({
       data: {
         code: String(body.code).trim(),
-        name: String(body.name || body.sourceProductName).trim(),
+        name: String(body.name || "").trim(),
         brand: nullableText(body.brand),
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
@@ -327,7 +327,7 @@ export async function PUT(request: Request) {
 
       data: {
         code: productCode,
-        name: String(body.name || body.sourceProductName).trim(),
+        name: String(body.name || "").trim(),
         brand: nullableText(body.brand),
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),

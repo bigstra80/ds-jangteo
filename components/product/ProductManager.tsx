@@ -794,9 +794,9 @@ export default function ProductManager() {
       const primaryPayload = {
         id: editingId,
         ...form,
-        // 상품명은 선택 입력입니다. 비어 있으면 화면에는 자동 복사하지 않고,
-        // 저장 시에만 필수값인 상품을 내부 상품명으로 사용합니다.
-        name: form.name.trim() || form.sourceProductName.trim(),
+        // 상품과 상품명은 서로 독립적으로 저장합니다.
+        // 상품을 입력해도 상품명에는 자동으로 복사하지 않습니다.
+        name: form.name.trim(),
         supplierId: resolvedSupplierId,
       };
 
