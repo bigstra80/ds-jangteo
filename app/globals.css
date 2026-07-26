@@ -621,3 +621,104 @@ input, select, textarea, button {
     font-size: 11px !important;
   }
 }
+
+/* 2026-07-26 도매거래 주문 펼침 화면 모바일 세로 레이아웃 최종 보정 */
+@media (max-width: 768px) {
+  .wl-left-pane form.wl-order-form {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 18px 14px 22px !important;
+  }
+
+  .wl-left-pane form.wl-order-form .wl-form-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    gap: 0 !important;
+    margin: 0 !important;
+  }
+
+  .wl-left-pane form.wl-order-form .wl-form-grid > label {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    position: static !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 0 20px !important;
+    padding: 0 !important;
+    gap: 9px !important;
+  }
+
+  .wl-left-pane form.wl-order-form .wl-form-grid > label:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .wl-left-pane form.wl-order-form .wl-form-grid > label > span:first-child {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    float: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 22px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+    line-height: 22px !important;
+    font-weight: 800 !important;
+    white-space: normal !important;
+  }
+
+  .wl-left-pane form.wl-order-form .wl-form-grid > label > input,
+  .wl-left-pane form.wl-order-form .wl-form-grid > label > select,
+  .wl-left-pane form.wl-order-form .wl-form-grid > label > button,
+  .wl-left-pane form.wl-order-form .wl-form-grid > label > div {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+
+  .wl-left-pane form.wl-order-form .wl-form-grid input,
+  .wl-left-pane form.wl-order-form .wl-form-grid select {
+    min-height: 52px !important;
+    height: 52px !important;
+    font-size: 16px !important;
+  }
+
+  .wl-left-pane form.wl-order-form .wl-form-grid .wl-search-drop-button {
+    min-height: 52px !important;
+    height: 52px !important;
+  }
+
+  .wl-left-pane form.wl-order-form > div:last-child {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 22px 0 0 !important;
+  }
+
+  .wl-left-pane form.wl-order-form > div:last-child button {
+    width: 100% !important;
+    min-height: 52px !important;
+    height: 52px !important;
+    font-size: 16px !important;
+  }
+}
