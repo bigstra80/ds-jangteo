@@ -95,20 +95,6 @@ export async function POST(request: Request) {
 
     const isExcelImport = body.excelImport === true;
 
-    if (!isExcelImport && colors.length === 0) {
-      return NextResponse.json(
-        { message: "색상을 1개 이상 입력해주세요." },
-        { status: 400 }
-      );
-    }
-
-    if (!isExcelImport && sizes.length === 0) {
-      return NextResponse.json(
-        { message: "사이즈를 1개 이상 입력해주세요." },
-        { status: 400 }
-      );
-    }
-
     const supplierId = nullableId(body.supplierId);
     const supplier2Id = nullableId(body.supplier2Id);
     const supplier3Id = nullableId(body.supplier3Id);
@@ -120,12 +106,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isExcelImport && productType === "BROKER" && !supplierId) {
-      return NextResponse.json(
-        { message: "중도매 상품은 1번 공급업체를 선택해주세요." },
-        { status: 400 }
-      );
-    }
 
     const product = await prisma.product.create({
       data: {
@@ -268,16 +248,16 @@ export async function PUT(request: Request) {
 
     const isExcelImport = body.excelImport === true;
 
-    if (!isExcelImport && colors.length === 0) {
+    if (!String(body.code || "").trim()) {
       return NextResponse.json(
-        { message: "색상을 1개 이상 입력해주세요." },
+        { message: "상품코드를 입력해주세요." },
         { status: 400 }
       );
     }
 
-    if (!isExcelImport && sizes.length === 0) {
+    if (!String(body.name || "").trim()) {
       return NextResponse.json(
-        { message: "사이즈를 1개 이상 입력해주세요." },
+        { message: "상품명을 입력해주세요." },
         { status: 400 }
       );
     }
@@ -293,12 +273,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (!isExcelImport && productType === "BROKER" && !supplierId) {
-      return NextResponse.json(
-        { message: "중도매 상품은 1번 공급업체를 선택해주세요." },
-        { status: 400 }
-      );
-    }
 
     const existingSkus = await prisma.productSku.findMany({
       where: {

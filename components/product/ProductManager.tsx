@@ -72,8 +72,104 @@ function excelNumber(value: unknown) {
 }
 
 function supplierCodeFromProductCode(productCode: string) {
-  const matched = productCode.trim().toUpperCase().match(/^([A-Z]{2})(?=\d)/);
+  const matched = productCode.trim().toUpperCase().match(/^([A-Z]{2})/);
   return matched?.[1] || "";
+}
+
+type ParsedBandPost = {
+  code: string;
+  sourceProductName: string;
+  colors: string;
+  sizes: string;
+};
+
+function cleanBandLine(value: string) {
+  return value
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/^[\s✔️✅☑️•·▪︎◾◼︎■◆◇▶▷➤➜⛳️-]+/, "")
+    .trim();
+}
+
+function normalizeProductCode(value: string) {
+  return value.toUpperCase().replace(/\s+/g, "").trim();
+}
+
+function parseBandPost(text: string): ParsedBandPost | null {
+  const rawLines = text.replace(/\r/g, "").split("\n");
+  const lines = rawLines.map(cleanBandLine);
+  const meaningful = lines.filter(Boolean);
+
+  if (meaningful.length < 2) return null;
+
+  const codePattern = /^([A-Z]{1,3})\s*[-_]?\s*(\d{4,})$/i;
+  const codeCandidates = meaningful
+    .map((line, index) => ({ line, index, match: line.match(codePattern) }))
+    .filter((item) => item.match);
+
+  if (codeCandidates.length === 0) return null;
+
+  // 공급업체가 게시글 마지막에 다시 적는 코드를 우선 사용합니다.
+  const selectedCode = codeCandidates[codeCandidates.length - 1];
+  const code = normalizeProductCode(selectedCode.line);
+
+  const firstCodeIndex = codeCandidates[0].index;
+  let sourceProductName = "";
+
+  for (let index = firstCodeIndex + 1; index < meaningful.length; index += 1) {
+    const line = meaningful[index];
+    const upper = line.toUpperCase();
+
+    if (codePattern.test(line)) continue;
+    if (/^(COLOR|COLOUR|색상|SIZE|사이즈|매장가|판매가|PRICE|바배)\s*[:：]?/i.test(line)) continue;
+    if (/^\(?\d+\s*켤레/i.test(line)) continue;
+    if (/^[0-9]+(?:\.[0-9]+)?$/.test(line)) continue;
+    if (upper.startsWith("HTTP://") || upper.startsWith("HTTPS://")) continue;
+
+    sourceProductName = line;
+    break;
+  }
+
+  function extractLabelValue(labelPattern: RegExp) {
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      const match = line.match(labelPattern);
+      if (!match) continue;
+
+      const values: string[] = [];
+      const inlineValue = (match[1] || "").trim();
+      if (inlineValue) values.push(inlineValue);
+
+      for (let nextIndex = index + 1; nextIndex < lines.length; nextIndex += 1) {
+        const next = lines[nextIndex].trim();
+        if (!next) {
+          if (values.length > 0) break;
+          continue;
+        }
+        if (/^(COLOR|COLOUR|색상|SIZE|사이즈|매장가|판매가|PRICE)\s*[:：]?/i.test(next)) break;
+        if (codePattern.test(next) || /^[0-9]+(?:\.[0-9]+)?$/.test(next)) break;
+        if (next.startsWith("-") || next.startsWith("•")) break;
+
+        values.push(next);
+        if (values.length >= 2) break;
+      }
+
+      return values.join(" ").replace(/\s*,\s*/g, ", ").trim();
+    }
+
+    return "";
+  }
+
+  const colors = extractLabelValue(/^(?:COLOR|COLOUR|색상)\s*[:：]\s*(.*)$/i);
+  const sizes = extractLabelValue(/^(?:SIZE|사이즈)\s*[:：]\s*(.*)$/i);
+
+  if (!sourceProductName) return null;
+
+  return {
+    code,
+    sourceProductName,
+    colors,
+    sizes,
+  };
 }
 
 type ProductForm = {
@@ -137,6 +233,7 @@ export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [form, setForm] = useState<ProductForm>(emptyForm);
+  const [bandPostText, setBandPostText] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [openedProductIds, setOpenedProductIds] = useState<number[]>([]);
@@ -145,7 +242,9 @@ export default function ProductManager() {
   const [searchField, setSearchField] = useState("all");
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [uploadingProductImageId, setUploadingProductImageId] = useState<number | null>(null);
+  const [focusedProductImageId, setFocusedProductImageId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [inlineSupplierDrafts, setInlineSupplierDrafts] = useState<Record<number, string>>({});
@@ -432,6 +531,7 @@ export default function ProductManager() {
 
   function resetForm() {
     setForm(emptyForm);
+    setBandPostText("");
     setEditingId(null);
   }
 
@@ -496,15 +596,20 @@ export default function ProductManager() {
         [field]: value,
       } as ProductForm;
 
-      // 상품코드가 영문 대문자 2자리 + 숫자로 시작하면 해당 업체를 공급업체 1로 자동 선택합니다.
+      // 상품코드의 첫 두 글자가 영문 대문자이면 해당 업체를 공급업체 1로 자동 선택합니다.
       if (field === "code" && typeof value === "string") {
         const supplierCode = supplierCodeFromProductCode(value);
         const matchedSupplier = suppliers.find(
           (supplier) => supplier.code.trim().toUpperCase() === supplierCode
         );
-        if (matchedSupplier && !current.supplierId) {
-          next.supplierId = String(matchedSupplier.id);
-        }
+
+        // 상품코드의 첫 두 글자와 같은 공급업체를 공급업체 1에 자동 반영합니다.
+        next.supplierId = matchedSupplier ? String(matchedSupplier.id) : "";
+      }
+
+      // 공급업체 원상품명을 입력하면 상품명에도 동일하게 자동 입력합니다.
+      if (field === "sourceProductName" && typeof value === "string") {
+        next.name = value;
       }
 
       return next;
@@ -540,7 +645,94 @@ export default function ProductManager() {
     });
   }
 
+  function isSupportedImage(file: File) {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      alert("JPG, PNG, WEBP, GIF 이미지만 등록할 수 있습니다.");
+      return false;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("이미지는 10MB 이하만 등록할 수 있습니다.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function handleImageDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingImage(false);
+
+    if (uploadingImage) return;
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file || !isSupportedImage(file)) return;
+
+    void uploadImage(file);
+  }
+
+  function applyBandPostText(text: string, showMessage = false) {
+    const parsed = parseBandPost(text);
+    if (!parsed) return false;
+
+    const supplierCode = supplierCodeFromProductCode(parsed.code);
+    const matchedSupplier = suppliers.find(
+      (supplier) => supplier.code.trim().toUpperCase() === supplierCode
+    );
+
+    setBandPostText(text);
+    setForm((current) => ({
+      ...current,
+      code: parsed.code,
+      supplierId: matchedSupplier ? String(matchedSupplier.id) : current.supplierId,
+      sourceProductName: parsed.sourceProductName,
+      name: parsed.sourceProductName,
+      colors: parsed.colors || current.colors,
+      sizes: parsed.sizes || current.sizes,
+    }));
+
+    if (showMessage) {
+      alert("밴드 게시글에서 상품정보를 자동으로 입력했습니다.");
+    }
+
+    return true;
+  }
+
+  function handleSmartPaste(event: React.ClipboardEvent<HTMLFormElement>) {
+    if (uploadingImage) return;
+
+    const imageItem = Array.from(event.clipboardData.items).find((item) =>
+      item.type.startsWith("image/")
+    );
+
+    if (imageItem) {
+      const file = imageItem.getAsFile();
+      if (!file || !isSupportedImage(file)) return;
+
+      event.preventDefault();
+      void uploadImage(file);
+      return;
+    }
+
+    const pastedText = event.clipboardData.getData("text/plain");
+    if (!pastedText || !pastedText.includes("\n")) return;
+
+    if (applyBandPostText(pastedText)) {
+      event.preventDefault();
+    }
+  }
+
   async function uploadImage(file: File) {
+    if (!isSupportedImage(file)) return;
+
     try {
       setUploadingImage(true);
 
@@ -578,16 +770,6 @@ export default function ProductManager() {
 
     if (!form.name.trim()) {
       alert("상품명을 입력해주세요.");
-      return;
-    }
-
-    if (!form.colors.trim()) {
-      alert("색상을 입력해주세요.");
-      return;
-    }
-
-    if (!form.sizes.trim()) {
-      alert("사이즈를 입력해주세요.");
       return;
     }
 
@@ -811,7 +993,43 @@ export default function ProductManager() {
     }
   }
 
+  function handleProductImagePaste(
+    event: React.ClipboardEvent<HTMLDivElement>,
+    product: Product
+  ) {
+    if (uploadingProductImageId !== null) return;
+
+    const imageItem = Array.from(event.clipboardData.items).find((item) =>
+      item.type.startsWith("image/")
+    );
+
+    if (!imageItem) return;
+
+    const file = imageItem.getAsFile();
+    if (!file || !isSupportedImage(file)) return;
+
+    event.preventDefault();
+    void uploadProductImageDirect(product, file);
+  }
+
+  function handleProductImageDrop(
+    event: React.DragEvent<HTMLDivElement>,
+    product: Product
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (uploadingProductImageId !== null) return;
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file || !isSupportedImage(file)) return;
+
+    void uploadProductImageDirect(product, file);
+  }
+
   async function uploadProductImageDirect(product: Product, file: File) {
+    if (!isSupportedImage(file)) return;
+
     try {
       setUploadingProductImageId(product.id);
 
@@ -1376,6 +1594,7 @@ export default function ProductManager() {
       {showProductForm && (
         <form
           onSubmit={saveProduct}
+          onPaste={handleSmartPaste}
           style={formCardStyle}
           className="pm-form-card"
         >
@@ -1398,9 +1617,62 @@ export default function ProductManager() {
             </button>
           </div>
 
+          {!editingId && (
+            <div style={bandPasteBoxStyle}>
+              <div style={bandPasteTitleStyle}>📋 밴드 게시글 붙여넣기</div>
+              <div style={bandPasteHelpStyle}>
+                게시글 전체를 복사한 뒤 여기에 Ctrl+V 하세요. 상품코드·공급업체·상품명·색상·사이즈가 자동 입력됩니다. 매입단가는 적용하지 않습니다.
+              </div>
+              <textarea
+                value={bandPostText}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setBandPostText(value);
+                  applyBandPostText(value);
+                }}
+                placeholder={"예)\nU44532\n사우스 S* 배색 삭스*\nCOLOR: 화이트, 블랙, 네이비\nSIZE: 여성용\n...\nUU 44532"}
+                style={bandPasteTextareaStyle}
+              />
+              <div style={bandPasteStatusStyle}>
+                {bandPostText.trim()
+                  ? parseBandPost(bandPostText)
+                    ? "✓ 게시글을 인식했습니다. 아래 입력값을 확인한 뒤 저장하세요."
+                    : "상품코드와 상품명을 아직 찾지 못했습니다. 게시글 전체를 붙여넣어 주세요."
+                  : "텍스트 게시글은 자동 분석하고, 이미지가 복사되어 있으면 자동 업로드합니다."}
+              </div>
+            </div>
+          )}
+
           <div style={formContentStyle} className="pm-form-content">
             <div style={imageEditorStyle} className="pm-image-editor">
-              <div style={imagePreviewBoxStyle}>
+              <div
+                style={{
+                  ...imagePreviewBoxStyle,
+                  ...(isDraggingImage ? imagePreviewBoxDraggingStyle : {}),
+                  ...(uploadingImage ? { opacity: 0.72 } : {}),
+                }}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (!uploadingImage) setIsDraggingImage(true);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.dataTransfer.dropEffect = "copy";
+                  if (!uploadingImage) setIsDraggingImage(true);
+                }}
+                onDragLeave={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+
+                  const nextTarget = event.relatedTarget as Node | null;
+                  if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+                    setIsDraggingImage(false);
+                  }
+                }}
+                onDrop={handleImageDrop}
+              >
                 {form.imageUrl ? (
                   <img
                     src={form.imageUrl}
@@ -1410,8 +1682,20 @@ export default function ProductManager() {
                 ) : (
                   <div style={emptyImageStyle}>
                     <div style={{ fontSize: "34px" }}>🖼️</div>
-                    <div>대표 이미지 없음</div>
+                    <div style={{ fontWeight: 800 }}>사진을 여기에 끌어다 놓으세요</div>
+                    <div style={{ fontSize: "11px" }}>또는 캡처 후 Ctrl+V로 붙여넣기</div>
                   </div>
+                )}
+
+                {isDraggingImage && (
+                  <div style={dropOverlayStyle}>
+                    <div style={{ fontSize: "32px" }}>⬇️</div>
+                    <div>여기에 놓으면 바로 업로드됩니다</div>
+                  </div>
+                )}
+
+                {uploadingImage && (
+                  <div style={uploadOverlayStyle}>업로드 중...</div>
                 )}
               </div>
 
@@ -1429,7 +1713,7 @@ export default function ProductManager() {
                       event.target.files?.[0];
 
                     if (file) {
-                      uploadImage(file);
+                      void uploadImage(file);
                     }
 
                     event.target.value = "";
@@ -1450,7 +1734,7 @@ export default function ProductManager() {
               )}
 
               <div style={imageHelpStyle}>
-                JPG, PNG, WEBP, GIF / 최대 10MB
+                사진을 끌어다 놓거나 캡처 후 Ctrl+V로 붙여넣으세요 · JPG, PNG, WEBP, GIF / 최대 10MB
               </div>
             </div>
 
@@ -1732,12 +2016,28 @@ export default function ProductManager() {
                   {/* 상품 이미지 */}
                   <div
                     className="pm-product-image-control"
+                    tabIndex={0}
+                    title="여기를 클릭한 뒤 Ctrl+V로 이미지를 붙여넣거나, 이미지 파일을 끌어다 놓으세요."
+                    onFocus={() => setFocusedProductImageId(product.id)}
+                    onBlur={() => setFocusedProductImageId((current) => current === product.id ? null : current)}
+                    onPaste={(event) => handleProductImagePaste(event, product)}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "copy";
+                    }}
+                    onDrop={(event) => handleProductImageDrop(event, product)}
                     style={{
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "stretch",
                       gap: "4px",
                       flexShrink: 0,
+                      outline: "none",
+                      borderRadius: "8px",
+                      boxShadow:
+                        focusedProductImageId === product.id
+                          ? "0 0 0 3px rgba(37, 99, 235, 0.28)"
+                          : "none",
                     }}
                   >
                     <div
@@ -1760,6 +2060,28 @@ export default function ProductManager() {
                           <span>이미지 없음</span>
                         </div>
                       )}
+                      {focusedProductImageId === product.id &&
+                        uploadingProductImageId !== product.id && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: "3px",
+                              right: "3px",
+                              bottom: "3px",
+                              padding: "2px 3px",
+                              borderRadius: "4px",
+                              background: "rgba(30, 64, 175, 0.88)",
+                              color: "#ffffff",
+                              fontSize: "9px",
+                              fontWeight: 800,
+                              lineHeight: 1.2,
+                              textAlign: "center",
+                              pointerEvents: "none",
+                            }}
+                          >
+                            Ctrl+V 붙여넣기
+                          </div>
+                        )}
                       {uploadingProductImageId === product.id && (
                         <div
                           style={{
@@ -2092,6 +2414,49 @@ const formHelpStyle: React.CSSProperties = {
   fontSize: "13px",
 };
 
+const bandPasteBoxStyle: React.CSSProperties = {
+  margin: "0 20px 16px",
+  padding: "16px",
+  border: "2px dashed #2563eb",
+  borderRadius: "14px",
+  background: "#eff6ff",
+};
+
+const bandPasteTitleStyle: React.CSSProperties = {
+  fontSize: "16px",
+  fontWeight: 900,
+  color: "#1e3a8a",
+  marginBottom: "5px",
+};
+
+const bandPasteHelpStyle: React.CSSProperties = {
+  fontSize: "13px",
+  lineHeight: 1.55,
+  color: "#475569",
+  marginBottom: "10px",
+};
+
+const bandPasteTextareaStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: "150px",
+  resize: "vertical",
+  boxSizing: "border-box",
+  padding: "12px",
+  border: "1px solid #93c5fd",
+  borderRadius: "10px",
+  background: "#ffffff",
+  fontSize: "14px",
+  lineHeight: 1.55,
+  outline: "none",
+};
+
+const bandPasteStatusStyle: React.CSSProperties = {
+  marginTop: "8px",
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "#1d4ed8",
+};
+
 const formContentStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "220px minmax(0, 1fr)",
@@ -2108,16 +2473,55 @@ const imageEditorStyle: React.CSSProperties = {
 const imagePreviewBoxStyle: React.CSSProperties = {
   width: "100%",
   aspectRatio: "1 / 1",
+  position: "relative",
   overflow: "hidden",
   border: "1px solid #d1d5db",
   borderRadius: "12px",
   backgroundColor: "#f8fafc",
 };
 
+const imagePreviewBoxDraggingStyle: React.CSSProperties = {
+  border: "2px dashed #2563eb",
+  backgroundColor: "#eff6ff",
+  boxShadow: "0 0 0 4px rgba(37, 99, 235, 0.12)",
+};
+
 const imagePreviewStyle: React.CSSProperties = {
   width: "100%",
   height: "100%",
   objectFit: "cover",
+};
+
+const dropOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 3,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px",
+  padding: "16px",
+  backgroundColor: "rgba(239, 246, 255, 0.96)",
+  color: "#1d4ed8",
+  fontSize: "13px",
+  fontWeight: 900,
+  textAlign: "center",
+  pointerEvents: "none",
+};
+
+const uploadOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 4,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "rgba(255, 255, 255, 0.84)",
+  color: "#1d4ed8",
+  fontSize: "14px",
+  fontWeight: 900,
+  pointerEvents: "none",
 };
 
 const emptyImageStyle: React.CSSProperties = {
