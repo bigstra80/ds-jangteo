@@ -763,6 +763,8 @@ export default function ProductManager() {
   async function saveProduct(event: React.FormEvent) {
     event.preventDefault();
 
+    const wasEditing = editingId !== null;
+
     if (!form.code.trim()) {
       alert("상품코드를 입력해주세요.");
       return;
@@ -816,7 +818,10 @@ export default function ProductManager() {
       );
 
       resetForm();
-      setShowProductForm(false);
+
+      // 신규 상품 등록 후에는 연속 등록할 수 있도록 등록창을 열린 상태로 유지합니다.
+      // 기존 상품을 수정한 경우에만 등록창을 닫습니다.
+      setShowProductForm(!wasEditing);
       await loadProducts();
     } catch (error) {
       console.error(error);
