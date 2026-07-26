@@ -4,16 +4,14 @@ import { useEffect, useState } from "react";
 
 const MENUS = [
   ["products", "상품관리"],
-  ["wholesale-ledger", "도매 거래 한 줄 장부"],
-  ["transaction-history", "전체 거래내역"],
-  ["customer-settlement", "거래처 정산·미수금"],
-  ["supplier-settlement", "공급업체 정산"],
-  ["broker-purchases", "업체별 매입목록"],
-  ["customer-deliveries", "거래처별 납품목록"],
-  ["customer-prices", "거래처별 판매단가"],
-  ["band-import", "네이버 밴드 상품수집"],
-  ["suppliers", "공급업체 관리"],
-  ["customers", "거래처 관리"],
+  ["wholesale-ledger", "주문"],
+  ["transaction-history", "입·출고"],
+  ["customer-settlement", "출고"],
+  ["supplier-settlement", "입고"],
+  ["customer-deliveries", "출고목록"],
+  ["broker-purchases", "입고목록"],
+  ["customer-prices", "단가 적용"],
+  ["band-import", "상품수집"],
 ];
 
 type User = { id: number; username: string; name: string; role: string; permissions: string[]; isActive: boolean };
