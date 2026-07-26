@@ -1783,10 +1783,9 @@ export default function ProductManager() {
               </div>
                {!editingId && (
             <div style={bandPasteBoxStyle}>
-              <div style={bandPasteTitleStyle}>📋 밴드 게시글 붙여넣기</div>
-              <div style={bandPasteHelpStyle}>
-                게시글 전체를 복사한 뒤 여기에 Ctrl+V 하세요. 상품코드·공급업체·상품명·색상·사이즈가 자동 입력됩니다. 매입단가는 적용하지 않습니다.
-              </div>
+             <div style={bandPasteTitleStyle}>📋 게시글</div>
+
+<textarea
               <textarea
                 value={bandPostText}
                 onChange={(event) => {
@@ -1794,16 +1793,10 @@ export default function ProductManager() {
                   setBandPostText(value);
                   applyBandPostText(value);
                 }}
-                placeholder={"예)\nU44532\n사우스 S* 배색 삭스*\nCOLOR: 화이트, 블랙, 네이비\nSIZE: 여성용\n...\nUU 44532"}
+                placeholder={""}
                 style={bandPasteTextareaStyle}
               />
-              <div style={bandPasteStatusStyle}>
-                {bandPostText.trim()
-                  ? parseBandPost(bandPostText)
-                    ? "✓ 게시글을 인식했습니다. 아래 입력값을 확인한 뒤 저장하세요."
-                    : "상품코드와 상품명을 아직 찾지 못했습니다. 게시글 전체를 붙여넣어 주세요."
-                  : "텍스트 게시글은 자동 분석하고, 이미지가 복사되어 있으면 자동 업로드합니다."}
-              </div>
+          
             </div>
           )}
             </div>
@@ -2461,47 +2454,37 @@ const formHelpStyle: React.CSSProperties = {
 };
 
 const bandPasteBoxStyle: React.CSSProperties = {
-  margin: "0 20px 16px",
-  padding: "16px",
+  margin: "0",
+  padding: "8px",
   border: "2px dashed #2563eb",
-  borderRadius: "14px",
+  borderRadius: "10px",
   background: "#eff6ff",
 };
 
 const bandPasteTitleStyle: React.CSSProperties = {
-  fontSize: "16px",
-  fontWeight: 900,
-  color: "#1e3a8a",
-  marginBottom: "5px",
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "#1e3a8a",
+    marginBottom: "4px",
 };
 
-const bandPasteHelpStyle: React.CSSProperties = {
-  fontSize: "13px",
-  lineHeight: 1.55,
-  color: "#475569",
-  marginBottom: "10px",
-};
+
 
 const bandPasteTextareaStyle: React.CSSProperties = {
   width: "100%",
-  minHeight: "150px",
-  resize: "vertical",
+  minHeight: "70px",
+  resize: "none",
   boxSizing: "border-box",
-  padding: "12px",
+  padding: "8px",
   border: "1px solid #93c5fd",
-  borderRadius: "10px",
+  borderRadius: "8px",
   background: "#ffffff",
-  fontSize: "14px",
-  lineHeight: 1.55,
+  fontSize: "13px",
+  lineHeight: 1.4,
   outline: "none",
 };
 
-const bandPasteStatusStyle: React.CSSProperties = {
-  marginTop: "8px",
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "#1d4ed8",
-};
+
 
 const formContentStyle: React.CSSProperties = {
   display: "grid",
