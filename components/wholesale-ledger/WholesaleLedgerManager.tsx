@@ -1633,6 +1633,19 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </button>
         </div>
 
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+          style={sortSelectStyle}
+          className="wl-sort-select"
+          aria-label="정렬 순서"
+        >
+          <option value="dateDesc">최근순서</option>
+          <option value="dateAsc">오래된순서</option>
+          <option value="inputDesc">최근 입력순</option>
+          <option value="inputAsc">오래된 입력순</option>
+        </select>
+
         {!listOnly && (
           <button
             type="button"
@@ -1647,19 +1660,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             {bulkInlineSaving ? "저장 중..." : "전체 저장"}
           </button>
         )}
-
-        <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-          style={sortSelectStyle}
-          className="wl-sort-select"
-          aria-label="정렬 순서"
-        >
-          <option value="dateDesc">최근순서</option>
-          <option value="dateAsc">오래된순서</option>
-          <option value="inputDesc">최근 입력순</option>
-          <option value="inputAsc">오래된 입력순</option>
-        </select>
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
@@ -2366,7 +2366,18 @@ const toolbarStyle: React.CSSProperties = {
 };
 
 const searchTypeStyle: React.CSSProperties = {
-  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
+  width: 78,
+  minWidth: 78,
+  height: 42,
+  padding: "0 24px 0 9px",
+  border: "1px solid #cbd5e1",
+  borderRadius: 10,
+  background: "#fff",
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#334155",
+  cursor: "pointer",
+  flexShrink: 0,
 };
 
 const searchStyle: React.CSSProperties = {
@@ -2399,9 +2410,10 @@ const changedInlineInputStyle: React.CSSProperties = {
 };
 
 const sortSelectStyle: React.CSSProperties = {
-  width: 128,
+  width: 96,
+  minWidth: 96,
   height: 36,
-  padding: "0 10px",
+  padding: "0 24px 0 9px",
   border: "1px solid #cbd5e1",
   borderRadius: 8,
   background: "#fff",
