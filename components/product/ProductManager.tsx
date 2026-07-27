@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
+import { uniqueProductCodes } from "@/lib/product-code";
 import {
   compactProductSearchText,
   normalizeProductName,
@@ -97,10 +98,6 @@ function cleanBandLine(value: string) {
     .trim();
 }
 
-function normalizeProductCode(value: string) {
-  return value.toUpperCase().replace(/\s+/g, "").trim();
-}
-
 function parseBandPost(text: string): ParsedBandPost | null {
   const rawLines = text.replace(/\r/g, "").split("\n");
   const lines = rawLines.map(cleanBandLine);
@@ -116,8 +113,12 @@ function parseBandPost(text: string): ParsedBandPost | null {
 
   if (codeCandidates.length === 0) return null;
 
-  const code = normalizeProductCode(codeCandidates[0].match?.[1] || "");
-  const additionalCode = normalizeProductCode(codeCandidates[1]?.match?.[1] || "");
+  const uniqueCodes = uniqueProductCodes(
+    codeCandidates.map((candidate) => candidate.match?.[1] || "")
+  );
+
+  const code = uniqueCodes[0] || "";
+  const additionalCode = uniqueCodes[1] || "";
 
   const firstCodeIndex = codeCandidates[0].index;
   let sourceProductName = "";
@@ -248,6 +249,22 @@ function normalizeOneDecimal(value: string) {
     : integerPart;
 }
 
+function nullableDecimal(value: string) {
+  const normalized = normalizeOneDecimal(value);
+  return normalized === "" ? null : Number(normalized);
+}
+
+function validateDecimalDraft(
+  value: string | undefined,
+  productCode: string,
+  label: string
+) {
+  if (value === undefined || value === "") return;
+  if (!/^\d+(?:\.\d)?$/.test(value)) {
+    throw new Error(`상품코드 ${productCode}의 ${label}를 확인해 주세요.`);
+  }
+}
+
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -266,8 +283,10 @@ export default function ProductManager() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [listSupplierDrafts, setListSupplierDrafts] = useState<Record<number, string>>({});
   const [listCostDrafts, setListCostDrafts] = useState<Record<number, string>>({});
+  const [listPriceDrafts, setListPriceDrafts] = useState<Record<number, string>>({});
   const [savingListSupplierId, setSavingListSupplierId] = useState<number | null>(null);
   const [savingListCostId, setSavingListCostId] = useState<number | null>(null);
+  const [savingAllProducts, setSavingAllProducts] = useState(false);
   const listCellRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const [importingExcel, setImportingExcel] = useState(false);
   const excelInputRef = useRef<HTMLInputElement | null>(null);
@@ -557,6 +576,31 @@ export default function ProductManager() {
       });
     });
   }, [products, search, searchField]);
+
+  const dirtyProductIds = useMemo(() => {
+    return new Set(
+      products
+        .filter((product) => {
+          const supplierDraft = listSupplierDrafts[product.id];
+          const costDraft = listCostDrafts[product.id];
+          const priceDraft = listPriceDrafts[product.id];
+
+          const supplierChanged =
+            supplierDraft !== undefined &&
+            supplierDraft.trim().toLowerCase() !==
+              String(product.supplier?.code || "").trim().toLowerCase();
+          const costChanged =
+            costDraft !== undefined &&
+            nullableDecimal(costDraft) !== product.cost;
+          const priceChanged =
+            priceDraft !== undefined &&
+            nullableDecimal(priceDraft) !== product.price;
+
+          return supplierChanged || costChanged || priceChanged;
+        })
+        .map((product) => product.id)
+    );
+  }, [products, listSupplierDrafts, listCostDrafts, listPriceDrafts]);
 
   function resetForm() {
     setForm(emptyForm);
@@ -982,7 +1026,7 @@ export default function ProductManager() {
 
   function moveListCell(
     productId: number,
-    column: "supplier" | "cost",
+    column: "supplier" | "cost" | "price",
     direction: "up" | "down" | "left" | "right"
   ) {
     const currentIndex = filteredProducts.findIndex((item) => item.id === productId);
@@ -991,8 +1035,14 @@ export default function ProductManager() {
 
     if (direction === "up") nextIndex -= 1;
     if (direction === "down") nextIndex += 1;
-    if (direction === "left") nextColumn = "supplier";
-    if (direction === "right") nextColumn = "cost";
+    if (direction === "left") {
+      nextColumn =
+        column === "price" ? "cost" : "supplier";
+    }
+    if (direction === "right") {
+      nextColumn =
+        column === "supplier" ? "cost" : "price";
+    }
 
     const nextProduct = filteredProducts[nextIndex];
     if (!nextProduct) return;
@@ -1002,7 +1052,7 @@ export default function ProductManager() {
   function handleListCellArrows(
     event: React.KeyboardEvent<HTMLInputElement>,
     productId: number,
-    column: "supplier" | "cost"
+    column: "supplier" | "cost" | "price"
   ) {
     const directions = {
       ArrowUp: "up",
@@ -1098,6 +1148,163 @@ export default function ProductManager() {
       alert(error instanceof Error ? error.message : "대표 공급업체 저장 중 오류가 발생했습니다.");
     } finally {
       setSavingListSupplierId(null);
+    }
+  }
+
+  async function saveDraftProducts(targetProducts: Product[]) {
+    targetProducts.forEach((product) => {
+      validateDecimalDraft(
+        listCostDrafts[product.id],
+        product.code,
+        "대표 매입단가"
+      );
+      validateDecimalDraft(
+        listPriceDrafts[product.id],
+        product.code,
+        "판매단가"
+      );
+    });
+
+    const requestProducts = await Promise.all(
+      targetProducts.map(async (product) => {
+        const supplierText = (
+          listSupplierDrafts[product.id] ??
+          product.supplier?.code ??
+          ""
+        ).trim();
+        const supplierId = supplierText
+          ? Number(await findOrCreateSupplierId(supplierText))
+          : null;
+
+        return {
+          id: product.id,
+          supplierId,
+          cost:
+            listCostDrafts[product.id] !== undefined
+              ? nullableDecimal(listCostDrafts[product.id])
+              : product.cost,
+          price:
+            listPriceDrafts[product.id] !== undefined
+              ? nullableDecimal(listPriceDrafts[product.id])
+              : product.price,
+        };
+      })
+    );
+
+    const response = await fetch("/api/products/bulk", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ products: requestProducts }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "상품 저장에 실패했습니다.");
+    }
+
+    const results = Array.isArray(data.results) ? data.results : [];
+    const successResults = results.filter(
+      (result: { success?: boolean }) => result.success
+    ) as Array<{ id: number; success: true; product: Product }>;
+    const failedResults = results.filter(
+      (result: { success?: boolean }) => !result.success
+    ) as Array<{ id: number; success: false; reason: string }>;
+    const savedById = new Map(
+      successResults.map((result) => [result.id, result.product])
+    );
+    const successfulIds = new Set(successResults.map((result) => result.id));
+
+    setProducts((current) =>
+      current.map((product) => savedById.get(product.id) || product)
+    );
+
+    const clearSuccessfulDrafts = (current: Record<number, string>) => {
+      const next = { ...current };
+      successfulIds.forEach((id) => delete next[id]);
+      return next;
+    };
+    setListSupplierDrafts(clearSuccessfulDrafts);
+    setListCostDrafts(clearSuccessfulDrafts);
+    setListPriceDrafts(clearSuccessfulDrafts);
+
+    return { successResults, failedResults };
+  }
+
+  async function saveListFieldsAndEdit(product: Product) {
+    if (
+      savingAllProducts ||
+      savingListSupplierId === product.id ||
+      savingListCostId === product.id
+    ) {
+      return;
+    }
+
+    if (!dirtyProductIds.has(product.id)) {
+      startEdit(product);
+      return;
+    }
+
+    try {
+      setSavingListSupplierId(product.id);
+      setSavingListCostId(product.id);
+      const { successResults, failedResults } = await saveDraftProducts([product]);
+
+      if (failedResults.length > 0) {
+        throw new Error(failedResults[0].reason);
+      }
+
+      startEdit(successResults[0].product);
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "상품 목록 수정 중 오류가 발생했습니다."
+      );
+    } finally {
+      setSavingListSupplierId(null);
+      setSavingListCostId(null);
+    }
+  }
+
+  async function saveAllProductDrafts() {
+    if (savingAllProducts) return;
+
+    const changedProducts = products.filter((product) =>
+      dirtyProductIds.has(product.id)
+    );
+
+    if (changedProducts.length === 0) {
+      alert("변경된 상품이 없습니다.");
+      return;
+    }
+
+    try {
+      setSavingAllProducts(true);
+      const { successResults, failedResults } =
+        await saveDraftProducts(changedProducts);
+
+      if (failedResults.length === 0) {
+        alert("변경된 상품이 모두 저장되었습니다.");
+        return;
+      }
+
+      const failedDetails = failedResults
+        .map((result) => {
+          const product = products.find((item) => item.id === result.id);
+          return `${product?.code || result.id} ${product?.name || ""}: ${result.reason}`;
+        })
+        .join("\n");
+
+      alert(
+        `${changedProducts.length}개 중 ${successResults.length}개 저장 성공, ` +
+          `${failedResults.length}개 저장 실패\n\n${failedDetails}`
+      );
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "전체 저장에 실패했습니다.");
+    } finally {
+      setSavingAllProducts(false);
     }
   }
 
@@ -1252,12 +1459,32 @@ export default function ProductManager() {
 
         .pm-product-row {
           display: grid;
-          grid-template-columns: 100px minmax(260px, 1fr) 115px 100px 156px;
+          grid-template-columns: 90px minmax(300px, 1fr) 78px 72px 72px 156px;
           align-items: center;
           column-gap: 5px;
           min-height: 50px;
           padding: 5px 9px;
           box-sizing: border-box;
+        }
+        .pm-product-card.pm-product-dirty {
+          background: #f5f9ff;
+          border-color: #bfdbfe;
+        }
+        .pm-save-all {
+          height: 32px;
+          padding: 0 13px;
+          border: 0;
+          border-radius: 6px;
+          background: #2563eb;
+          color: white;
+          font-size: 11px;
+          font-weight: 800;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .pm-save-all:disabled {
+          background: #93c5fd;
+          cursor: not-allowed;
         }
         .pm-product-name-cell { padding-right: 22px; }
         .pm-product-cell { min-width: 0; }
@@ -2207,6 +2434,17 @@ export default function ProductManager() {
         <div style={countTextStyle} className="pm-count-text">
           총 {filteredProducts.length}개 상품
         </div>
+        <span style={{ color: "#64748b", fontSize: "11px", whiteSpace: "nowrap" }}>
+          변경 {dirtyProductIds.size}건
+        </span>
+        <button
+          type="button"
+          className="pm-save-all"
+          onClick={() => void saveAllProductDrafts()}
+          disabled={savingAllProducts}
+        >
+          {savingAllProducts ? "저장 중..." : "전체 저장"}
+        </button>
       </div>
 
       {filteredProducts.length === 0 ? (
@@ -2216,7 +2454,13 @@ export default function ProductManager() {
       ) : (
         <div style={productListStyle} className="pm-product-list">
           {filteredProducts.map((product) => (
-            <div key={product.id} style={productCardStyle} className="pm-product-card">
+            <div
+              key={product.id}
+              style={productCardStyle}
+              className={`pm-product-card ${
+                dirtyProductIds.has(product.id) ? "pm-product-dirty" : ""
+              }`}
+            >
               <div className="pm-product-row">
                 <div className="pm-product-cell">
                   <span className="pm-column-label">상품코드</span>
@@ -2291,9 +2535,48 @@ export default function ProductManager() {
                     <strong>***</strong>
                   )}
                 </div>
+                <div className="pm-product-cell">
+                  <span className="pm-column-label">판매단가</span>
+                  <input
+                    ref={(element) => {
+                      const key = `${product.id}-price`;
+                      if (element) listCellRefs.current.set(key, element);
+                      else listCellRefs.current.delete(key);
+                    }}
+                    className="pm-list-cost-input"
+                    inputMode="decimal"
+                    aria-label={`${product.code} 판매단가`}
+                    value={listPriceDrafts[product.id] ?? String(product.price ?? "")}
+                    placeholder="-"
+                    disabled={
+                      savingListSupplierId === product.id ||
+                      savingListCostId === product.id
+                    }
+                    onChange={(event) =>
+                      setListPriceDrafts((current) => ({
+                        ...current,
+                        [product.id]: normalizeOneDecimal(event.target.value),
+                      }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void saveListFieldsAndEdit(product);
+                        return;
+                      }
+                      handleListCellArrows(event, product.id, "price");
+                    }}
+                  />
+                </div>
                 <div className="pm-row-actions">
                   <button type="button" onClick={() => setDetailProduct(product)} style={skuButtonStyle}>상세</button>
-                  <button type="button" onClick={() => startEdit(product)} style={editButtonStyle}>수정</button>
+                  <button
+                    type="button"
+                    onClick={() => void saveListFieldsAndEdit(product)}
+                    style={editButtonStyle}
+                  >
+                    수정
+                  </button>
                   <button type="button" onClick={() => deleteProduct(product)} disabled={deletingId === product.id} style={deleteButtonStyle}>
                     {deletingId === product.id ? "삭제 중" : "삭제"}
                   </button>

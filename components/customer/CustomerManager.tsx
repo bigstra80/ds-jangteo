@@ -51,26 +51,6 @@ export default function CustomerManager() {
   const [statusFilter, setStatusFilter] =
     useState("전체");
   const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  async function loadCurrentUser() {
-    try {
-      const response = await fetch("/api/auth/me", {
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        setIsAdmin(false);
-        return;
-      }
-
-      const data = await response.json();
-      setIsAdmin(data?.user?.role === "ADMIN");
-    } catch {
-      setIsAdmin(false);
-    }
-  }
-
   async function loadCustomers() {
     try {
       const response = await fetch(
@@ -101,7 +81,6 @@ export default function CustomerManager() {
   useEffect(() => {
     // Initial client-side data hydration is intentionally performed once on mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadCurrentUser();
     loadCustomers();
   }, []);
 
@@ -354,7 +333,7 @@ export default function CustomerManager() {
   }
 
   return (
-    <div style={{ width: "100%", maxWidth: "1180px", margin: "0", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", maxWidth: "1080px", margin: "0", boxSizing: "border-box" }}>
       <div style={summaryGrid}>
         <SummaryCard
           label="전체 거래처"
@@ -502,16 +481,15 @@ export default function CustomerManager() {
           <table style={table}>
             <thead>
               <tr>
-                <th style={th}>코드</th>
-                <th style={th}>거래처명</th>
+                <th style={{ ...th, width: "90px" }}>코드</th>
+                <th style={{ ...th, width: "130px" }}>거래처명</th>
                 <th style={{ ...th, width: "68px" }}>등급</th>
-                <th style={th}>전화번호</th>
-                <th style={th}>주문</th>
-                <th style={th}>구매수량</th>
-                <th style={th}>누적매출</th>
-                <th style={th}>최근주문</th>
-                <th style={th}>상태</th>
-                <th style={th}>관리</th>
+                <th style={{ ...th, width: "115px" }}>전화번호</th>
+                <th style={{ ...th, width: "62px" }}>주문</th>
+                <th style={{ ...th, width: "76px" }}>구매수량</th>
+                <th style={{ ...th, width: "100px" }}>누적매출</th>
+                <th style={{ ...th, width: "72px" }}>상태</th>
+                <th style={{ ...th, width: "238px" }}>관리</th>
               </tr>
             </thead>
 
@@ -543,15 +521,6 @@ export default function CustomerManager() {
                       <strong>
                         {customer.totalSales.toLocaleString()}원
                       </strong>
-                    </td>
-                    <td style={td}>
-                      {customer.lastOrderAt
-                        ? new Date(
-                            customer.lastOrderAt
-                          ).toLocaleDateString(
-                            "ko-KR"
-                          )
-                        : "-"}
                     </td>
                     <td style={td}>
                       {customer.isActive
@@ -586,16 +555,14 @@ export default function CustomerManager() {
                             ? "사용중지"
                             : "재사용"}
                         </button>
-                        {isAdmin && (
-                          <button
-                            style={deleteButton}
-                            onClick={() =>
-                              deleteCustomer(customer)
-                            }
-                          >
-                            삭제
-                          </button>
-                        )}
+                        <button
+                          style={deleteButton}
+                          onClick={() =>
+                            deleteCustomer(customer)
+                          }
+                        >
+                          삭제
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -736,67 +703,76 @@ const excelButton: React.CSSProperties = {
 
 const filterRow: React.CSSProperties = {
   display: "flex",
-  gap: "10px",
-  marginBottom: "12px",
+  gap: "7px",
+  marginBottom: "9px",
 };
 
 const searchInput: React.CSSProperties = {
   ...input,
   flex: 1,
+  padding: "7px 9px",
+  fontSize: "13px",
 };
 
 const filterSelect: React.CSSProperties = {
   ...input,
-  width: "150px",
+  width: "125px",
   backgroundColor: "white",
+  padding: "7px 9px",
+  fontSize: "13px",
 };
 
 const table: React.CSSProperties = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: "1080px",
+  minWidth: "950px",
   tableLayout: "fixed",
-  fontSize: "13px",
+  fontSize: "12px",
 };
 
 const th: React.CSSProperties = {
   border: "1px solid #d1d5db",
   backgroundColor: "#f3f4f6",
-  padding: "8px 6px",
+  padding: "6px 4px",
   textAlign: "center",
   whiteSpace: "nowrap",
 };
 
 const td: React.CSSProperties = {
   border: "1px solid #d1d5db",
-  padding: "8px 6px",
+  padding: "5px 4px",
   textAlign: "center",
+  lineHeight: 1.25,
 };
 
 const actionRow: React.CSSProperties = {
   display: "flex",
-  gap: "6px",
+  gap: "4px",
   justifyContent: "center",
   flexWrap: "nowrap",
-  minWidth: "230px",
+  whiteSpace: "nowrap",
 };
 
 const priceButton: React.CSSProperties = {
-  padding: "6px 9px",
+  padding: "5px 7px",
   border: "none",
   borderRadius: "5px",
   backgroundColor: "#7c3aed",
   color: "white",
   cursor: "pointer",
+  fontSize: "11px",
+  whiteSpace: "nowrap",
 };
 
 const editButton: React.CSSProperties = {
-  padding: "6px 9px",
+  padding: "5px 7px",
   border: "none",
   borderRadius: "5px",
   backgroundColor: "#2563eb",
   color: "white",
   cursor: "pointer",
+  fontSize: "11px",
+  whiteSpace: "nowrap",
 };
 
 const statusButton: React.CSSProperties = {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
+import { calculatePriceByCustomerGrade } from "@/lib/customer-grade-price";
 
 // 거래처별 판매단가 조회
 export async function GET(request: Request) {
@@ -24,7 +25,12 @@ export async function GET(request: Request) {
       );
     }
 
-    const products = await prisma.product.findMany({
+    const [customer, products] = await Promise.all([
+      prisma.customer.findUnique({
+        where: { id: customerId },
+        select: { grade: true },
+      }),
+      prisma.product.findMany({
       orderBy: {
         id: "desc",
       },
@@ -36,20 +42,29 @@ export async function GET(request: Request) {
           },
         },
       },
+      }),
+    ]);
+
+    const result = products.map((product) => {
+      const calculatedPrice = calculatePriceByCustomerGrade({
+        basePrice: product.price,
+        productName: product.sourceProductName || product.name,
+        customerGrade: customer?.grade || "D",
+      });
+      const savedCustomerPrice =
+        product.customerPrices.length > 0 ? product.customerPrices[0].price : null;
+
+      return {
+        id: product.id,
+        code: product.code,
+        name: product.name,
+        brand: product.brand,
+        price: product.price,
+        calculatedPrice,
+        savedCustomerPrice,
+        customerPrice: savedCustomerPrice ?? calculatedPrice,
+      };
     });
-
-    const result = products.map((product) => ({
-      id: product.id,
-      code: product.code,
-      name: product.name,
-      brand: product.brand,
-      price: product.price,
-
-      customerPrice:
-        product.customerPrices.length > 0
-          ? product.customerPrices[0].price
-          : null,
-    }));
 
     return NextResponse.json(result);
   } catch (error) {

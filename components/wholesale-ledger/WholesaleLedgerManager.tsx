@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 type LedgerRow = {
   id: number;
   transactionDate: string;
+  createdAt: string;
   productName: string;
   quantity: number;
   supplierName: string | null;
@@ -47,6 +48,7 @@ type SearchOption = {
   keywords?: string;
   productCode?: string;
   productName?: string;
+  basePrice?: number;
   supplierCosts?: SupplierCostOption[];
 };
 
@@ -172,6 +174,7 @@ function productOptionsFromPayload(payload: unknown): SearchOption[] {
         label: productName,
         productName,
         productCode,
+        basePrice: Number(product?.price || 0),
         keywords: [productCode, productName].filter(Boolean).join(" "),
         supplierCosts,
       };
@@ -325,6 +328,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [selectedDeliveryCustomerId, setSelectedDeliveryCustomerId] = useState<string>("");
   const [selectedCustomerUnitPrice, setSelectedCustomerUnitPrice] = useState(0);
   const [saleUnitPriceInput, setSaleUnitPriceInput] = useState("");
+  const [isSalePriceManuallyEdited, setIsSalePriceManuallyEdited] = useState(false);
 
   async function loadRows() {
     setLoading(true);
@@ -436,7 +440,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         return dateDiff !== 0 ? dateDiff : a.id - b.id;
       }
 
-      return dateDiff !== 0 ? -dateDiff : b.id - a.id;
+      if (dateDiff !== 0) return -dateDiff;
+
+      const createdAtDiff =
+        new Date(a.createdAt).getTime() -
+        new Date(b.createdAt).getTime();
+
+      return createdAtDiff !== 0 ? -createdAtDiff : b.id - a.id;
     });
   }, [rows, keyword, searchField, startDate, endDate, sortOrder, productCodeByName]);
 
@@ -488,14 +498,35 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     changeForm("purchaseAmount", String(unitCost * quantity));
   }
 
+  function applySaleUnitPrice(unitPrice: number, quantityValue = form.quantity) {
+    const parsedQuantity = Number(quantityValue);
+    const quantity = Number.isFinite(parsedQuantity) && parsedQuantity !== 0
+      ? parsedQuantity
+      : 1;
+    setSelectedCustomerUnitPrice(unitPrice);
+    setSaleUnitPriceInput(String(unitPrice));
+    changeForm("saleAmount", String(unitPrice * quantity));
+    setIsSalePriceManuallyEdited(false);
+  }
+
   async function applyCustomerSalePrice(
     customerId = selectedDeliveryCustomerId,
     productId = selectedProductId,
     quantityValue = form.quantity
   ) {
-    if (!customerId || !productId) {
+    if (!productId) {
       setSelectedCustomerUnitPrice(0);
       setSaleUnitPriceInput("");
+      setIsSalePriceManuallyEdited(false);
+      return;
+    }
+
+    const selectedProduct = productOptions.find(
+      (option) => String(option.id) === String(productId)
+    );
+
+    if (!customerId) {
+      applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
       return;
     }
 
@@ -505,7 +536,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         { cache: "no-store" }
       );
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
+        return;
+      }
 
       const products = await response.json();
       const matched = Array.isArray(products)
@@ -513,8 +547,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         : null;
 
       if (matched?.customerPrice === null || matched?.customerPrice === undefined) {
-        setSelectedCustomerUnitPrice(0);
-        setSaleUnitPriceInput("");
+        applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
         return;
       }
 
@@ -525,11 +558,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           ? parsedQuantity
           : 1;
 
-      setSelectedCustomerUnitPrice(unitPrice);
-      setSaleUnitPriceInput(String(unitPrice));
-      changeForm("saleAmount", String(unitPrice * quantity));
+      applySaleUnitPrice(unitPrice, String(quantity));
     } catch (error) {
       console.error("거래처 판매단가 자동 적용 오류:", error);
+      applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
     }
   }
 
@@ -547,6 +579,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         option.id,
         form.quantity
       );
+    } else {
+      applySaleUnitPrice(option.basePrice || 0, form.quantity);
     }
 
     if (firstSupplier) {
@@ -572,6 +606,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       setSelectedProductId("");
       setSelectedCustomerUnitPrice(0);
       setSaleUnitPriceInput("");
+      setIsSalePriceManuallyEdited(false);
       changeForm("saleAmount", "0");
       return;
     }
@@ -623,6 +658,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     const editUnitPrice = editQuantity !== 0 ? row.saleAmount / editQuantity : row.saleAmount;
     setSelectedCustomerUnitPrice(editUnitPrice);
     setSaleUnitPriceInput(String(editUnitPrice));
+    setIsSalePriceManuallyEdited(true);
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -636,6 +672,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setSelectedDeliveryCustomerId("");
     setSelectedCustomerUnitPrice(0);
     setSaleUnitPriceInput("");
+    setIsSalePriceManuallyEdited(false);
     setProductCode("");
   }
 
@@ -1364,7 +1401,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   const safeQuantity = Number.isFinite(parsedQuantity)
                     ? parsedQuantity
                     : 0;
-                  const unitPrice = Number(parseWonInput(saleUnitPriceInput || "0"));
+                  const unitPrice = isSalePriceManuallyEdited
+                    ? Number(parseWonInput(saleUnitPriceInput || "0"))
+                    : selectedCustomerUnitPrice;
                   changeForm(
                     "saleAmount",
                     String((Number.isFinite(unitPrice) ? unitPrice : 0) * safeQuantity)
@@ -1395,6 +1434,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       matched.id,
                       form.quantity
                     );
+                  } else {
+                    applySaleUnitPrice(matched.basePrice || 0, form.quantity);
                   }
                 } else {
                   setSelectedProductId("");
@@ -1468,8 +1509,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   );
                 } else {
                   setSelectedDeliveryCustomerId("");
-                  setSelectedCustomerUnitPrice(0);
-                  setSaleUnitPriceInput("");
+                  const selectedProduct = productOptions.find(
+                    (option) => option.id === selectedProductId
+                  );
+                  applySaleUnitPrice(selectedProduct?.basePrice || 0, form.quantity);
                 }
               }}
               onSelect={(option) => {
@@ -1491,7 +1534,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             className="wl-field-sale-amount"
             label={
               <span style={{ color: "#2563eb" }}>
-                판매금액: {money(Number(form.saleAmount) || 0)}
+                적용금액: {money(Number(form.saleAmount) || 0)}
               </span>
             }
           >
@@ -1500,6 +1543,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 value={saleUnitPriceInput}
                 onChange={(value) => {
                   setSaleUnitPriceInput(value);
+                  setIsSalePriceManuallyEdited(true);
                   const unitPrice = Number(parseWonInput(value || "0"));
                   const quantity = Number(form.quantity);
                   const safeQuantity = Number.isFinite(quantity) ? quantity : 0;

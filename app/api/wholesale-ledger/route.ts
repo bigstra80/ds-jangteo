@@ -25,6 +25,7 @@ export async function GET() {
     const rows = await prisma.wholesaleLedger.findMany({
       orderBy: [
         { transactionDate: "desc" },
+        { createdAt: "desc" },
         { id: "desc" },
       ],
     });
