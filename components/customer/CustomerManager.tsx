@@ -7,6 +7,7 @@ type Customer = {
   id: number;
   code: string;
   name: string;
+  grade: "A" | "B" | "C" | "D";
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -21,6 +22,7 @@ type Customer = {
 type CustomerForm = {
   code: string;
   name: string;
+  grade: "A" | "B" | "C" | "D";
   phone: string;
   email: string;
   address: string;
@@ -30,6 +32,7 @@ type CustomerForm = {
 const emptyForm: CustomerForm = {
   code: "",
   name: "",
+  grade: "D",
   phone: "",
   email: "",
   address: "",
@@ -96,6 +99,8 @@ export default function CustomerManager() {
   }
 
   useEffect(() => {
+    // Initial client-side data hydration is intentionally performed once on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCurrentUser();
     loadCustomers();
   }, []);
@@ -174,6 +179,7 @@ export default function CustomerManager() {
     setForm({
       code: customer.code,
       name: customer.name,
+      grade: customer.grade || "D",
       phone: customer.phone || "",
       email: customer.email || "",
       address: customer.address || "",
@@ -274,7 +280,7 @@ export default function CustomerManager() {
           }
 
           const fields: Record<string, unknown[]> = {
-            all: [customer.code, customer.name, customer.phone, customer.email, customer.address],
+            all: [customer.code, customer.name, customer.grade, customer.phone, customer.email, customer.address],
             code: [customer.code], name: [customer.name], phone: [customer.phone], email: [customer.email], address: [customer.address],
           };
           return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
@@ -312,6 +318,7 @@ export default function CustomerManager() {
       (customer) => ({
         고객코드: customer.code,
         고객명: customer.name,
+        등급: `${customer.grade || "D"}그룹`,
         전화번호: customer.phone || "",
         이메일: customer.email || "",
         주소: customer.address || "",
@@ -376,25 +383,27 @@ export default function CustomerManager() {
 
         <form onSubmit={handleSubmit}>
           <div style={grid}>
-            {[
-              ["code", "거래처 코드 예: C001"],
-              ["name", "거래처명"],
-              ["phone", "전화번호"],
-              ["email", "이메일"],
-            ].map(([name, placeholder]) => (
-              <input
-                key={name}
-                name={name}
-                value={
-                  form[
-                    name as keyof CustomerForm
-                  ]
-                }
-                onChange={handleChange}
-                placeholder={placeholder}
-                style={input}
-              />
-            ))}
+            <input name="code" value={form.code} onChange={handleChange} placeholder="거래처 코드 예: C001" style={input} />
+            <input name="name" value={form.name} onChange={handleChange} placeholder="거래처명" style={input} />
+            <select
+              name="grade"
+              value={form.grade}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  grade: event.target.value as CustomerForm["grade"],
+                }))
+              }
+              style={{ ...input, backgroundColor: "white" }}
+              aria-label="거래처 등급"
+            >
+              <option value="A">A그룹</option>
+              <option value="B">B그룹</option>
+              <option value="C">C그룹</option>
+              <option value="D">D그룹</option>
+            </select>
+            <input name="phone" value={form.phone} onChange={handleChange} placeholder="전화번호" style={input} />
+            <input name="email" value={form.email} onChange={handleChange} placeholder="이메일" style={input} />
           </div>
 
           <input
@@ -495,6 +504,7 @@ export default function CustomerManager() {
               <tr>
                 <th style={th}>코드</th>
                 <th style={th}>거래처명</th>
+                <th style={{ ...th, width: "68px" }}>등급</th>
                 <th style={th}>전화번호</th>
                 <th style={th}>주문</th>
                 <th style={th}>구매수량</th>
@@ -516,6 +526,9 @@ export default function CustomerManager() {
                       <strong>
                         {customer.name}
                       </strong>
+                    </td>
+                    <td style={{ ...td, whiteSpace: "nowrap" }}>
+                      {customer.grade || "D"}그룹
                     </td>
                     <td style={td}>
                       {customer.phone || "-"}
@@ -650,7 +663,7 @@ const section: React.CSSProperties = {
 const grid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(4, minmax(0, 1fr))",
+    "repeat(auto-fit, minmax(145px, 1fr))",
   gap: "8px",
 };
 
@@ -741,8 +754,8 @@ const filterSelect: React.CSSProperties = {
 const table: React.CSSProperties = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: "0",
-  tableLayout: "auto",
+  minWidth: "1080px",
+  tableLayout: "fixed",
   fontSize: "13px",
 };
 
@@ -764,7 +777,8 @@ const actionRow: React.CSSProperties = {
   display: "flex",
   gap: "6px",
   justifyContent: "center",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
+  minWidth: "230px",
 };
 
 const priceButton: React.CSSProperties = {

@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
+import {
+  compactProductSearchText,
+  normalizeProductName,
+  normalizeProductSearchText,
+} from "@/lib/product-name";
 
 type ProductSku = {
   id: number;
@@ -82,6 +87,7 @@ type ParsedBandPost = {
   sourceProductName: string;
   colors: string;
   sizes: string;
+  price: string;
 };
 
 function cleanBandLine(value: string) {
@@ -126,7 +132,7 @@ function parseBandPost(text: string): ParsedBandPost | null {
     if (/^[0-9]+(?:\.[0-9]+)?$/.test(line)) continue;
     if (upper.startsWith("HTTP://") || upper.startsWith("HTTPS://")) continue;
 
-    sourceProductName = line;
+    sourceProductName = normalizeProductName(line);
     break;
   }
 
@@ -162,6 +168,12 @@ function parseBandPost(text: string): ParsedBandPost | null {
 
   const colors = extractLabelValue(/^(?:COLOR|COLOUR|색상)\s*[:：]\s*(.*)$/i);
   const sizes = extractLabelValue(/^(?:SIZE|사이즈)\s*[:：]\s*(.*)$/i);
+  const lastCodeIndex = codeCandidates[codeCandidates.length - 1].index;
+  const price =
+    meaningful
+      .slice(lastCodeIndex + 1)
+      .filter((line) => /^\d+(?:\.\d+)?$/.test(line))
+      .at(-1) || "";
 
   if (!sourceProductName) return null;
 
@@ -171,6 +183,7 @@ function parseBandPost(text: string): ParsedBandPost | null {
     sourceProductName,
     colors,
     sizes,
+    price,
   };
 }
 
@@ -242,20 +255,20 @@ export default function ProductManager() {
   const [bandPostText, setBandPostText] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
-  const [openedProductIds, setOpenedProductIds] = useState<number[]>([]);
-  const [openedMobileProductIds, setOpenedMobileProductIds] = useState<number[]>([]);
+  const [visibleSupplierCount, setVisibleSupplierCount] = useState(1);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("all");
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
-  const [uploadingProductImageId, setUploadingProductImageId] = useState<number | null>(null);
-  const [focusedProductImageId, setFocusedProductImageId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [inlineSupplierDrafts, setInlineSupplierDrafts] = useState<Record<number, string>>({});
-  const [inlineCostDrafts, setInlineCostDrafts] = useState<Record<number, string>>({});
-  const [inlineSavingId, setInlineSavingId] = useState<number | null>(null);
+  const [listSupplierDrafts, setListSupplierDrafts] = useState<Record<number, string>>({});
+  const [listCostDrafts, setListCostDrafts] = useState<Record<number, string>>({});
+  const [savingListSupplierId, setSavingListSupplierId] = useState<number | null>(null);
+  const [savingListCostId, setSavingListCostId] = useState<number | null>(null);
+  const listCellRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const [importingExcel, setImportingExcel] = useState(false);
   const excelInputRef = useRef<HTMLInputElement | null>(null);
   const cost1InputRef = useRef<HTMLInputElement | null>(null);
@@ -516,13 +529,16 @@ export default function ProductManager() {
   }
 
   useEffect(() => {
+    // Initial client-side data hydration is intentionally performed once on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadProducts();
     loadSuppliers();
     loadCurrentUser();
   }, []);
 
   const filteredProducts = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+    const keyword = normalizeProductSearchText(search);
+    const compactKeyword = compactProductSearchText(search);
 
     return products.filter((product) => {
 
@@ -532,7 +548,13 @@ export default function ProductManager() {
         all: [product.code, product.name, product.brand, product.category, product.colors, product.sizes, product.sourceProductName, product.supplier?.name, product.supplier2?.name, product.supplier3?.name],
         code: [product.code], name: [product.name, product.sourceProductName], supplier: [product.supplier?.name, product.supplier2?.name, product.supplier3?.name], brand: [product.brand], category: [product.category],
       };
-      return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
+      return (fields[searchField] || fields.all).some((value) => {
+        const normalizedValue = normalizeProductSearchText(value);
+        return (
+          normalizedValue.includes(keyword) ||
+          compactProductSearchText(value).includes(compactKeyword)
+        );
+      });
     });
   }, [products, search, searchField]);
 
@@ -540,6 +562,7 @@ export default function ProductManager() {
     setForm(emptyForm);
     setBandPostText("");
     setEditingId(null);
+    setVisibleSupplierCount(1);
   }
 
   function openCreateForm() {
@@ -582,6 +605,13 @@ export default function ProductManager() {
       bandPostUrl: product.bandPostUrl || "",
       isBandImported: Boolean(product.isBandImported),
     });
+    setVisibleSupplierCount(
+      product.supplier3Id || product.cost3 != null
+        ? 3
+        : product.supplier2Id || product.cost2 != null
+          ? 2
+          : 1
+    );
     setShowProductForm(true);
 
     window.scrollTo({
@@ -616,6 +646,9 @@ export default function ProductManager() {
         next.supplierId = matchedSupplier ? String(matchedSupplier.id) : "";
       }
 
+      if (field === "sourceProductName" && typeof value === "string") {
+        next.name = value;
+      }
 
       return next;
     });
@@ -702,6 +735,7 @@ export default function ProductManager() {
       sourceProductName: parsed.sourceProductName,
       colors: parsed.colors || current.colors,
       sizes: parsed.sizes || current.sizes,
+      price: parsed.price || current.price,
     }));
 
     if (showMessage) {
@@ -795,9 +829,8 @@ export default function ProductManager() {
       const primaryPayload = {
         id: editingId,
         ...form,
-        // 상품과 상품명은 서로 독립적으로 저장합니다.
-        // 상품을 입력해도 상품명에는 자동으로 복사하지 않습니다.
-        name: form.name.trim(),
+        name: normalizeProductName(form.sourceProductName),
+        sourceProductName: normalizeProductName(form.sourceProductName),
         supplierId: resolvedSupplierId,
       };
 
@@ -891,84 +924,18 @@ export default function ProductManager() {
     }
   }
 
-  async function saveInlineProduct(
-    product: Product,
-    changes: {
-      supplierName?: string;
-      cost?: string;
-      imageUrl?: string;
-    }
-  ) {
+  async function saveListCost(product: Product) {
+    if (!isAdmin || savingListCostId === product.id) return;
+
+    const draft = listCostDrafts[product.id] ?? String(product.cost ?? "");
+    const normalizedCost = normalizeOneDecimal(draft);
+    const nextCost = normalizedCost === "" ? null : Number(normalizedCost);
+
     try {
-      setInlineSavingId(product.id);
-
-      let supplierId = product.supplierId;
-
-      if (changes.supplierName !== undefined) {
-        const supplierName = changes.supplierName.trim();
-
-        if (!supplierName) {
-          supplierId = null;
-        } else {
-          let matchedSupplier = suppliers.find(
-            (supplier) =>
-              supplier.name.trim().toLowerCase() === supplierName.toLowerCase() ||
-              supplier.code.trim().toLowerCase() === supplierName.toLowerCase()
-          );
-
-          if (!matchedSupplier) {
-            const createResponse = await fetch("/api/suppliers", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                code: supplierName,
-                name: supplierName,
-                businessNumber: "",
-                representative: "",
-                phone: "",
-                email: "",
-                address: "",
-                contactName: "",
-                contactPhone: "",
-                bankName: "",
-                bankAccount: "",
-                accountHolder: "",
-                memo: "",
-              }),
-            });
-
-            const createdSupplier = await createResponse.json();
-
-            if (!createResponse.ok) {
-              throw new Error(
-                createdSupplier.message || "공급업체 저장에 실패했습니다."
-              );
-            }
-
-            matchedSupplier = createdSupplier;
-            await loadSuppliers();
-          }
-
-          supplierId = matchedSupplier?.id ?? null;
-        }
-      }
-
-      const nextCost =
-        changes.cost !== undefined
-          ? Number(String(changes.cost).replace(/,/g, "").trim() || 0)
-          : Number(product.cost || 0);
-
-      if (Number.isNaN(nextCost)) {
-        throw new Error("단가는 숫자로 입력해주세요.");
-      }
-
+      setSavingListCostId(product.id);
       const response = await fetch("/api/product", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: product.id,
           code: product.code,
@@ -978,128 +945,160 @@ export default function ProductManager() {
           colors: product.colors || "",
           sizes: product.sizes || "",
           cost: nextCost,
-          cost2: Number(product.cost2 || 0),
-          cost3: Number(product.cost3 || 0),
-          price: Number(product.price || 0),
-          imageUrl:
-            changes.imageUrl !== undefined
-              ? changes.imageUrl
-              : product.imageUrl || "",
+          cost2: product.cost2,
+          cost3: product.cost3,
+          price: product.price,
+          imageUrl: product.imageUrl || "",
           productType: product.productType,
-          supplierId,
+          supplierId: product.supplierId,
           supplier2Id: product.supplier2Id,
           supplier3Id: product.supplier3Id,
-          sourceProductName: product.sourceProductName || "",
+          sourceProductName: product.sourceProductName || product.name,
           bandPostId: product.bandPostId || "",
           bandPostUrl: product.bandPostUrl || "",
           isBandImported: product.isBandImported,
         }),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.message || "상품 저장에 실패했습니다.");
+        throw new Error(result.message || "매입단가 저장에 실패했습니다.");
       }
 
-      setInlineSupplierDrafts((current) => {
+      setProducts((current) =>
+        current.map((item) => (item.id === product.id ? result : item))
+      );
+      setListCostDrafts((current) => {
         const next = { ...current };
         delete next[product.id];
         return next;
       });
-
-      setInlineCostDrafts((current) => {
-        const next = { ...current };
-        delete next[product.id];
-        return next;
-      });
-
-      await loadProducts();
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
-      await loadProducts();
+      alert(error instanceof Error ? error.message : "매입단가 저장 중 오류가 발생했습니다.");
     } finally {
-      setInlineSavingId(null);
+      setSavingListCostId(null);
     }
   }
 
-  function handleProductImagePaste(
-    event: React.ClipboardEvent<HTMLDivElement>,
-    product: Product
+  function moveListCell(
+    productId: number,
+    column: "supplier" | "cost",
+    direction: "up" | "down" | "left" | "right"
   ) {
-    if (uploadingProductImageId !== null) return;
+    const currentIndex = filteredProducts.findIndex((item) => item.id === productId);
+    let nextIndex = currentIndex;
+    let nextColumn = column;
 
-    const imageItem = Array.from(event.clipboardData.items).find((item) =>
-      item.type.startsWith("image/")
-    );
+    if (direction === "up") nextIndex -= 1;
+    if (direction === "down") nextIndex += 1;
+    if (direction === "left") nextColumn = "supplier";
+    if (direction === "right") nextColumn = "cost";
 
-    if (!imageItem) return;
-
-    const file = imageItem.getAsFile();
-    if (!file || !isSupportedImage(file)) return;
-
-    event.preventDefault();
-    void uploadProductImageDirect(product, file);
+    const nextProduct = filteredProducts[nextIndex];
+    if (!nextProduct) return;
+    listCellRefs.current.get(`${nextProduct.id}-${nextColumn}`)?.focus();
   }
 
-  function handleProductImageDrop(
-    event: React.DragEvent<HTMLDivElement>,
-    product: Product
+  function handleListCellArrows(
+    event: React.KeyboardEvent<HTMLInputElement>,
+    productId: number,
+    column: "supplier" | "cost"
   ) {
+    const directions = {
+      ArrowUp: "up",
+      ArrowDown: "down",
+      ArrowLeft: "left",
+      ArrowRight: "right",
+    } as const;
+    const direction = directions[event.key as keyof typeof directions];
+    if (!direction) return;
     event.preventDefault();
-    event.stopPropagation();
-
-    if (uploadingProductImageId !== null) return;
-
-    const file = event.dataTransfer.files?.[0];
-    if (!file || !isSupportedImage(file)) return;
-
-    void uploadProductImageDirect(product, file);
+    moveListCell(productId, column, direction);
   }
 
-  async function uploadProductImageDirect(product: Product, file: File) {
-    if (!isSupportedImage(file)) return;
+  async function saveListSupplier(product: Product) {
+    if (savingListSupplierId === product.id) return;
+    const supplierText = (
+      listSupplierDrafts[product.id] ??
+      product.supplier?.code ??
+      ""
+    ).trim();
 
     try {
-      setUploadingProductImageId(product.id);
+      setSavingListSupplierId(product.id);
+      const resolvedSupplierId = supplierText
+        ? Number(await findOrCreateSupplierId(supplierText))
+        : null;
 
-      const formData = new FormData();
-      formData.append("file", file);
+      let supplierId = resolvedSupplierId;
+      let supplier2Id = product.supplier2Id;
+      let supplier3Id = product.supplier3Id;
+      let cost = product.cost;
+      let cost2 = product.cost2;
+      let cost3 = product.cost3;
 
-      const uploadResponse = await fetch("/api/upload/product-image", {
-        method: "POST",
-        body: formData,
-      });
-      const uploadResult = await uploadResponse.json();
-
-      if (!uploadResponse.ok) {
-        throw new Error(uploadResult.message || "이미지 업로드에 실패했습니다.");
+      if (resolvedSupplierId && resolvedSupplierId === product.supplier2Id) {
+        supplierId = product.supplier2Id;
+        supplier2Id = product.supplierId;
+        cost = product.cost2;
+        cost2 = product.cost;
+      } else if (resolvedSupplierId && resolvedSupplierId === product.supplier3Id) {
+        supplierId = product.supplier3Id;
+        supplier3Id = product.supplierId;
+        cost = product.cost3;
+        cost3 = product.cost;
       }
 
-      await saveInlineProduct(product, { imageUrl: uploadResult.url });
+      const response = await fetch("/api/product", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: product.id,
+          code: product.code,
+          name: product.name,
+          brand: product.brand || "",
+          category: product.category || "",
+          colors: product.colors || "",
+          sizes: product.sizes || "",
+          cost,
+          cost2,
+          cost3,
+          price: product.price,
+          imageUrl: product.imageUrl || "",
+          productType: product.productType,
+          supplierId,
+          supplier2Id,
+          supplier3Id,
+          sourceProductName: product.sourceProductName || product.name,
+          bandPostId: product.bandPostId || "",
+          bandPostUrl: product.bandPostUrl || "",
+          isBandImported: product.isBandImported,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "대표 공급업체 저장에 실패했습니다.");
+      }
+
+      setProducts((current) =>
+        current.map((item) => (item.id === product.id ? result : item))
+      );
+      setListSupplierDrafts((current) => {
+        const next = { ...current };
+        delete next[product.id];
+        return next;
+      });
+      setListCostDrafts((current) => {
+        const next = { ...current };
+        delete next[product.id];
+        return next;
+      });
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : "이미지 등록 중 오류가 발생했습니다.");
+      alert(error instanceof Error ? error.message : "대표 공급업체 저장 중 오류가 발생했습니다.");
     } finally {
-      setUploadingProductImageId(null);
+      setSavingListSupplierId(null);
     }
-  }
-
-  function toggleMobileProduct(productId: number) {
-    setOpenedMobileProductIds((current) =>
-      current.includes(productId)
-        ? current.filter((id) => id !== productId)
-        : [...current, productId]
-    );
-  }
-
-  function toggleSku(productId: number) {
-    setOpenedProductIds((current) =>
-      current.includes(productId)
-        ? current.filter((id) => id !== productId)
-        : [...current, productId]
-    );
   }
 
   return (
@@ -1195,6 +1194,118 @@ export default function ProductManager() {
           line-height: 1.45;
           overflow-wrap: anywhere;
         }
+
+        .pm-extra-supplier {
+          grid-column: 1 / -1;
+          display: grid;
+          grid-template-columns: minmax(0, 1.65fr) minmax(0, .75fr) auto;
+          gap: 14px;
+          align-items: end;
+          padding: 14px;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          background: #f8fafc;
+        }
+        .pm-form-card,
+        .pm-form-content,
+        .pm-form-grid,
+        .pm-compact-top-grid,
+        .pm-supplier-cost-grid,
+        .pm-extra-supplier {
+          min-width: 0;
+          max-width: 100%;
+          box-sizing: border-box;
+        }
+        .pm-form-card h3 { font-size: 16px !important; }
+        .pm-form-card input,
+        .pm-form-card select,
+        .pm-form-card textarea { font-size: 11px !important; }
+        .pm-form-card button,
+        .pm-form-card label { font-size: 11px; }
+        .pm-compact-top-grid > *,
+        .pm-supplier-cost-grid > *,
+        .pm-extra-supplier > * {
+          min-width: 0;
+        }
+        @media (max-width: 1000px) and (min-width: 769px) {
+          .pm-form-content {
+            grid-template-columns: minmax(120px, 24%) minmax(0, 1fr) !important;
+            gap: 14px !important;
+          }
+          .pm-compact-top-grid {
+            grid-template-columns: minmax(0, .72fr) minmax(0, .72fr) minmax(0, 1.55fr) !important;
+          }
+          .pm-supplier-cost-grid {
+            grid-template-columns: minmax(0, 1.5fr) minmax(0, .72fr) minmax(0, .72fr) !important;
+          }
+        }
+        .pm-add-supplier, .pm-collapse-supplier {
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          background: white;
+          color: #334155;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .pm-add-supplier { grid-column: 1 / -1; justify-self: start; padding: 10px 14px; color: #2563eb; border-color: #93c5fd; }
+        .pm-collapse-supplier { min-height: 42px; padding: 0 13px; color: #b91c1c; border-color: #fecaca; }
+
+        .pm-product-row {
+          display: grid;
+          grid-template-columns: 100px minmax(260px, 1fr) 115px 100px 156px;
+          align-items: center;
+          column-gap: 5px;
+          min-height: 50px;
+          padding: 5px 9px;
+          box-sizing: border-box;
+        }
+        .pm-product-name-cell { padding-right: 22px; }
+        .pm-product-cell { min-width: 0; }
+        .pm-column-label { display: block; margin-bottom: 2px; color: #64748b; font-size: 9px; font-weight: 700; }
+        .pm-product-cell strong { display: block; color: #111827; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pm-list-cost-input {
+          width: 100%;
+          height: 24px;
+          min-width: 0;
+          padding: 2px 6px;
+          border: 1px solid #cbd5e1;
+          border-radius: 5px;
+          background: white;
+          color: #111827;
+          font-size: 11px;
+          font-weight: 700;
+          box-sizing: border-box;
+          outline: none;
+        }
+        .pm-list-cost-input:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, .12);
+        }
+        .pm-list-cost-input:disabled { background: #f8fafc; color: #64748b; }
+        .pm-product-name-cell strong { display: -webkit-box; white-space: normal; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
+        .pm-row-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; justify-self: end; }
+        .pm-row-actions button { width: 48px !important; height: 26px !important; line-height: 24px !important; font-size: 9px !important; }
+
+        .pm-modal-backdrop { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(15,23,42,.58); }
+        .pm-detail-modal { width: min(900px, 100%); max-height: calc(100vh - 40px); overflow: auto; border-radius: 16px; background: white; box-shadow: 0 24px 70px rgba(15,23,42,.28); }
+        .pm-detail-header { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; background: white; }
+        .pm-detail-header span { color: #64748b; font-size: 12px; font-weight: 800; }
+        .pm-detail-header h3 { margin: 4px 0 0; color: #0f172a; font-size: 22px; }
+        .pm-modal-close { width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f1f5f9; color: #334155; font-size: 25px; cursor: pointer; }
+        .pm-detail-content { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr); gap: 24px; padding: 24px; }
+        .pm-detail-image { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; color: #94a3b8; font-weight: 700; }
+        .pm-detail-image img { width: 100%; height: 100%; object-fit: contain; background: white; }
+        .pm-detail-highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+        .pm-detail-highlights div { padding: 14px; border-radius: 10px; background: #eff6ff; }
+        .pm-detail-highlights span, .pm-detail-grid dt { display: block; margin-bottom: 6px; color: #64748b; font-size: 12px; font-weight: 800; }
+        .pm-detail-highlights strong { color: #1e3a8a; font-size: 17px; overflow-wrap: anywhere; }
+        .pm-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; margin: 0; }
+        .pm-detail-grid > div { min-width: 0; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+        .pm-detail-grid dd { margin: 0; color: #111827; font-size: 14px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+        .pm-detail-grid a { color: #2563eb; }
+        .pm-detail-wide { grid-column: 1 / -1; }
+        .pm-detail-footer { position: sticky; bottom: 0; display: flex; justify-content: flex-end; padding: 14px 24px; border-top: 1px solid #e2e8f0; background: white; }
+        .pm-detail-footer button { min-width: 100px; padding: 10px 16px; border: 0; border-radius: 8px; background: #111827; color: white; font-weight: 800; cursor: pointer; }
 
         /* 상품관리 모바일 반응형 */
         @media (max-width: 768px) {
@@ -1362,7 +1473,7 @@ export default function ProductManager() {
 
           .pm-product-list {
             grid-template-columns: 1fr !important;
-            gap: 12px !important;
+            gap: 8px !important;
           }
 
           .pm-product-card {
@@ -1370,6 +1481,19 @@ export default function ProductManager() {
             overflow: hidden !important;
             box-sizing: border-box !important;
           }
+
+          .pm-extra-supplier { grid-template-columns: 1fr !important; gap: 10px !important; }
+          .pm-collapse-supplier { width: 100% !important; }
+          .pm-product-row { grid-template-columns: 1fr 1fr !important; gap: 12px 16px !important; padding: 14px !important; }
+          .pm-product-name-cell { grid-column: 1 / -1 !important; grid-row: 1 !important; }
+          .pm-product-name-cell { padding-right: 0 !important; }
+          .pm-row-actions { grid-column: 1 / -1 !important; width: 100% !important; justify-self: stretch !important; }
+          .pm-row-actions button { width: 100% !important; }
+          .pm-detail-modal { max-height: calc(100vh - 20px) !important; }
+          .pm-detail-content { grid-template-columns: 1fr !important; padding: 16px !important; }
+          .pm-detail-image { max-width: 360px !important; width: 100% !important; margin: 0 auto !important; }
+          .pm-detail-grid { grid-template-columns: 1fr !important; }
+          .pm-detail-wide { grid-column: auto !important; }
 
           .pm-mobile-product-summary {
             display: grid !important;
@@ -1854,12 +1978,32 @@ export default function ProductManager() {
                   onChange={(value) => updateForm("additionalCode", value)}
                   placeholder="선택사항"
                 />
-                <Field
-                  label="상품"
-                  value={form.sourceProductName}
-                  onChange={(value) => updateForm("sourceProductName", value)}
-                  placeholder="상품을 입력하세요"
-                />
+                <label style={fieldStyle}>
+                  <span style={fieldLabelStyle}>상품</span>
+                  <textarea
+                    ref={(element) => {
+                      if (!element) return;
+                      element.style.height = "auto";
+                      element.style.height = `${element.scrollHeight}px`;
+                    }}
+                    value={form.sourceProductName}
+                    onChange={(event) => updateForm("sourceProductName", event.target.value)}
+                    onInput={(event) => {
+                      event.currentTarget.style.height = "auto";
+                      event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`;
+                    }}
+                    placeholder="상품을 입력하세요"
+                    rows={3}
+                    style={{
+                      ...inputStyle,
+                      minHeight: "62px",
+                      lineHeight: 1.45,
+                      resize: "vertical",
+                      overflowWrap: "anywhere",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  />
+                </label>
               </div>
 
               <div className="pm-supplier-cost-grid" style={supplierCostGridStyle}>
@@ -1894,58 +2038,76 @@ export default function ProductManager() {
                 />
               </div>
 
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>공급업체 2</span>
-                <select
-                  value={form.supplier2Id}
-                  onChange={(event) => updateForm("supplier2Id", event.target.value)}
-                  style={inputStyle}
+              {visibleSupplierCount >= 2 && (
+                <div className="pm-extra-supplier">
+                  <label style={fieldStyle}>
+                    <span style={fieldLabelStyle}>공급업체 2</span>
+                    <select
+                      value={form.supplier2Id}
+                      onChange={(event) => updateForm("supplier2Id", event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">공급업체 선택</option>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>{supplier.code}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <Field
+                    label="매입단가 2"
+                    value={form.cost2}
+                    onChange={(value) => updateForm("cost2", normalizeOneDecimal(value))}
+                    placeholder="0"
+                    inputMode="decimal"
+                  />
+                  <button type="button" className="pm-collapse-supplier" onClick={() => setVisibleSupplierCount(1)}>
+                    − 접기
+                  </button>
+                </div>
+              )}
+
+              {visibleSupplierCount >= 3 && (
+                <div className="pm-extra-supplier">
+                  <label style={fieldStyle}>
+                    <span style={fieldLabelStyle}>공급업체 3</span>
+                    <select
+                      value={form.supplier3Id}
+                      onChange={(event) => updateForm("supplier3Id", event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">공급업체 선택</option>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>{supplier.code}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <Field
+                    label="매입단가 3"
+                    value={form.cost3}
+                    onChange={(value) => updateForm("cost3", normalizeOneDecimal(value))}
+                    placeholder="0"
+                    inputMode="decimal"
+                  />
+                  <button type="button" className="pm-collapse-supplier" onClick={() => setVisibleSupplierCount(2)}>
+                    − 접기
+                  </button>
+                </div>
+              )}
+
+              {visibleSupplierCount < 3 && (
+                <button
+                  type="button"
+                  className="pm-add-supplier"
+                  onClick={() => setVisibleSupplierCount((current) => Math.min(3, current + 1))}
                 >
-                  <option value="">공급업체 선택</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <Field
-                label="매입단가 2"
-                value={form.cost2}
-                onChange={(value) => updateForm("cost2", normalizeOneDecimal(value))}
-                placeholder="0"
-                inputMode="decimal"
-              />
-
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>공급업체 3</span>
-                <select
-                  value={form.supplier3Id}
-                  onChange={(event) => updateForm("supplier3Id", event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">공급업체 선택</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <Field
-                label="매입단가 3"
-                value={form.cost3}
-                onChange={(value) => updateForm("cost3", normalizeOneDecimal(value))}
-                placeholder="0"
-                inputMode="decimal"
-              />
+                  + 공급업체 추가
+                </button>
+              )}
 
               <Field
                 label="상품명"
-                value={form.name}
-                onChange={(value) => updateForm("name", value)}
+                value={form.sourceProductName}
+                onChange={(value) => updateForm("sourceProductName", value)}
                 placeholder="상품명"
               />
 
@@ -2053,337 +2215,129 @@ export default function ProductManager() {
         </div>
       ) : (
         <div style={productListStyle} className="pm-product-list">
-          {filteredProducts.map((product) => {
-            const opened =
-              openedProductIds.includes(product.id);
-            const mobileOpened =
-              openedMobileProductIds.includes(product.id);
-
-            return (
-              <div
-                key={product.id}
-                style={productCardStyle}
-                className="pm-product-card"
-              >
-                <button
-                  type="button"
-                  className="pm-mobile-product-summary"
-                  onClick={() => toggleMobileProduct(product.id)}
-                >
-                  <div className="pm-mobile-summary-image">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                      />
-                    ) : (
-                      <div className="pm-mobile-summary-no-image">
-                        <span>📦</span>
-                        <small>이미지 없음</small>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pm-mobile-summary-text">
-                    <span className="pm-mobile-summary-code">
-                      {product.code}
-                    </span>
-                    <strong className="pm-mobile-summary-name">
-                      {product.name}
-                    </strong>
-                  </div>
-
-                  <span className="pm-mobile-summary-toggle">
-                    {mobileOpened ? "▲" : "▼"}
-                  </span>
-                </button>
-
-                <div
-                  className={
-                    mobileOpened
-                      ? "pm-mobile-detail-wrap pm-mobile-detail-open"
-                      : "pm-mobile-detail-wrap"
-                  }
-                >
-                <div style={productMainRowStyle} className="pm-product-main-row">
-                  {/* 상품 이미지 */}
-                  <div
-                    className="pm-product-image-control"
-                    tabIndex={0}
-                    title="여기를 클릭한 뒤 Ctrl+V로 이미지를 붙여넣거나, 이미지 파일을 끌어다 놓으세요."
-                    onFocus={() => setFocusedProductImageId(product.id)}
-                    onBlur={() => setFocusedProductImageId((current) => current === product.id ? null : current)}
-                    onPaste={(event) => handleProductImagePaste(event, product)}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "copy";
+          {filteredProducts.map((product) => (
+            <div key={product.id} style={productCardStyle} className="pm-product-card">
+              <div className="pm-product-row">
+                <div className="pm-product-cell">
+                  <span className="pm-column-label">상품코드</span>
+                  <strong>{product.code}</strong>
+                </div>
+                <div className="pm-product-cell pm-product-name-cell">
+                  <span className="pm-column-label">상품명</span>
+                  <strong title={product.sourceProductName || product.name}>
+                    {product.sourceProductName || product.name || "-"}
+                  </strong>
+                </div>
+                <div className="pm-product-cell">
+                  <span className="pm-column-label">대표 공급업체</span>
+                  <input
+                    ref={(element) => {
+                      const key = `${product.id}-supplier`;
+                      if (element) listCellRefs.current.set(key, element);
+                      else listCellRefs.current.delete(key);
                     }}
-                    onDrop={(event) => handleProductImageDrop(event, product)}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "stretch",
-                      gap: "4px",
-                      flexShrink: 0,
-                      outline: "none",
-                      borderRadius: "8px",
-                      boxShadow:
-                        focusedProductImageId === product.id
-                          ? "0 0 0 3px rgba(37, 99, 235, 0.28)"
-                          : "none",
+                    className="pm-list-cost-input"
+                    aria-label={`${product.code} 대표 공급업체`}
+                    value={listSupplierDrafts[product.id] ?? product.supplier?.code ?? ""}
+                    placeholder="-"
+                    disabled={savingListSupplierId === product.id}
+                    onChange={(event) =>
+                      setListSupplierDrafts((current) => ({
+                        ...current,
+                        [product.id]: event.target.value,
+                      }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void saveListSupplier(product);
+                        return;
+                      }
+                      handleListCellArrows(event, product.id, "supplier");
                     }}
-                  >
-                    <div
-                      style={{
-                        ...productImageBoxStyle,
-                        cursor: "default",
-                        position: "relative",
-                      }}
-                      className="pm-product-image-box"
-                    >
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          style={productImageStyle}
-                        />
-                      ) : (
-                        <div style={noImageStyle}>
-                          <span style={{ fontSize: "28px" }}>📦</span>
-                          <span>이미지 없음</span>
-                        </div>
-                      )}
-                      {focusedProductImageId === product.id &&
-                        uploadingProductImageId !== product.id && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              left: "3px",
-                              right: "3px",
-                              bottom: "3px",
-                              padding: "2px 3px",
-                              borderRadius: "4px",
-                              background: "rgba(30, 64, 175, 0.88)",
-                              color: "#ffffff",
-                              fontSize: "9px",
-                              fontWeight: 800,
-                              lineHeight: 1.2,
-                              textAlign: "center",
-                              pointerEvents: "none",
-                            }}
-                          >
-                            Ctrl+V 붙여넣기
-                          </div>
-                        )}
-                      {uploadingProductImageId === product.id && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "rgba(255,255,255,0.86)",
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            borderRadius: "8px",
-                          }}
-                        >
-                          업로드 중...
-                        </div>
-                      )}
-                    </div>
-
-                    <label
-                      title="상품 이미지 등록 또는 변경"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minHeight: "22px",
-                        padding: "2px 5px",
-                        border: "1px solid #2563eb",
-                        borderRadius: "5px",
-                        background: uploadingProductImageId === product.id ? "#93c5fd" : "#2563eb",
-                        color: "#ffffff",
-                        fontSize: "10px",
-                        fontWeight: 800,
-                        lineHeight: 1.2,
-                        cursor: uploadingProductImageId !== null ? "not-allowed" : "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {uploadingProductImageId === product.id
-                        ? "업로드 중"
-                        : product.imageUrl
-                          ? "이미지 변경"
-                          : "이미지 선택"}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        disabled={uploadingProductImageId !== null}
-                        style={{ display: "none" }}
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (file) uploadProductImageDirect(product, file);
-                          event.target.value = "";
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {/* 상품코드 + 상품명 */}
-                  <div className="pm-list-product-name">
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        flexWrap: "wrap",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      <div style={productCodeStyle}>{product.code}</div>
-                    </div>
-                    <div
-                      style={{
-                        ...productNameStyle,
-                        fontSize:
-                          (product.sourceProductName || product.name || "").length >= 24
-                            ? "11px"
-                            : (product.sourceProductName || product.name || "").length >= 18
-                              ? "12px"
-                              : (product.sourceProductName || product.name || "").length >= 13
-                                ? "13px"
-                                : "15px",
-                      }}
-                      title={product.sourceProductName || product.name}
-                    >
-                      {product.sourceProductName || product.name}
-                    </div>
-
-                  </div>
-
-                  {/* 공급업체 - 직접 입력 */}
-                  <div className="pm-inline-field">
-                    <span className="pm-list-label">공급업체</span>
+                  />
+                </div>
+                <div className="pm-product-cell">
+                  <span className="pm-column-label">대표 매입단가</span>
+                  {isAdmin ? (
                     <input
-                      className="pm-inline-input"
-                      value={
-                        inlineSupplierDrafts[product.id] ??
-                        product.supplier?.code ??
-                        ""
-                      }
-                      placeholder="공급업체 입력"
-                      disabled={inlineSavingId === product.id}
-                      onChange={(event) =>
-                        setInlineSupplierDrafts((current) => ({
-                          ...current,
-                          [product.id]: event.target.value,
-                        }))
-                      }
-                      onBlur={(event) => {
-                        const nextValue = event.target.value.trim();
-                        const currentValue = product.supplier?.code?.trim() || "";
-                        if (nextValue !== currentValue) {
-                          void saveInlineProduct(product, {
-                            supplierName: nextValue,
-                          });
-                        }
+                      ref={(element) => {
+                        const key = `${product.id}-cost`;
+                        if (element) listCellRefs.current.set(key, element);
+                        else listCellRefs.current.delete(key);
                       }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.currentTarget.blur();
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* 단가 - 직접 입력 */}
-                  <div className="pm-inline-field">
-                    <span className="pm-list-label">단가</span>
-                    <input
-                      className="pm-inline-input"
+                      className="pm-list-cost-input"
                       inputMode="decimal"
-                      value={
-                        inlineCostDrafts[product.id] ??
-                        String(product.cost || 0)
-                      }
-                      placeholder="단가 입력"
-                      disabled={inlineSavingId === product.id}
+                      aria-label={`${product.code} 대표 매입단가`}
+                      value={listCostDrafts[product.id] ?? String(product.cost ?? "")}
+                      placeholder="-"
+                      disabled={savingListCostId === product.id}
                       onChange={(event) =>
-                        setInlineCostDrafts((current) => ({
+                        setListCostDrafts((current) => ({
                           ...current,
                           [product.id]: normalizeOneDecimal(event.target.value),
                         }))
                       }
-                      onBlur={(event) => {
-                        const nextValue = event.target.value.replace(/,/g, "").trim() || "0";
-                        const currentValue = String(product.cost || 0);
-                        if (nextValue !== currentValue) {
-                          void saveInlineProduct(product, {
-                            cost: nextValue,
-                          });
-                        }
-                      }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
-                          event.currentTarget.blur();
+                          event.preventDefault();
+                          void saveListCost(product);
+                          return;
                         }
+                        handleListCellArrows(event, product.id, "cost");
                       }}
                     />
-                  </div>
-
-                  {/* 버튼 */}
-                  <div style={actionBoxStyle} className="pm-action-box">
-                    <button
-                      type="button"
-                      onClick={() => toggleSku(product.id)}
-                      style={skuButtonStyle}
-                    >
-                      {opened ? "접기" : "상세"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => startEdit(product)}
-                      style={editButtonStyle}
-                    >
-                      수정
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => deleteProduct(product)}
-                      disabled={deletingId === product.id}
-                      style={deleteButtonStyle}
-                    >
-                      {deletingId === product.id ? "삭제 중..." : "삭제"}
-                    </button>
-
-                  </div>
+                  ) : (
+                    <strong>***</strong>
+                  )}
                 </div>
-
-                {opened && (
-                  <div className="pm-detail-summary">
-                    <div className="pm-detail-summary-item">
-                      <span className="pm-detail-summary-label">색상</span>
-                      <div className="pm-detail-summary-value">
-                        {product.colors || "-"}
-                      </div>
-                    </div>
-                    <div className="pm-detail-summary-item">
-                      <span className="pm-detail-summary-label">사이즈</span>
-                      <div className="pm-detail-summary-value">
-                        {product.sizes || "-"}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <div className="pm-row-actions">
+                  <button type="button" onClick={() => setDetailProduct(product)} style={skuButtonStyle}>상세</button>
+                  <button type="button" onClick={() => startEdit(product)} style={editButtonStyle}>수정</button>
+                  <button type="button" onClick={() => deleteProduct(product)} disabled={deletingId === product.id} style={deleteButtonStyle}>
+                    {deletingId === product.id ? "삭제 중" : "삭제"}
+                  </button>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {detailProduct && (
+        <div className="pm-modal-backdrop" role="presentation" onMouseDown={() => setDetailProduct(null)}>
+          <section className="pm-detail-modal" role="dialog" aria-modal="true" aria-labelledby="product-detail-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="pm-detail-header">
+              <div>
+                <span>상품 상세</span>
+                <h3 id="product-detail-title">{detailProduct.sourceProductName || detailProduct.name}</h3>
+              </div>
+              <button type="button" className="pm-modal-close" onClick={() => setDetailProduct(null)} aria-label="상품 상세 닫기">×</button>
+            </div>
+            <div className="pm-detail-content">
+              <div className="pm-detail-hero">
+                <div className="pm-detail-image">
+                  {detailProduct.imageUrl ? <img src={detailProduct.imageUrl} alt={detailProduct.sourceProductName || detailProduct.name} /> : <div>이미지 없음</div>}
+                </div>
+                <div className="pm-detail-highlights">
+                  <div><span>색상</span><strong>{detailProduct.colors || "-"}</strong></div>
+                  <div><span>사이즈</span><strong>{detailProduct.sizes || "-"}</strong></div>
+                </div>
+              </div>
+              <dl className="pm-detail-grid">
+                <div><dt>상품코드</dt><dd>{detailProduct.code}</dd></div>
+                <div><dt>상품명</dt><dd>{detailProduct.name || "-"}</dd></div>
+                <div><dt>공급업체 1 / 매입단가 1</dt><dd>{detailProduct.supplier?.name || detailProduct.supplier?.code || "-"} / {isAdmin && detailProduct.cost != null ? detailProduct.cost.toLocaleString() : isAdmin ? "-" : "***"}</dd></div>
+                {(detailProduct.supplier2 || detailProduct.cost2 != null) && <div><dt>공급업체 2 / 매입단가 2</dt><dd>{detailProduct.supplier2?.name || detailProduct.supplier2?.code || "-"} / {isAdmin && detailProduct.cost2 != null ? detailProduct.cost2.toLocaleString() : isAdmin ? "-" : "***"}</dd></div>}
+                {(detailProduct.supplier3 || detailProduct.cost3 != null) && <div><dt>공급업체 3 / 매입단가 3</dt><dd>{detailProduct.supplier3?.name || detailProduct.supplier3?.code || "-"} / {isAdmin && detailProduct.cost3 != null ? detailProduct.cost3.toLocaleString() : isAdmin ? "-" : "***"}</dd></div>}
+                <div><dt>판매가</dt><dd>{detailProduct.price != null ? detailProduct.price.toLocaleString() : "-"}</dd></div>
+                <div><dt>게시글</dt><dd>{detailProduct.bandPostId || detailProduct.sourceProductName || "-"}</dd></div>
+                <div className="pm-detail-wide"><dt>밴드 원본 게시글 주소</dt><dd>{detailProduct.bandPostUrl ? <a href={detailProduct.bandPostUrl} target="_blank" rel="noreferrer">{detailProduct.bandPostUrl}</a> : "-"}</dd></div>
+                <div><dt>네이버 밴드에서 가져온 상품</dt><dd>{detailProduct.isBandImported ? "예" : "아니오"}</dd></div>
+              </dl>
+            </div>
+            <div className="pm-detail-footer"><button type="button" onClick={() => setDetailProduct(null)}>닫기</button></div>
+          </section>
         </div>
       )}
     </div>
@@ -2442,46 +2396,46 @@ function Info({
 
 const pageStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: "1900px",
+  maxWidth: "936px",
   margin: "0",
-  paddingBottom: "40px",
+  paddingBottom: "32px",
 };
 
 const topRowStyle: React.CSSProperties = {
   display: "block",
   width: "100%",
-  marginBottom: "20px",
+  marginBottom: "14px",
 };
 
 const titleActionRowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-start",
-  gap: "14px",
+  gap: "9px",
   flexWrap: "nowrap",
   width: "fit-content",
 };
 
 const titleStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: "28px",
+  fontSize: "22px",
   fontWeight: 800,
   color: "#111827",
 };
 
 const subtitleStyle: React.CSSProperties = {
-  margin: "8px 0 0",
+  margin: "5px 0 0",
   color: "#64748b",
-  fontSize: "16px",
+  fontSize: "12px",
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  padding: "10px 14px",
+  padding: "8px 10px",
   border: "none",
   borderRadius: "8px",
   backgroundColor: "#2563eb",
   color: "white",
-  fontSize: "14px",
+  fontSize: "12px",
   fontWeight: 800,
   cursor: "pointer",
   whiteSpace: "nowrap",
@@ -2490,27 +2444,28 @@ const primaryButtonStyle: React.CSSProperties = {
 
 const formCardStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: "1180px",
-  padding: "22px",
-  marginBottom: "24px",
+  maxWidth: "674px",
+  padding: "15px",
+  marginBottom: "20px",
   border: "1px solid #e5e7eb",
   borderRadius: "14px",
   backgroundColor: "white",
   boxShadow: "0 2px 10px rgba(15, 23, 42, 0.05)",
+  boxSizing: "border-box",
 };
 
 const formHeaderStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "space-between",
-  gap: "20px",
-  marginBottom: "18px",
+  gap: "18px",
+  marginBottom: "15px",
 };
 
 const formHelpStyle: React.CSSProperties = {
   margin: "6px 0 0",
   color: "#6b7280",
-  fontSize: "13px",
+  fontSize: "10px",
 };
 
 const bandPasteBoxStyle: React.CSSProperties = {
@@ -2522,7 +2477,7 @@ const bandPasteBoxStyle: React.CSSProperties = {
 };
 
 const bandPasteTitleStyle: React.CSSProperties = {
-    fontSize: "14px",
+    fontSize: "11px",
     fontWeight: 700,
     color: "#1e3a8a",
     marginBottom: "4px",
@@ -2539,7 +2494,7 @@ const bandPasteTextareaStyle: React.CSSProperties = {
   border: "1px solid #93c5fd",
   borderRadius: "8px",
   background: "#ffffff",
-  fontSize: "13px",
+  fontSize: "11px",
   lineHeight: 1.4,
   outline: "none",
 };
@@ -2548,15 +2503,15 @@ const bandPasteTextareaStyle: React.CSSProperties = {
 
 const formContentStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "220px minmax(0, 1fr)",
-  gap: "22px",
+  gridTemplateColumns: "158px minmax(0, 1fr)",
+  gap: "15px",
   alignItems: "start",
 };
 
 const imageEditorStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "10px",
+  gap: "8px",
 };
 
 const imagePreviewBoxStyle: React.CSSProperties = {
@@ -2647,49 +2602,52 @@ const removeImageButtonStyle: React.CSSProperties = {
 
 const imageHelpStyle: React.CSSProperties = {
   color: "#94a3b8",
-  fontSize: "12px",
+  fontSize: "10px",
   textAlign: "center",
 };
 
 const compactTopGridStyle: React.CSSProperties = {
   gridColumn: "1 / -1",
   display: "grid",
-  gridTemplateColumns: "minmax(150px, 0.72fr) minmax(150px, 0.72fr) minmax(280px, 1.7fr)",
-  gap: "14px",
+  gridTemplateColumns: "minmax(0, 0.72fr) minmax(0, 0.72fr) minmax(0, 1.7fr)",
+  gap: "8px",
 };
 
 const supplierCostGridStyle: React.CSSProperties = {
   gridColumn: "1 / -1",
   display: "grid",
-  gridTemplateColumns: "minmax(280px, 1.65fr) minmax(150px, 0.75fr) minmax(150px, 0.75fr)",
-  gap: "14px",
+  gridTemplateColumns: "minmax(0, 1.65fr) minmax(0, 0.75fr) minmax(0, 0.75fr)",
+  gap: "8px",
 };
 
 const formGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "14px",
+  gap: "8px",
+  minWidth: 0,
 };
 
 const fieldStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "6px",
+  gap: "5px",
 };
 
 const fieldLabelStyle: React.CSSProperties = {
-  fontSize: "13px",
+  fontSize: "10px",
   fontWeight: 700,
   color: "#475569",
 };
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  minHeight: "42px",
-  padding: "10px 12px",
+  minHeight: "38px",
+  padding: "8px 10px",
   border: "1px solid #d1d5db",
   borderRadius: "7px",
   boxSizing: "border-box",
+  minWidth: 0,
+  fontSize: "11px",
 };
 
 const formFooterStyle: React.CSSProperties = {
@@ -2720,34 +2678,34 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 const toolbarStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: "1180px",
+  maxWidth: "936px",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "15px",
-  marginBottom: "18px",
-  padding: "14px 16px",
+  gap: "8px",
+  marginBottom: "8px",
+  padding: "8px 9px",
   border: "1px solid #e5e7eb",
   borderRadius: "12px",
   backgroundColor: "white",
 };
 
 const searchTypeStyle: React.CSSProperties = {
-  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
+  height: 32, minWidth: 82, padding: "0 25px 0 9px", border: "1px solid #cbd5e1", borderRadius: 7, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer", fontSize: "12px",
 };
 
 const searchInputStyle: React.CSSProperties = {
-  width: "460px",
+  width: "360px",
   maxWidth: "100%",
-  padding: "13px 15px",
+  padding: "7px 10px",
   border: "1px solid #cbd5e1",
   borderRadius: "8px",
-  fontSize: "16px",
+  fontSize: "12px",
 };
 
 const countTextStyle: React.CSSProperties = {
   color: "#334155",
-  fontSize: "16px",
+  fontSize: "12px",
   fontWeight: 700,
 };
 
@@ -2762,14 +2720,14 @@ const emptyListStyle: React.CSSProperties = {
 
 const productListStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "12px",
+  gridTemplateColumns: "minmax(0, 1fr)",
+  gap: "3px",
 };
 
 const productCardStyle: React.CSSProperties = {
   overflow: "hidden",
   border: "1px solid #dbe1e8",
-  borderRadius: "12px",
+  borderRadius: "7px",
   backgroundColor: "white",
   boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
   minWidth: 0,

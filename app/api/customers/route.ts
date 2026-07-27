@@ -7,6 +7,11 @@ function extractOrderNumber(memo: string | null) {
   return match?.[1]?.trim() || null;
 }
 
+function normalizeCustomerGrade(value: unknown) {
+  const grade = String(value || "D").toUpperCase();
+  return ["A", "B", "C", "D"].includes(grade) ? grade : "D";
+}
+
 // 고객 목록 + 주문/매출 요약 조회
 export async function GET() {
   try {
@@ -59,6 +64,7 @@ export async function GET() {
         id: customer.id,
         code: customer.code,
         name: customer.name,
+        grade: normalizeCustomerGrade(customer.grade),
         phone: customer.phone,
         email: customer.email,
         address: customer.address,
@@ -99,6 +105,7 @@ export async function POST(request: Request) {
       data: {
         code,
         name,
+        grade: normalizeCustomerGrade(body.grade),
         phone: String(body.phone || "").trim() || null,
         email: String(body.email || "").trim() || null,
         address: String(body.address || "").trim() || null,

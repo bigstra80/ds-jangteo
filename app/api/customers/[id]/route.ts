@@ -7,6 +7,11 @@ type RouteContext = {
   }>;
 };
 
+function normalizeCustomerGrade(value: unknown) {
+  const grade = String(value || "D").toUpperCase();
+  return ["A", "B", "C", "D"].includes(grade) ? grade : "D";
+}
+
 export async function PUT(
   request: Request,
   context: RouteContext
@@ -56,6 +61,7 @@ export async function PUT(
       data: {
         code,
         name,
+        grade: normalizeCustomerGrade(body.grade),
         phone: String(body.phone || "").trim() || null,
         email: String(body.email || "").trim() || null,
         address: String(body.address || "").trim() || null,

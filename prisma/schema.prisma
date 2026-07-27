@@ -80,6 +80,7 @@ model Customer {
   id            Int                    @id @default(autoincrement())
   code          String                 @unique
   name          String
+  grade         String                 @default("D")
   phone         String?
   email         String?
   address       String?

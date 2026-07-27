@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth";
+import { normalizeProductName } from "@/lib/product-name";
 
 function makeList(value: string) {
   return value
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
     const product = await prisma.product.create({
       data: {
         code: String(body.code).trim(),
-        name: String(body.name || "").trim(),
+        name: normalizeProductName(body.name),
         brand: nullableText(body.brand),
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
         imageUrl: nullableText(body.imageUrl),
 
         productType,
-        sourceProductName: nullableText(body.sourceProductName),
+        sourceProductName: nullableText(normalizeProductName(body.sourceProductName)),
         bandPostId: nullableText(body.bandPostId),
         bandPostUrl: nullableText(body.bandPostUrl),
         isBandImported: Boolean(body.isBandImported),
@@ -327,7 +328,7 @@ export async function PUT(request: Request) {
 
       data: {
         code: productCode,
-        name: String(body.name || "").trim(),
+        name: normalizeProductName(body.name),
         brand: nullableText(body.brand),
         category: nullableText(body.category),
         colors: String(body.colors || "").trim(),
@@ -339,7 +340,7 @@ export async function PUT(request: Request) {
         imageUrl: nullableText(body.imageUrl),
 
         productType,
-        sourceProductName: nullableText(body.sourceProductName),
+        sourceProductName: nullableText(normalizeProductName(body.sourceProductName)),
         bandPostId: nullableText(body.bandPostId),
         bandPostUrl: nullableText(body.bandPostUrl),
         isBandImported: Boolean(body.isBandImported),
