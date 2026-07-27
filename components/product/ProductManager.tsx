@@ -274,6 +274,9 @@ export default function ProductManager() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [visibleSupplierCount, setVisibleSupplierCount] = useState(1);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const [detailImageDraft, setDetailImageDraft] = useState("");
+  const [detailImageDragging, setDetailImageDragging] = useState(false);
+  const [savingDetailImage, setSavingDetailImage] = useState(false);
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("all");
   const [saving, setSaving] = useState(false);
@@ -748,19 +751,6 @@ export default function ProductManager() {
     return true;
   }
 
-  function handleImageDrop(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDraggingImage(false);
-
-    if (uploadingImage) return;
-
-    const file = event.dataTransfer.files?.[0];
-    if (!file || !isSupportedImage(file)) return;
-
-    void uploadImage(file);
-  }
-
   function applyBandPostText(text: string, showMessage = false) {
     const parsed = parseBandPost(text);
     if (!parsed) return false;
@@ -790,21 +780,6 @@ export default function ProductManager() {
   }
 
   function handleSmartPaste(event: React.ClipboardEvent<HTMLFormElement>) {
-    if (uploadingImage) return;
-
-    const imageItem = Array.from(event.clipboardData.items).find((item) =>
-      item.type.startsWith("image/")
-    );
-
-    if (imageItem) {
-      const file = imageItem.getAsFile();
-      if (!file || !isSupportedImage(file)) return;
-
-      event.preventDefault();
-      void uploadImage(file);
-      return;
-    }
-
     const pastedText = event.clipboardData.getData("text/plain");
     if (!pastedText || !pastedText.includes("\n")) return;
 
@@ -813,7 +788,7 @@ export default function ProductManager() {
     }
   }
 
-  async function uploadImage(file: File) {
+  async function uploadImageFile(file: File) {
     if (!isSupportedImage(file)) return;
 
     try {
@@ -834,13 +809,138 @@ export default function ProductManager() {
         return;
       }
 
-      updateForm("imageUrl", result.url);
+      return String(result.url || "");
     } catch (error) {
       console.error(error);
       alert("이미지 업로드 중 오류가 발생했습니다.");
     } finally {
       setUploadingImage(false);
     }
+  }
+
+  async function selectDetailImage(file: File) {
+    const imageUrl = await uploadImageFile(file);
+    if (imageUrl) {
+      setDetailImageDraft(imageUrl);
+    }
+  }
+
+  async function uploadImage(file: File) {
+    const imageUrl = await uploadImageFile(file);
+    if (imageUrl) {
+      updateForm("imageUrl", imageUrl);
+    }
+  }
+
+  function handleImageDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingImage(false);
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file || uploadingImage) return;
+    void uploadImage(file);
+  }
+
+  function openProductDetail(product: Product) {
+    setDetailProduct(product);
+    setDetailImageDraft(product.imageUrl || "");
+    setDetailImageDragging(false);
+  }
+
+  function closeProductDetail() {
+    if (
+      detailProduct &&
+      detailImageDraft !== (detailProduct.imageUrl || "") &&
+      !window.confirm(
+        "저장하지 않은 이미지가 있습니다. 닫으시겠습니까?"
+      )
+    ) {
+      return;
+    }
+
+    setDetailProduct(null);
+    setDetailImageDraft("");
+    setDetailImageDragging(false);
+  }
+
+  async function saveDetailImage(nextImageUrl = detailImageDraft) {
+    if (!detailProduct || savingDetailImage) return false;
+
+    try {
+      setSavingDetailImage(true);
+      const response = await fetch("/api/product", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: detailProduct.id,
+          code: detailProduct.code,
+          name: detailProduct.name,
+          brand: detailProduct.brand || "",
+          category: detailProduct.category || "",
+          colors: detailProduct.colors || "",
+          sizes: detailProduct.sizes || "",
+          cost: detailProduct.cost,
+          cost2: detailProduct.cost2,
+          cost3: detailProduct.cost3,
+          price: detailProduct.price,
+          imageUrl: nextImageUrl,
+          productType: detailProduct.productType,
+          supplierId: detailProduct.supplierId,
+          supplier2Id: detailProduct.supplier2Id,
+          supplier3Id: detailProduct.supplier3Id,
+          sourceProductName:
+            detailProduct.sourceProductName || detailProduct.name,
+          bandPostId: detailProduct.bandPostId || "",
+          bandPostUrl: detailProduct.bandPostUrl || "",
+          isBandImported: detailProduct.isBandImported,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "이미지 저장에 실패했습니다.");
+      }
+
+      setProducts((current) =>
+        current.map((product) =>
+          product.id === result.id ? result : product
+        )
+      );
+      setDetailProduct(result);
+      setDetailImageDraft(result.imageUrl || "");
+      alert(
+        nextImageUrl
+          ? "이미지가 저장되었습니다."
+          : "이미지가 삭제되었습니다."
+      );
+      return true;
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "이미지 저장에 실패했습니다."
+      );
+      return false;
+    } finally {
+      setSavingDetailImage(false);
+    }
+  }
+
+  function handleDetailImagePaste(
+    event: React.ClipboardEvent<HTMLDivElement>
+  ) {
+    const imageItem = Array.from(event.clipboardData.items).find((item) =>
+      item.type.startsWith("image/")
+    );
+    if (!imageItem) return;
+
+    const file = imageItem.getAsFile();
+    if (!file || !isSupportedImage(file)) return;
+
+    event.preventDefault();
+    void selectDetailImage(file);
   }
 
   async function saveProduct(event: React.FormEvent) {
@@ -1402,6 +1502,30 @@ export default function ProductManager() {
           overflow-wrap: anywhere;
         }
 
+        .pm-image-editor > div:first-child,
+        .pm-image-editor > label,
+        .pm-image-editor > button,
+        .pm-image-editor > div:nth-of-type(2) {
+          display: none !important;
+        }
+        .pm-image-editor > div:last-child {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          min-height: 100%;
+        }
+        .pm-image-editor textarea {
+          flex: 1;
+          min-height: 330px !important;
+          resize: vertical !important;
+        }
+        .pm-form-content.pm-form-editing {
+          grid-template-columns: minmax(0, 1fr) !important;
+        }
+        .pm-form-editing .pm-image-editor {
+          display: none !important;
+        }
+
         .pm-extra-supplier {
           grid-column: 1 / -1;
           display: grid;
@@ -1520,8 +1644,19 @@ export default function ProductManager() {
         .pm-detail-header h3 { margin: 4px 0 0; color: #0f172a; font-size: 22px; }
         .pm-modal-close { width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f1f5f9; color: #334155; font-size: 25px; cursor: pointer; }
         .pm-detail-content { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr); gap: 24px; padding: 24px; }
-        .pm-detail-image { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; color: #94a3b8; font-weight: 700; }
+        .pm-detail-image { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed #cbd5e1; border-radius: 14px; background: #f8fafc; color: #94a3b8; font-weight: 700; outline: none; }
+        .pm-detail-image:focus, .pm-detail-image-dragging { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 4px rgba(37,99,235,.12); }
         .pm-detail-image img { width: 100%; height: 100%; object-fit: contain; background: white; }
+        .pm-detail-image-empty { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 18px; text-align: center; }
+        .pm-detail-image-empty strong { color: #64748b; font-size: 16px; }
+        .pm-detail-image-empty span { font-size: 12px; }
+        .pm-detail-image-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.88); color: #2563eb; font-weight: 900; }
+        .pm-detail-image-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 9px; }
+        .pm-detail-image-actions label, .pm-detail-image-actions button { display: flex; align-items: center; justify-content: center; min-height: 36px; padding: 7px 9px; border: 0; border-radius: 7px; background: #2563eb; color: white; font-size: 11px; font-weight: 800; cursor: pointer; box-sizing: border-box; text-align: center; }
+        .pm-detail-image-actions input { display: none; }
+        .pm-detail-image-actions button:disabled { opacity: .55; cursor: not-allowed; }
+        .pm-detail-image-actions .pm-detail-image-delete { background: #ef4444; }
+        .pm-detail-image-unsaved { margin-top: 7px; color: #b45309; font-size: 11px; font-weight: 700; text-align: center; }
         .pm-detail-highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
         .pm-detail-highlights div { padding: 14px; border-radius: 10px; background: #eff6ff; }
         .pm-detail-highlights span, .pm-detail-grid dt { display: block; margin-bottom: 6px; color: #64748b; font-size: 12px; font-weight: 800; }
@@ -2075,7 +2210,10 @@ export default function ProductManager() {
 
          
 
-          <div style={formContentStyle} className="pm-form-content">
+          <div
+            style={formContentStyle}
+            className={`pm-form-content ${editingId ? "pm-form-editing" : ""}`}
+          >
             <div style={imageEditorStyle} className="pm-image-editor">
               <div
                 style={{
@@ -2569,7 +2707,7 @@ export default function ProductManager() {
                   />
                 </div>
                 <div className="pm-row-actions">
-                  <button type="button" onClick={() => setDetailProduct(product)} style={skuButtonStyle}>상세</button>
+                  <button type="button" onClick={() => openProductDetail(product)} style={skuButtonStyle}>상세</button>
                   <button
                     type="button"
                     onClick={() => void saveListFieldsAndEdit(product)}
@@ -2588,20 +2726,116 @@ export default function ProductManager() {
       )}
 
       {detailProduct && (
-        <div className="pm-modal-backdrop" role="presentation" onMouseDown={() => setDetailProduct(null)}>
+        <div className="pm-modal-backdrop" role="presentation" onMouseDown={closeProductDetail}>
           <section className="pm-detail-modal" role="dialog" aria-modal="true" aria-labelledby="product-detail-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="pm-detail-header">
               <div>
                 <span>상품 상세</span>
                 <h3 id="product-detail-title">{detailProduct.sourceProductName || detailProduct.name}</h3>
               </div>
-              <button type="button" className="pm-modal-close" onClick={() => setDetailProduct(null)} aria-label="상품 상세 닫기">×</button>
+              <button type="button" className="pm-modal-close" onClick={closeProductDetail} aria-label="상품 상세 닫기">×</button>
             </div>
             <div className="pm-detail-content">
               <div className="pm-detail-hero">
-                <div className="pm-detail-image">
-                  {detailProduct.imageUrl ? <img src={detailProduct.imageUrl} alt={detailProduct.sourceProductName || detailProduct.name} /> : <div>이미지 없음</div>}
+                <div
+                  className={`pm-detail-image ${
+                    detailImageDragging ? "pm-detail-image-dragging" : ""
+                  }`}
+                  tabIndex={0}
+                  onPaste={handleDetailImagePaste}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    if (!uploadingImage) setDetailImageDragging(true);
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "copy";
+                    if (!uploadingImage) setDetailImageDragging(true);
+                  }}
+                  onDragLeave={(event) => {
+                    event.preventDefault();
+                    const nextTarget = event.relatedTarget as Node | null;
+                    if (
+                      !nextTarget ||
+                      !event.currentTarget.contains(nextTarget)
+                    ) {
+                      setDetailImageDragging(false);
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setDetailImageDragging(false);
+                    const file = event.dataTransfer.files?.[0];
+                    if (file && !uploadingImage) {
+                      void selectDetailImage(file);
+                    }
+                  }}
+                >
+                  {detailImageDraft ? (
+                    <img
+                      src={detailImageDraft}
+                      alt={detailProduct.sourceProductName || detailProduct.name}
+                    />
+                  ) : (
+                    <div className="pm-detail-image-empty">
+                      <strong>이미지 없음</strong>
+                      <span>사진을 끌어 놓으세요</span>
+                      <span>또는 캡처 후 Ctrl+V로 붙여넣기</span>
+                    </div>
+                  )}
+                  {uploadingImage && (
+                    <div className="pm-detail-image-overlay">업로드 중...</div>
+                  )}
                 </div>
+                <div className="pm-detail-image-actions">
+                  <label>
+                    {uploadingImage ? "업로드 중..." : "이미지 선택"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      disabled={uploadingImage || savingDetailImage}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) void selectDetailImage(file);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={
+                      uploadingImage ||
+                      savingDetailImage ||
+                      detailImageDraft === (detailProduct.imageUrl || "")
+                    }
+                    onClick={() => void saveDetailImage()}
+                  >
+                    {savingDetailImage ? "저장 중..." : "이미지 저장"}
+                  </button>
+                  {detailImageDraft && (
+                    <button
+                      type="button"
+                      className="pm-detail-image-delete"
+                      disabled={uploadingImage || savingDetailImage}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "등록된 상품 이미지를 삭제하시겠습니까?"
+                          )
+                        ) {
+                          void saveDetailImage("");
+                        }
+                      }}
+                    >
+                      이미지 삭제
+                    </button>
+                  )}
+                </div>
+                {detailImageDraft !== (detailProduct.imageUrl || "") && (
+                  <div className="pm-detail-image-unsaved">
+                    저장되지 않은 이미지입니다.
+                  </div>
+                )}
                 <div className="pm-detail-highlights">
                   <div><span>색상</span><strong>{detailProduct.colors || "-"}</strong></div>
                   <div><span>사이즈</span><strong>{detailProduct.sizes || "-"}</strong></div>
@@ -2619,7 +2853,7 @@ export default function ProductManager() {
                 <div><dt>네이버 밴드에서 가져온 상품</dt><dd>{detailProduct.isBandImported ? "예" : "아니오"}</dd></div>
               </dl>
             </div>
-            <div className="pm-detail-footer"><button type="button" onClick={() => setDetailProduct(null)}>닫기</button></div>
+            <div className="pm-detail-footer"><button type="button" onClick={closeProductDetail}>닫기</button></div>
           </section>
         </div>
       )}
