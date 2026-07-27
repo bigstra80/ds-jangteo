@@ -303,7 +303,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
-  const [inlineSavingId, setInlineSavingId] = useState<number | null>(null);
+  const [bulkInlineSaving, setBulkInlineSaving] = useState(false);
   const [inlineEdits, setInlineEdits] = useState<Record<number, {
     saleAmount: string;
     shippingFee: string;
@@ -771,45 +771,83 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     }
   }
 
-  async function saveInlineRow(row: LedgerRow) {
+  function isInlineRowChanged(row: LedgerRow) {
+    const edit = inlineEdits[row.id];
+    if (!edit) return false;
+
+    return (
+      Number(parseWonInput(edit.saleAmount || "0")) !== Number(row.saleAmount ?? 0) ||
+      Number(parseWonInput(edit.shippingFee || "0")) !== Number(row.shippingFee ?? 0) ||
+      edit.memo !== (row.memo || "")
+    );
+  }
+
+  async function requestInlineRowSave(row: LedgerRow) {
     const edit = inlineEdits[row.id] || {
       saleAmount: String(row.saleAmount ?? 0),
       shippingFee: String(row.shippingFee ?? 0),
       memo: row.memo || "",
     };
 
-    setInlineSavingId(row.id);
+    const response = await fetch(`/api/wholesale-ledger/${row.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        transactionDate: row.transactionDate.slice(0, 10),
+        productName: row.productName,
+        quantity: String(row.quantity),
+        supplierName: row.supplierName || "",
+        purchaseAmount: String(row.purchaseAmount),
+        deliveryCompanyName: row.deliveryCompanyName || "",
+        customerName: row.customerName || "",
+        customerPhone: row.customerPhone || "",
+        saleAmount: parseWonInput(edit.saleAmount || "0"),
+        shippingFee: parseWonInput(edit.shippingFee || "0"),
+        settlementStatus: row.settlementStatus,
+        memo: edit.memo,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || `${row.productName} 저장 실패`);
+    }
+  }
+
+  async function saveAllInlineRows() {
+    if (bulkInlineSaving) return;
+
+    const changedRows = rows.filter(isInlineRowChanged);
+    if (changedRows.length === 0) {
+      alert("수정된 내용이 없습니다.");
+      return;
+    }
+
+    setBulkInlineSaving(true);
+    setSaveMessage(`${changedRows.length}건 저장 중...`);
 
     try {
-      const response = await fetch(`/api/wholesale-ledger/${row.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transactionDate: row.transactionDate.slice(0, 10),
-          productName: row.productName,
-          quantity: String(row.quantity),
-          supplierName: row.supplierName || "",
-          purchaseAmount: String(row.purchaseAmount),
-          deliveryCompanyName: row.deliveryCompanyName || "",
-          customerName: row.customerName || "",
-          customerPhone: row.customerPhone || "",
-          saleAmount: parseWonInput(edit.saleAmount || "0"),
-          shippingFee: parseWonInput(edit.shippingFee || "0"),
-          settlementStatus: row.settlementStatus,
-          memo: edit.memo,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "저장 실패");
-      }
+      const results = await Promise.allSettled(
+        changedRows.map((row) => requestInlineRowSave(row))
+      );
+      const failed = results.filter((result) => result.status === "rejected");
 
       await loadRows();
+
+      if (failed.length > 0) {
+        const successCount = changedRows.length - failed.length;
+        setSaveMessage(`${successCount}건 저장 완료, ${failed.length}건 실패`);
+        alert(`${successCount}건은 저장되었고 ${failed.length}건은 저장하지 못했습니다.`);
+      } else {
+        setSaveMessage(`${changedRows.length}건 저장 완료`);
+        alert(`${changedRows.length}건이 한꺼번에 저장되었습니다.`);
+      }
     } catch (error) {
-} finally {
-      setInlineSavingId(null);
+      const message = error instanceof Error ? error.message : "전체 저장 실패";
+      setSaveMessage(`저장 실패: ${message}`);
+      alert(message);
+    } finally {
+      setBulkInlineSaving(false);
     }
   }
 
@@ -1595,6 +1633,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </button>
         </div>
 
+        {!listOnly && (
+          <button
+            type="button"
+            onClick={() => void saveAllInlineRows()}
+            disabled={bulkInlineSaving}
+            style={{
+              ...bulkSaveButtonStyle,
+              opacity: bulkInlineSaving ? 0.65 : 1,
+              cursor: bulkInlineSaving ? "wait" : "pointer",
+            }}
+          >
+            {bulkInlineSaving ? "저장 중..." : "전체 저장"}
+          </button>
+        )}
+
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value as SortOrder)}
@@ -1738,6 +1791,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input wl-inline-money"
+                          style={isInlineRowChanged(row) ? changedInlineInputStyle : undefined}
                           data-ledger-row={rowIndex}
                           data-ledger-column={0}
                           value={inlineEdits[row.id]?.saleAmount ?? String(row.saleAmount ?? 0)}
@@ -1752,7 +1806,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                               e.preventDefault();
-                              void saveInlineRow(row);
                               e.currentTarget.blur();
                               return;
                             }
@@ -1768,6 +1821,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input wl-inline-money"
+                          style={isInlineRowChanged(row) ? changedInlineInputStyle : undefined}
                           data-ledger-row={rowIndex}
                           data-ledger-column={1}
                           value={inlineEdits[row.id]?.shippingFee ?? String(row.shippingFee ?? 0)}
@@ -1782,7 +1836,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                               e.preventDefault();
-                              void saveInlineRow(row);
                               e.currentTarget.blur();
                               return;
                             }
@@ -1808,6 +1861,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input"
+                          style={isInlineRowChanged(row) ? changedInlineInputStyle : undefined}
                           data-ledger-row={rowIndex}
                           data-ledger-column={2}
                           value={inlineEdits[row.id]?.memo ?? (row.memo || "")}
@@ -1817,7 +1871,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                               e.preventDefault();
-                              void saveInlineRow(row);
                               e.currentTarget.blur();
                               return;
                             }
@@ -2327,6 +2380,23 @@ const searchStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
+
+const bulkSaveButtonStyle: React.CSSProperties = {
+  height: 38,
+  padding: "0 16px",
+  border: 0,
+  borderRadius: 9,
+  background: "#2563eb",
+  color: "white",
+  fontSize: 12,
+  fontWeight: 800,
+  flexShrink: 0,
+};
+
+const changedInlineInputStyle: React.CSSProperties = {
+  background: "#fef9c3",
+  borderColor: "#eab308",
+};
 
 const sortSelectStyle: React.CSSProperties = {
   width: 128,
