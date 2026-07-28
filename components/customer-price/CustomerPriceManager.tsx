@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Customer = {
   id: number;
@@ -20,6 +20,9 @@ type ProductPrice = {
 export default function CustomerPriceManager() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [isCustomerListOpen, setIsCustomerListOpen] = useState(false);
+  const [activeCustomerIndex, setActiveCustomerIndex] = useState(-1);
 
   const [products, setProducts] = useState<ProductPrice[]>([]);
   const [priceInputs, setPriceInputs] = useState<Record<number, string>>({});
@@ -88,10 +91,14 @@ export default function CustomerPriceManager() {
   };
 
   useEffect(() => {
+    // Initial client-side customer hydration is intentionally performed once on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCustomers();
   }, []);
 
   useEffect(() => {
+    // Prices must be synchronized whenever the selected customer changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCustomerPrices(selectedCustomerId);
   }, [selectedCustomerId]);
 
@@ -215,6 +222,51 @@ export default function CustomerPriceManager() {
     (customer) => String(customer.id) === selectedCustomerId
   );
 
+  const filteredCustomers = useMemo(() => {
+    const keyword = customerQuery.trim().toLowerCase();
+    const matches = keyword
+      ? customers.filter(
+          (customer) =>
+            customer.code.toLowerCase().includes(keyword) ||
+            customer.name.toLowerCase().includes(keyword)
+        )
+      : customers;
+    return matches.slice(0, 30);
+  }, [customerQuery, customers]);
+
+  function selectCustomer(customer: Customer) {
+    setCustomerQuery(`${customer.code} - ${customer.name}`);
+    setSelectedCustomerId(String(customer.id));
+    setIsCustomerListOpen(false);
+    setActiveCustomerIndex(-1);
+  }
+
+  function handleCustomerInput(value: string) {
+    setCustomerQuery(value);
+    setSelectedCustomerId("");
+    setActiveCustomerIndex(-1);
+    setIsCustomerListOpen(true);
+  }
+
+  function handleCustomerKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsCustomerListOpen(true);
+      setActiveCustomerIndex((current) =>
+        Math.min(current + 1, filteredCustomers.length - 1)
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveCustomerIndex((current) => Math.max(current - 1, 0));
+    } else if (event.key === "Enter" && isCustomerListOpen) {
+      event.preventDefault();
+      const customer = filteredCustomers[Math.max(activeCustomerIndex, 0)];
+      if (customer) selectCustomer(customer);
+    } else if (event.key === "Escape") {
+      setIsCustomerListOpen(false);
+    }
+  }
+
   return (
     <div
       style={{
@@ -226,7 +278,7 @@ export default function CustomerPriceManager() {
           marginBottom: "8px",
         }}
       >
-        거래처별 판매단가 관리
+        단가적용
       </h1>
 
       <p
@@ -236,7 +288,7 @@ export default function CustomerPriceManager() {
           color: "#666",
         }}
       >
-        거래처마다 상품별 전용 판매단가를 등록할 수 있습니다.
+        거래처별 판매단가를 관리합니다.
       </p>
 
       {/* 거래처 선택 */}
@@ -259,27 +311,66 @@ export default function CustomerPriceManager() {
           거래처 선택
         </label>
 
-        <select
-          value={selectedCustomerId}
-          onChange={(e) => setSelectedCustomerId(e.target.value)}
+        <div
           style={{
             width: "100%",
             maxWidth: "400px",
-            height: "42px",
-            padding: "0 12px",
-            border: "1px solid #d1d5db",
-            borderRadius: "6px",
-            fontSize: "15px",
+            position: "relative",
           }}
         >
-          <option value="">거래처를 선택해주세요.</option>
+          <div style={customerSearchBoxStyle}>
+            <input
+              type="text"
+              value={customerQuery}
+              onChange={(event) => handleCustomerInput(event.target.value)}
+              onFocus={() => setIsCustomerListOpen(true)}
+              onBlur={() =>
+                window.setTimeout(() => setIsCustomerListOpen(false), 120)
+              }
+              onKeyDown={handleCustomerKeyDown}
+              placeholder="거래처 코드 또는 거래처명 검색"
+              autoComplete="off"
+              style={customerSearchInputStyle}
+            />
+            <button
+              type="button"
+              aria-label="거래처 목록 열기"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setIsCustomerListOpen((current) => !current)}
+              style={customerSearchToggleStyle}
+            >
+              ▼
+            </button>
+          </div>
 
-          {customers.map((customer) => (
-            <option key={customer.id} value={customer.id}>
-              {customer.code} - {customer.name}
-            </option>
-          ))}
-        </select>
+          {isCustomerListOpen && (
+            <div style={customerDropdownStyle}>
+              {filteredCustomers.length === 0 ? (
+                <div style={customerEmptyStyle}>검색 결과가 없습니다.</div>
+              ) : (
+                filteredCustomers.map((customer, index) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      selectCustomer(customer);
+                    }}
+                    onMouseEnter={() => setActiveCustomerIndex(index)}
+                    style={{
+                      ...customerOptionStyle,
+                      backgroundColor:
+                        index === activeCustomerIndex ? "#eff6ff" : "white",
+                    }}
+                  >
+                    <strong>{customer.code}</strong>
+                    <span>{customer.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         {selectedCustomer && (
           <div
@@ -485,4 +576,63 @@ const tdStyle: React.CSSProperties = {
   padding: "14px",
   fontSize: "14px",
   verticalAlign: "middle",
+};
+
+const customerSearchBoxStyle: React.CSSProperties = {
+  display: "flex",
+  height: "42px",
+  border: "1px solid #2563eb",
+  borderRadius: "8px",
+  overflow: "hidden",
+  backgroundColor: "white",
+};
+
+const customerSearchInputStyle: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  padding: "0 12px",
+  border: "none",
+  outline: "none",
+  fontSize: "15px",
+};
+
+const customerSearchToggleStyle: React.CSSProperties = {
+  width: "44px",
+  border: "none",
+  borderLeft: "1px solid #bfdbfe",
+  backgroundColor: "#eff6ff",
+  color: "#1d4ed8",
+  cursor: "pointer",
+};
+
+const customerDropdownStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 4px)",
+  left: 0,
+  right: 0,
+  zIndex: 30,
+  maxHeight: "260px",
+  overflowY: "auto",
+  border: "1px solid #d1d5db",
+  borderRadius: "8px",
+  backgroundColor: "white",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.14)",
+};
+
+const customerOptionStyle: React.CSSProperties = {
+  display: "flex",
+  width: "100%",
+  gap: "10px",
+  padding: "9px 12px",
+  border: "none",
+  borderBottom: "1px solid #f1f5f9",
+  color: "#111827",
+  textAlign: "left",
+  cursor: "pointer",
+};
+
+const customerEmptyStyle: React.CSSProperties = {
+  padding: "12px",
+  color: "#6b7280",
+  fontSize: "14px",
 };

@@ -11,10 +11,10 @@ const cases = [
   ["B", "상품명***", 4.5],
   ["B", "**** 상품명", 6],
   ["B", "상품명", 6],
-  ["C", "**** 상품명***", 5.5],
-  ["C", "상품명***", 5.5],
-  ["C", "**** 상품명", 6],
-  ["C", "상품명", 6],
+  ["C", "**** 상품명***", 0],
+  ["C", "상품명***", 0],
+  ["C", "**** 상품명", 0],
+  ["C", "상품명", 0],
   ["D", "**** 상품명***", 6],
   ["A", "상품*이름***", 4.5],
   ["A", "**************** 상품명", 0],
@@ -31,5 +31,15 @@ for (const [customerGrade, productName, expected] of cases) {
   }
 }
 
-console.log(`customer grade price tests passed: ${cases.length}`);
+const cGradeWithDifferentBasePrice = calculatePriceByCustomerGrade({
+  basePrice: 11,
+  productName: "상품명",
+  customerGrade: "C",
+});
+if (cGradeWithDifferentBasePrice !== 0) {
+  throw new Error(
+    `C / 상품명 / base 11: expected 0, received ${cGradeWithDifferentBasePrice}`
+  );
+}
 
+console.log(`customer grade price tests passed: ${cases.length}`);

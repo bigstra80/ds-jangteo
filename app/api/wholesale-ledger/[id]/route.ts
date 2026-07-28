@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { calculateLedgerAmount } from "@/lib/ledger-amount";
 
 function toInt(value: unknown, fallback = 0) {
   const number = Number(value);
@@ -15,6 +16,22 @@ function toOneDecimal(value: unknown, fallback = 0) {
 function toNullableText(value: unknown) {
   const text = String(value ?? "").trim();
   return text ? text : null;
+}
+
+function resolveSaleAmount(
+  body: Record<string, unknown>,
+  quantity: number
+) {
+  if (
+    body.saleUnitPrice !== undefined &&
+    body.saleUnitPrice !== null &&
+    body.saleUnitPrice !== ""
+  ) {
+    return calculateLedgerAmount(body.saleUnitPrice, quantity);
+  }
+
+  // 기존 목록 인라인 수정 요청은 saleAmount를 총액으로 전달합니다.
+  return toOneDecimal(body.saleAmount, 0);
 }
 
 function parseId(value: string) {
@@ -53,6 +70,7 @@ export async function PUT(
       ? new Date(`${transactionDateText}T00:00:00`)
       : new Date();
 
+    const quantity = toInt(body.quantity, 1);
     const row = await prisma.wholesaleLedger.update({
       where: { id },
       data: {
@@ -60,7 +78,7 @@ export async function PUT(
         productName,
 
         // 반품 처리를 위해 음수 수량 허용
-        quantity: toInt(body.quantity, 1),
+        quantity,
 
         supplierName: toNullableText(body.supplierName),
 
@@ -71,8 +89,8 @@ export async function PUT(
         customerName: toNullableText(body.customerName),
         customerPhone: toNullableText(body.customerPhone),
 
-        // 핵심 수정: 수정할 때도 음수 판매금액 그대로 저장
-        saleAmount: toOneDecimal(body.saleAmount, 0),
+        // 수정 폼에서도 단가 × 수량을 총 판매금액으로 저장합니다.
+        saleAmount: resolveSaleAmount(body, quantity),
         shippingFee: toOneDecimal(body.shippingFee, 0),
 
         settlementStatus:

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
+import { changedInputStyle } from "@/lib/dirty-input-style";
 import { uniqueProductCodes } from "@/lib/product-code";
 import {
   compactProductSearchText,
@@ -89,6 +90,7 @@ type ParsedBandPost = {
   colors: string;
   sizes: string;
   price: string;
+  additionalPrice: string;
 };
 
 function cleanBandLine(value: string) {
@@ -170,11 +172,15 @@ function parseBandPost(text: string): ParsedBandPost | null {
   const colors = extractLabelValue(/^(?:COLOR|COLOUR|색상)\s*[:：]\s*(.*)$/i);
   const sizes = extractLabelValue(/^(?:SIZE|사이즈)\s*[:：]\s*(.*)$/i);
   const lastCodeIndex = codeCandidates[codeCandidates.length - 1].index;
-  const price =
-    meaningful
-      .slice(lastCodeIndex + 1)
-      .filter((line) => /^\d+(?:\.\d+)?$/.test(line))
-      .at(-1) || "";
+  const priceCandidates = meaningful
+    .slice(lastCodeIndex + 1)
+    .filter((line) => /^\d+(?:\.\d+)?$/.test(line));
+  const prices =
+    additionalCode && priceCandidates.length >= 2
+      ? priceCandidates.slice(-2)
+      : priceCandidates.slice(-1);
+  const price = prices[0] || "";
+  const additionalPrice = additionalCode ? prices[1] || "" : "";
 
   if (!sourceProductName) return null;
 
@@ -185,6 +191,7 @@ function parseBandPost(text: string): ParsedBandPost | null {
     colors,
     sizes,
     price,
+    additionalPrice,
   };
 }
 
@@ -201,6 +208,7 @@ type ProductForm = {
   cost2: string;
   cost3: string;
   price: string;
+  additionalPrice: string;
   imageUrl: string;
   productType: "DIRECT" | "BROKER";
   supplierId: string;
@@ -225,6 +233,7 @@ const emptyForm: ProductForm = {
   cost2: "",
   cost3: "",
   price: "",
+  additionalPrice: "",
   imageUrl: "",
   productType: "DIRECT",
   supplierId: "",
@@ -252,6 +261,19 @@ function normalizeOneDecimal(value: string) {
 function nullableDecimal(value: string) {
   const normalized = normalizeOneDecimal(value);
   return normalized === "" ? null : Number(normalized);
+}
+
+function comparableSupplier(value: unknown) {
+  const normalized = String(value ?? "").trim().toLocaleLowerCase();
+  return normalized === "-" ? "" : normalized;
+}
+
+function comparableDecimal(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text || text === "-") return null;
+
+  const normalized = nullableDecimal(text);
+  return normalized !== null && Number.isFinite(normalized) ? normalized : null;
 }
 
 function validateDecimalDraft(
@@ -590,20 +612,46 @@ export default function ProductManager() {
 
           const supplierChanged =
             supplierDraft !== undefined &&
-            supplierDraft.trim().toLowerCase() !==
-              String(product.supplier?.code || "").trim().toLowerCase();
+            comparableSupplier(supplierDraft) !==
+              comparableSupplier(product.supplier?.code);
           const costChanged =
             costDraft !== undefined &&
-            nullableDecimal(costDraft) !== product.cost;
+            comparableDecimal(costDraft) !==
+              comparableDecimal(product.cost);
           const priceChanged =
             priceDraft !== undefined &&
-            nullableDecimal(priceDraft) !== product.price;
+            comparableDecimal(priceDraft) !==
+              comparableDecimal(product.price);
 
           return supplierChanged || costChanged || priceChanged;
         })
         .map((product) => product.id)
     );
   }, [products, listSupplierDrafts, listCostDrafts, listPriceDrafts]);
+
+  function isListSupplierChanged(product: Product) {
+    const draft = listSupplierDrafts[product.id];
+    return (
+      draft !== undefined &&
+      comparableSupplier(draft) !== comparableSupplier(product.supplier?.code)
+    );
+  }
+
+  function isListCostChanged(product: Product) {
+    const draft = listCostDrafts[product.id];
+    return (
+      draft !== undefined &&
+      comparableDecimal(draft) !== comparableDecimal(product.cost)
+    );
+  }
+
+  function isListPriceChanged(product: Product) {
+    const draft = listPriceDrafts[product.id];
+    return (
+      draft !== undefined &&
+      comparableDecimal(draft) !== comparableDecimal(product.price)
+    );
+  }
 
   function resetForm() {
     setForm(emptyForm);
@@ -642,6 +690,7 @@ export default function ProductManager() {
       cost2: String(product.cost2 || ""),
       cost3: String(product.cost3 || ""),
       price: String(product.price || ""),
+      additionalPrice: "",
       imageUrl: product.imageUrl || "",
       productType: "DIRECT",
       supplierId: product.supplierId ? String(product.supplierId) : "",
@@ -770,6 +819,7 @@ export default function ProductManager() {
       colors: parsed.colors || current.colors,
       sizes: parsed.sizes || current.sizes,
       price: parsed.price || current.price,
+      additionalPrice: parsed.additionalPrice || current.additionalPrice,
     }));
 
     if (showMessage) {
@@ -1004,6 +1054,7 @@ export default function ProductManager() {
             cost: form.additionalCost,
             cost2: "",
             cost3: "",
+            price: form.additionalPrice || form.price,
           }),
         });
         const additionalResult = await additionalResponse.json();
@@ -1510,13 +1561,12 @@ export default function ProductManager() {
         }
         .pm-image-editor > div:last-child {
           display: flex;
-          flex: 1;
           flex-direction: column;
-          min-height: 100%;
         }
         .pm-image-editor textarea {
-          flex: 1;
-          min-height: 330px !important;
+          flex: none;
+          height: 165px !important;
+          min-height: 165px !important;
           resize: vertical !important;
         }
         .pm-form-content.pm-form-editing {
@@ -1530,9 +1580,9 @@ export default function ProductManager() {
           grid-column: 1 / -1;
           display: grid;
           grid-template-columns: minmax(0, 1.65fr) minmax(0, .75fr) auto;
-          gap: 14px;
+          gap: 8px;
           align-items: end;
-          padding: 14px;
+          padding: 9px;
           border: 1px solid #e2e8f0;
           border-radius: 10px;
           background: #f8fafc;
@@ -1542,6 +1592,7 @@ export default function ProductManager() {
         .pm-form-grid,
         .pm-compact-top-grid,
         .pm-supplier-cost-grid,
+        .pm-price-grid,
         .pm-extra-supplier {
           min-width: 0;
           max-width: 100%;
@@ -1555,6 +1606,7 @@ export default function ProductManager() {
         .pm-form-card label { font-size: 11px; }
         .pm-compact-top-grid > *,
         .pm-supplier-cost-grid > *,
+        .pm-price-grid > *,
         .pm-extra-supplier > * {
           min-width: 0;
         }
@@ -1566,7 +1618,8 @@ export default function ProductManager() {
           .pm-compact-top-grid {
             grid-template-columns: minmax(0, .72fr) minmax(0, .72fr) minmax(0, 1.55fr) !important;
           }
-          .pm-supplier-cost-grid {
+          .pm-supplier-cost-grid,
+          .pm-price-grid {
             grid-template-columns: minmax(0, 1.5fr) minmax(0, .72fr) minmax(0, .72fr) !important;
           }
         }
@@ -1697,8 +1750,38 @@ export default function ProductManager() {
           }
 
           .pm-primary-button {
+            width: auto !important;
+            min-height: 36px !important;
+          }
+
+          .pm-title-action-row {
             width: 100% !important;
-            min-height: 46px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+
+          .pm-title-left,
+          .pm-title-excel-actions {
+            width: 100% !important;
+          }
+
+          .pm-title-left {
+            flex-wrap: wrap !important;
+          }
+
+          .pm-title-excel-actions {
+            justify-content: flex-start !important;
+            flex-wrap: wrap !important;
+          }
+
+          .pm-title-action-row .pm-primary-button,
+          .pm-title-action-row .pm-excel-button {
+            width: auto !important;
+            min-width: 90px !important;
+            height: 36px !important;
+            padding: 0 16px !important;
           }
 
           .pm-form-card {
@@ -1749,8 +1832,13 @@ export default function ProductManager() {
 }
 
 .pm-compact-top-grid,
-.pm-supplier-cost-grid {
+.pm-supplier-cost-grid,
+.pm-price-grid {
   grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.pm-price-grid > div[aria-hidden="true"] {
+  display: none !important;
 }
 
 .pm-form-grid input,
@@ -2118,55 +2206,58 @@ export default function ProductManager() {
       <div style={topRowStyle} className="pm-top-row">
         <div>
           <div style={titleActionRowStyle} className="pm-title-action-row">
-            <h2 style={titleStyle}>👕 상품관리</h2>
+            <div style={titleLeftGroupStyle} className="pm-title-left">
+              <h2 style={titleStyle}>👕 상품관리</h2>
+              <button
+                type="button"
+                onClick={openCreateForm}
+                style={primaryButtonStyle}
+                className="pm-primary-button"
+              >
+                {showProductForm ? "닫기" : "+ 상품등록"}
+              </button>
+            </div>
 
-            <button
-              type="button"
-              onClick={openCreateForm}
-              style={primaryButtonStyle}
-              className="pm-primary-button"
-            >
-              {showProductForm ? "닫기" : "+ 상품등록"}
-            </button>
+            <div style={excelActionGroupStyle} className="pm-title-excel-actions">
+              <button
+                type="button"
+                onClick={downloadProductExcel}
+                style={{
+                  ...secondaryButtonStyle,
+                  backgroundColor: "#16a34a",
+                  color: "#ffffff",
+                  border: "none",
+                }}
+                className="pm-excel-button"
+              >
+                엑셀 다운로드
+              </button>
 
-            <button
-              type="button"
-              onClick={downloadProductExcel}
-              style={{
-  ...secondaryButtonStyle,
-  backgroundColor: "#16a34a",
-  color: "#ffffff",
-  border: "none",
-}}
-              className="pm-excel-button"
-            >
-              엑셀 다운로드
-            </button>
+              <button
+                type="button"
+                onClick={() => excelInputRef.current?.click()}
+                disabled={importingExcel}
+                style={{
+                  ...secondaryButtonStyle,
+                  backgroundColor: "#ef4444",
+                  color: "#ffffff",
+                  border: "none",
+                  opacity: importingExcel ? 0.65 : 1,
+                  cursor: importingExcel ? "not-allowed" : "pointer",
+                }}
+                className="pm-excel-button"
+              >
+                {importingExcel ? "업로드 중..." : "엑셀 업로드"}
+              </button>
 
-            <button
-              type="button"
-              onClick={() => excelInputRef.current?.click()}
-              disabled={importingExcel}
-              style={{
-  ...secondaryButtonStyle,
-  backgroundColor: "#ef4444",
-  color: "#ffffff",
-  border: "none",
-  opacity: importingExcel ? 0.65 : 1,
-  cursor: importingExcel ? "not-allowed" : "pointer",
-}}
-              className="pm-excel-button"
-            >
-              {importingExcel ? "업로드 중..." : "엑셀 업로드"}
-            </button>
-
-            <input
-              ref={excelInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={uploadProductExcel}
-              style={{ display: "none" }}
-            />
+              <input
+                ref={excelInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={uploadProductExcel}
+                style={{ display: "none" }}
+              />
+            </div>
           </div>
 
           <p style={subtitleStyle}>
@@ -2192,20 +2283,6 @@ export default function ProductManager() {
               </p>
             </div>
 
-          <button
-  type="submit"
-  disabled={saving || uploadingImage}
-  style={{
-    ...saveButtonStyle,
-    opacity: saving || uploadingImage ? 0.6 : 1,
-  }}
->
-  {saving
-    ? "저장 중..."
-    : editingId
-      ? "상품 수정 저장"
-      : "상품 등록"}
-</button>
           </div>
 
          
@@ -2307,25 +2384,45 @@ export default function ProductManager() {
                 사진을 끌어다 놓거나 캡처 후 Ctrl+V로 붙여넣으세요 · JPG, PNG, WEBP, GIF / 최대 10MB
               </div>
               {!editingId ? (
-                <div style={bandPasteBoxStyle}>
-                  <div style={bandPasteTitleStyle}>📋 게시글</div>
-                  <textarea
-                    value={bandPostText}
-                    onChange={(event) => {
-                      const nextBandPostText = event.target.value;
-                      setBandPostText(nextBandPostText);
-                      applyBandPostText(nextBandPostText);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Tab" && !event.shiftKey) {
-                        event.preventDefault();
-                        cost1InputRef.current?.focus();
-                      }
-                    }}
-                    placeholder=""
-                    style={bandPasteTextareaStyle}
-                  />
-                </div>
+                <>
+                  <div style={bandPasteBoxStyle}>
+                    <div style={bandPasteTitleStyle}>📋 게시글</div>
+                    <textarea
+                      value={bandPostText}
+                      onChange={(event) => {
+                        const nextBandPostText = event.target.value;
+                        setBandPostText(nextBandPostText);
+                        applyBandPostText(nextBandPostText);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Tab" && !event.shiftKey) {
+                          event.preventDefault();
+                          cost1InputRef.current?.focus();
+                        }
+                      }}
+                      placeholder=""
+                      style={bandPasteTextareaStyle}
+                    />
+                  </div>
+                  <div className="pm-band-meta" style={bandMetaStyle}>
+                    <Field
+                      label="밴드 원본 게시글 주소"
+                      value={form.bandPostUrl}
+                      onChange={(value) => updateForm("bandPostUrl", value)}
+                      placeholder="자동 저장"
+                    />
+                    <label style={bandCheckStyle}>
+                      <input
+                        type="checkbox"
+                        checked={form.isBandImported}
+                        onChange={(event) =>
+                          updateForm("isBandImported", event.target.checked)
+                        }
+                      />
+                      <span>네이버 밴드 상품</span>
+                    </label>
+                  </div>
+                </>
               ) : null}
             </div>
 
@@ -2372,19 +2469,12 @@ export default function ProductManager() {
               </div>
 
               <div className="pm-supplier-cost-grid" style={supplierCostGridStyle}>
-                <label style={fieldStyle}>
-                  <span style={fieldLabelStyle}>공급업체 1</span>
-                  <select
-                    value={form.supplierId}
-                    onChange={(event) => changePrimarySupplier(event.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">공급업체 선택</option>
-                    {suppliers.map((supplier) => (
-                      <option key={supplier.id} value={supplier.id}>{supplier.code}</option>
-                    ))}
-                  </select>
-                </label>
+                <SupplierSearchSelect
+                  label="공급업체 1"
+                  suppliers={suppliers}
+                  value={form.supplierId}
+                  onChange={changePrimarySupplier}
+                />
                 <Field
                   id="product-cost-1"
                   inputRef={cost1InputRef}
@@ -2405,19 +2495,12 @@ export default function ProductManager() {
 
               {visibleSupplierCount >= 2 && (
                 <div className="pm-extra-supplier">
-                  <label style={fieldStyle}>
-                    <span style={fieldLabelStyle}>공급업체 2</span>
-                    <select
-                      value={form.supplier2Id}
-                      onChange={(event) => updateForm("supplier2Id", event.target.value)}
-                      style={inputStyle}
-                    >
-                      <option value="">공급업체 선택</option>
-                      {suppliers.map((supplier) => (
-                        <option key={supplier.id} value={supplier.id}>{supplier.code}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <SupplierSearchSelect
+                    label="공급업체 2"
+                    suppliers={suppliers}
+                    value={form.supplier2Id}
+                    onChange={(value) => updateForm("supplier2Id", value)}
+                  />
                   <Field
                     label="매입단가 2"
                     value={form.cost2}
@@ -2433,19 +2516,12 @@ export default function ProductManager() {
 
               {visibleSupplierCount >= 3 && (
                 <div className="pm-extra-supplier">
-                  <label style={fieldStyle}>
-                    <span style={fieldLabelStyle}>공급업체 3</span>
-                    <select
-                      value={form.supplier3Id}
-                      onChange={(event) => updateForm("supplier3Id", event.target.value)}
-                      style={inputStyle}
-                    >
-                      <option value="">공급업체 선택</option>
-                      {suppliers.map((supplier) => (
-                        <option key={supplier.id} value={supplier.id}>{supplier.code}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <SupplierSearchSelect
+                    label="공급업체 3"
+                    suppliers={suppliers}
+                    value={form.supplier3Id}
+                    onChange={(value) => updateForm("supplier3Id", value)}
+                  />
                   <Field
                     label="매입단가 3"
                     value={form.cost3}
@@ -2483,66 +2559,70 @@ export default function ProductManager() {
                 placeholder="예: 블랙, 화이트"
               />
 
-              <Field
-                label="사이즈"
-                value={form.sizes}
-                onChange={(value) => updateForm("sizes", value)}
-                placeholder="예: 95, 100, 105"
-              />
-
-              <Field
-                label="판매가"
-                value={form.price}
-                onChange={(value) => {
-                  const cleaned = value
-                    .replace(/[^0-9.]/g, "")
-                    .replace(/(\..*)\./g, "$1");
-                  const [integerPart, decimalPart] = cleaned.split(".");
-                  const normalized =
-                    decimalPart !== undefined
-                      ? `${integerPart}.${decimalPart.slice(0, 1)}`
-                      : integerPart;
-                  updateForm("price", normalized);
-                }}
-                placeholder="0"
-                inputMode="decimal"
-              />
-
-              <Field
-                label="밴드 원본 게시글 주소"
-                value={form.bandPostUrl}
-                onChange={(value) => updateForm("bandPostUrl", value)}
-                placeholder="밴드에서 가져오면 자동으로 저장됩니다"
-              />
-
-              <label
-                style={{
-                  ...fieldStyle,
-                  gridColumn: "1 / -1",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "10px 12px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  background: "#f8fafc",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={form.isBandImported}
-                  onChange={(event) =>
-                    updateForm("isBandImported", event.target.checked)
-                  }
+              <div className="pm-price-grid" style={priceGridStyle}>
+                <Field
+                  label="사이즈"
+                  value={form.sizes}
+                  onChange={(value) => updateForm("sizes", value)}
+                  placeholder="예: 95, 100, 105"
                 />
-                <span style={{ fontSize: "13px", fontWeight: 700 }}>
-                  네이버 밴드에서 가져온 상품
-                </span>
-              </label>
+                <Field
+                  label="판매가 1"
+                  value={form.price}
+                  onChange={(value) => updateForm("price", normalizeOneDecimal(value))}
+                  placeholder="0"
+                  inputMode="decimal"
+                />
+                <Field
+                  label="판매가 추가"
+                  value={form.additionalPrice}
+                  onChange={(value) =>
+                    updateForm("additionalPrice", normalizeOneDecimal(value))
+                  }
+                  placeholder="0"
+                  inputMode="decimal"
+                />
+              </div>
+
+              {editingId && (
+                <>
+                  <Field
+                    label="밴드 원본 게시글 주소"
+                    value={form.bandPostUrl}
+                    onChange={(value) => updateForm("bandPostUrl", value)}
+                    placeholder="밴드에서 가져오면 자동으로 저장됩니다"
+                  />
+                  <label style={{ ...bandCheckStyle, gridColumn: "1 / -1" }}>
+                    <input
+                      type="checkbox"
+                      checked={form.isBandImported}
+                      onChange={(event) =>
+                        updateForm("isBandImported", event.target.checked)
+                      }
+                    />
+                    <span>네이버 밴드에서 가져온 상품</span>
+                  </label>
+                </>
+              )}
             </div>
           </div>
 
-          
+          <div style={formSubmitRowStyle}>
+            <button
+              type="submit"
+              disabled={saving || uploadingImage}
+              style={{
+                ...saveButtonStyle,
+                opacity: saving || uploadingImage ? 0.6 : 1,
+              }}
+            >
+              {saving
+                ? "저장 중..."
+                : editingId
+                  ? "상품 수정 저장"
+                  : "상품 등록"}
+            </button>
+          </div>
         </form>
       )}
 
@@ -2619,6 +2699,11 @@ export default function ProductManager() {
                       else listCellRefs.current.delete(key);
                     }}
                     className="pm-list-cost-input"
+                    style={
+                      isListSupplierChanged(product)
+                        ? changedInputStyle
+                        : undefined
+                    }
                     aria-label={`${product.code} 대표 공급업체`}
                     value={listSupplierDrafts[product.id] ?? product.supplier?.code ?? ""}
                     placeholder="-"
@@ -2649,6 +2734,11 @@ export default function ProductManager() {
                         else listCellRefs.current.delete(key);
                       }}
                       className="pm-list-cost-input"
+                      style={
+                        isListCostChanged(product)
+                          ? changedInputStyle
+                          : undefined
+                      }
                       inputMode="decimal"
                       aria-label={`${product.code} 대표 매입단가`}
                       value={listCostDrafts[product.id] ?? String(product.cost ?? "")}
@@ -2682,6 +2772,11 @@ export default function ProductManager() {
                       else listCellRefs.current.delete(key);
                     }}
                     className="pm-list-cost-input"
+                    style={
+                      isListPriceChanged(product)
+                        ? changedInputStyle
+                        : undefined
+                    }
                     inputMode="decimal"
                     aria-label={`${product.code} 판매단가`}
                     value={listPriceDrafts[product.id] ?? String(product.price ?? "")}
@@ -2861,6 +2956,131 @@ export default function ProductManager() {
   );
 }
 
+function SupplierSearchSelect({
+  label,
+  suppliers,
+  value,
+  onChange,
+}: {
+  label: string;
+  suppliers: Supplier[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const isTypingRef = useRef(false);
+
+  useEffect(() => {
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      return;
+    }
+    const selected = suppliers.find((supplier) => String(supplier.id) === value);
+    // Keep the visible label synchronized with form reset, edit, and auto-detection.
+    setQuery(selected?.code ?? "");
+  }, [suppliers, value]);
+
+  const filteredSuppliers = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    const matches = keyword
+      ? suppliers.filter(
+          (supplier) =>
+            supplier.code.toLowerCase().includes(keyword) ||
+            supplier.name.toLowerCase().includes(keyword)
+        )
+      : suppliers;
+    return matches.slice(0, 30);
+  }, [query, suppliers]);
+
+  function selectSupplier(supplier: Supplier) {
+    setQuery(supplier.code);
+    onChange(String(supplier.id));
+    setIsOpen(false);
+    setActiveIndex(-1);
+  }
+
+  function handleInput(nextQuery: string) {
+    setQuery(nextQuery);
+    isTypingRef.current = true;
+    onChange("");
+    setActiveIndex(-1);
+    setIsOpen(true);
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsOpen(true);
+      setActiveIndex((current) =>
+        Math.min(current + 1, filteredSuppliers.length - 1)
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((current) => Math.max(current - 1, 0));
+    } else if (event.key === "Enter" && isOpen) {
+      event.preventDefault();
+      const supplier = filteredSuppliers[Math.max(activeIndex, 0)];
+      if (supplier) selectSupplier(supplier);
+    } else if (event.key === "Escape") {
+      setIsOpen(false);
+    }
+  }
+
+  return (
+    <label style={{ ...fieldStyle, position: "relative" }}>
+      <span style={fieldLabelStyle}>{label}</span>
+      <div style={supplierSearchBoxStyle}>
+        <input
+          value={query}
+          onChange={(event) => handleInput(event.target.value)}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
+          onKeyDown={handleKeyDown}
+          placeholder="공급업체 코드 또는 업체명 검색"
+          autoComplete="off"
+          style={supplierSearchInputStyle}
+        />
+        <button
+          type="button"
+          aria-label={`${label} 목록 열기`}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => setIsOpen((current) => !current)}
+          style={supplierSearchToggleStyle}
+        >
+          ▼
+        </button>
+      </div>
+      {isOpen && (
+        <div style={supplierDropdownStyle}>
+          {filteredSuppliers.length === 0 ? (
+            <div style={supplierEmptyStyle}>검색 결과가 없습니다.</div>
+          ) : (
+            filteredSuppliers.map((supplier, index) => (
+              <button
+                key={supplier.id}
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  selectSupplier(supplier);
+                }}
+                onMouseEnter={() => setActiveIndex(index)}
+                style={{
+                  ...supplierOptionStyle,
+                  backgroundColor: index === activeIndex ? "#eff6ff" : "white",
+                }}
+              >
+                <strong>{supplier.code}</strong>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </label>
+  );
+}
+
 function Field({
   id,
   label,
@@ -2927,10 +3147,25 @@ const topRowStyle: React.CSSProperties = {
 const titleActionRowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-start",
-  gap: "9px",
+  justifyContent: "space-between",
+  gap: "12px",
   flexWrap: "nowrap",
-  width: "fit-content",
+  width: "100%",
+};
+
+const titleLeftGroupStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "9px",
+  minWidth: 0,
+};
+
+const excelActionGroupStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  gap: "8px",
+  marginLeft: "auto",
 };
 
 const titleStyle: React.CSSProperties = {
@@ -2947,7 +3182,9 @@ const subtitleStyle: React.CSSProperties = {
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  padding: "8px 10px",
+  height: "36px",
+  minWidth: "90px",
+  padding: "0 16px",
   border: "none",
   borderRadius: "8px",
   backgroundColor: "#2563eb",
@@ -2976,7 +3213,13 @@ const formHeaderStyle: React.CSSProperties = {
   alignItems: "flex-start",
   justifyContent: "space-between",
   gap: "18px",
-  marginBottom: "15px",
+  marginBottom: "10px",
+};
+
+const formSubmitRowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  marginTop: "8px",
 };
 
 const formHelpStyle: React.CSSProperties = {
@@ -3004,7 +3247,8 @@ const bandPasteTitleStyle: React.CSSProperties = {
 
 const bandPasteTextareaStyle: React.CSSProperties = {
   width: "100%",
-  minHeight: "70px",
+  height: "165px",
+  minHeight: "165px",
   resize: "none",
   boxSizing: "border-box",
   padding: "8px",
@@ -3016,19 +3260,42 @@ const bandPasteTextareaStyle: React.CSSProperties = {
   outline: "none",
 };
 
+const bandMetaStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px",
+  width: "100%",
+  marginTop: "2px",
+};
+
+const bandCheckStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: "6px",
+  minHeight: "32px",
+  padding: "5px 7px",
+  border: "1px solid #e2e8f0",
+  borderRadius: "7px",
+  background: "#f8fafc",
+  boxSizing: "border-box",
+  fontSize: "10px",
+  fontWeight: 700,
+};
+
 
 
 const formContentStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "158px minmax(0, 1fr)",
-  gap: "15px",
+  gap: "10px",
   alignItems: "start",
 };
 
 const imageEditorStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "8px",
+  gap: "6px",
 };
 
 const imagePreviewBoxStyle: React.CSSProperties = {
@@ -3127,27 +3394,34 @@ const compactTopGridStyle: React.CSSProperties = {
   gridColumn: "1 / -1",
   display: "grid",
   gridTemplateColumns: "minmax(0, 0.72fr) minmax(0, 0.72fr) minmax(0, 1.7fr)",
-  gap: "8px",
+  gap: "6px",
 };
 
 const supplierCostGridStyle: React.CSSProperties = {
   gridColumn: "1 / -1",
   display: "grid",
   gridTemplateColumns: "minmax(0, 1.65fr) minmax(0, 0.75fr) minmax(0, 0.75fr)",
-  gap: "8px",
+  gap: "6px",
+};
+
+const priceGridStyle: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.65fr) minmax(0, 0.75fr) minmax(0, 0.75fr)",
+  gap: "6px",
 };
 
 const formGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "8px",
+  gap: "6px",
   minWidth: 0,
 };
 
 const fieldStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "5px",
+  gap: "3px",
 };
 
 const fieldLabelStyle: React.CSSProperties = {
@@ -3158,12 +3432,75 @@ const fieldLabelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  minHeight: "38px",
-  padding: "8px 10px",
+  minHeight: "34px",
+  padding: "6px 9px",
   border: "1px solid #d1d5db",
   borderRadius: "7px",
   boxSizing: "border-box",
   minWidth: 0,
+  fontSize: "11px",
+};
+
+const supplierSearchBoxStyle: React.CSSProperties = {
+  display: "flex",
+  width: "100%",
+  minHeight: "34px",
+  border: "1px solid #2563eb",
+  borderRadius: "7px",
+  overflow: "hidden",
+  backgroundColor: "white",
+  boxSizing: "border-box",
+};
+
+const supplierSearchInputStyle: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  padding: "6px 9px",
+  border: "none",
+  outline: "none",
+  fontSize: "11px",
+};
+
+const supplierSearchToggleStyle: React.CSSProperties = {
+  width: "38px",
+  flex: "0 0 38px",
+  border: "none",
+  borderLeft: "1px solid #bfdbfe",
+  backgroundColor: "#eff6ff",
+  color: "#1d4ed8",
+  cursor: "pointer",
+};
+
+const supplierDropdownStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 4px)",
+  left: 0,
+  right: 0,
+  zIndex: 50,
+  maxHeight: "230px",
+  overflowY: "auto",
+  border: "1px solid #d1d5db",
+  borderRadius: "7px",
+  backgroundColor: "white",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.14)",
+};
+
+const supplierOptionStyle: React.CSSProperties = {
+  display: "flex",
+  width: "100%",
+  gap: "8px",
+  padding: "8px 10px",
+  border: "none",
+  borderBottom: "1px solid #f1f5f9",
+  color: "#111827",
+  fontSize: "11px",
+  textAlign: "left",
+  cursor: "pointer",
+};
+
+const supplierEmptyStyle: React.CSSProperties = {
+  padding: "10px",
+  color: "#6b7280",
   fontSize: "11px",
 };
 
@@ -3186,11 +3523,17 @@ const saveButtonStyle: React.CSSProperties = {
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
-  padding: "10px 16px",
+  height: "36px",
+  minWidth: "100px",
+  padding: "0 16px",
   border: "1px solid #d1d5db",
   borderRadius: "8px",
   backgroundColor: "white",
   cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+  flexShrink: 0,
 };
 
 const toolbarStyle: React.CSSProperties = {

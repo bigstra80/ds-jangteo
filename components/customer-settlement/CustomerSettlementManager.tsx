@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import { zeroAmountTextColor } from "@/lib/zero-amount-style";
 
-type SortOrder = "dateDesc" | "dateAsc" | "inputDesc" | "inputAsc";
+type SortOrder = "inputDesc" | "inputAsc";
 
 type LedgerDetail = {
   id: number;
@@ -47,7 +48,7 @@ export default function CustomerSettlementManager() {
   const [searchField, setSearchField] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
 
   async function loadData() {
     try {
@@ -79,6 +80,8 @@ export default function CustomerSettlementManager() {
   }
 
   useEffect(() => {
+    // Initial client-side settlement hydration is intentionally performed once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, []);
 
@@ -108,27 +111,12 @@ export default function CustomerSettlementManager() {
         );
       })
       .sort((a, b) => {
-        if (sortOrder === "inputDesc") {
-          const createdDiff =
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          return createdDiff !== 0 ? createdDiff : b.id - a.id;
+        const createdDiff =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (createdDiff !== 0) {
+          return sortOrder === "inputAsc" ? createdDiff : -createdDiff;
         }
-
-        if (sortOrder === "inputAsc") {
-          const createdDiff =
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          return createdDiff !== 0 ? createdDiff : a.id - b.id;
-        }
-
-        const dateDiff =
-          new Date(a.transactionDate).getTime() -
-          new Date(b.transactionDate).getTime();
-
-        if (sortOrder === "dateAsc") {
-          return dateDiff !== 0 ? dateDiff : a.id - b.id;
-        }
-
-        return dateDiff !== 0 ? -dateDiff : b.id - a.id;
+        return sortOrder === "inputAsc" ? a.id - b.id : b.id - a.id;
       });
   }, [data, search, searchField, startDate, endDate, sortOrder]);
 
@@ -448,10 +436,9 @@ export default function CustomerSettlementManager() {
         }
       `}</style>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ marginBottom: 8 }}>📒 거래처 정산·미수금</h1>
+        <h1 style={{ marginBottom: 8 }}>📒 출고</h1>
         <p style={{ margin: 0, color: "#6b7280" }}>
-          도매 거래 한 줄 장부의 납품업체별 판매·반품·미수금을 자동으로
-          집계합니다.
+          출고 내역을 조회하고 관리합니다.
         </p>
       </div>
 
@@ -515,6 +502,7 @@ export default function CustomerSettlementManager() {
             onClick={() => {
               setStartDate("");
               setEndDate("");
+              setSortOrder("inputDesc");
             }}
           >
             날짜 초기화
@@ -529,8 +517,6 @@ export default function CustomerSettlementManager() {
             style={sortSelectStyle}
             aria-label="정렬 순서"
           >
-            <option value="dateDesc">최근순서</option>
-            <option value="dateAsc">오래된순서</option>
             <option value="inputDesc">최근 입력순</option>
             <option value="inputAsc">오래된 입력순</option>
           </select>
@@ -612,9 +598,24 @@ export default function CustomerSettlementManager() {
                   <td style={tdStyle}>{row.customerName || "-"}</td>
                   <td style={tdStyle}>{row.customerPhone || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
-                  <td style={moneyStyle}>{money(row.saleAmount)}</td>
+                  <td
+                    style={{
+                      ...moneyStyle,
+                      color: zeroAmountTextColor(row.saleAmount),
+                    }}
+                  >
+                    {money(row.saleAmount)}
+                  </td>
                   <td style={moneyStyle}>{money(row.shippingFee || 0)}</td>
-                  <td className="total-amount-cell" style={totalAmountTdStyle}>
+                  <td
+                    className="total-amount-cell"
+                    style={{
+                      ...totalAmountTdStyle,
+                      color: zeroAmountTextColor(
+                        (row.saleAmount || 0) + (row.shippingFee || 0)
+                      ),
+                    }}
+                  >
                     {money((row.saleAmount || 0) + (row.shippingFee || 0))}
                   </td>
                   <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 30 }}>

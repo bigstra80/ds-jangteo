@@ -168,10 +168,9 @@ export default function CustomerDeliveryManager() {
     <div style={pageStyle}>
       <div style={headerStyle}>
         <div>
-          <h1 style={titleStyle}>🚚 거래처별 납품목록</h1>
+          <h1 style={titleStyle}>🚚 출고목록</h1>
           <p style={subtitleStyle}>
-            도매 거래 한 줄 장부에 입력된 납품업체별 판매·납품 내역을 자동으로
-            보여줍니다.
+            등록된 출고 내역을 조회합니다.
           </p>
         </div>
 

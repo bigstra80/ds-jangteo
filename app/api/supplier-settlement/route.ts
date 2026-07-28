@@ -9,7 +9,7 @@ export async function GET() {
           not: null,
         },
       },
-      orderBy: { id: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     });
 
     const grouped = new Map<
@@ -73,12 +73,21 @@ export async function GET() {
     const result = Array.from(grouped.values())
       .map((item) => ({
         ...item,
-        rows: [...item.rows].sort((a, b) => b.id - a.id),
+        rows: [...item.rows].sort((a, b) => {
+          const createdDiff =
+            b.createdAt.getTime() - a.createdAt.getTime();
+          return createdDiff !== 0 ? createdDiff : b.id - a.id;
+        }),
       }))
       .sort((a, b) => {
-        const aLatestId = a.rows[0]?.id ?? 0;
-        const bLatestId = b.rows[0]?.id ?? 0;
-        return bLatestId - aLatestId;
+        const aLatest = a.rows[0];
+        const bLatest = b.rows[0];
+        const createdDiff =
+          (bLatest?.createdAt.getTime() ?? 0) -
+          (aLatest?.createdAt.getTime() ?? 0);
+        return createdDiff !== 0
+          ? createdDiff
+          : (bLatest?.id ?? 0) - (aLatest?.id ?? 0);
       });
 
     return NextResponse.json(result, {

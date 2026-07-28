@@ -25,7 +25,7 @@ export async function GET() {
       }),
 
       prisma.wholesaleLedger.findMany({
-        orderBy: { id: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       }),
     ]);
 

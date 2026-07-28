@@ -2,6 +2,12 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  isZeroAmount,
+  zeroAmountTextColor,
+} from "@/lib/zero-amount-style";
+import { calculateLedgerAmount } from "@/lib/ledger-amount";
+import { changedInputStyle } from "@/lib/dirty-input-style";
 
 type LedgerRow = {
   id: number;
@@ -20,7 +26,25 @@ type LedgerRow = {
   memo: string | null;
 };
 
-type SortOrder = "dateDesc" | "dateAsc" | "inputDesc" | "inputAsc";
+function compareCreatedOrder(
+  a: LedgerRow,
+  b: LedgerRow,
+  direction: "asc" | "desc"
+) {
+  const aCreatedAt = new Date(a.createdAt).getTime();
+  const bCreatedAt = new Date(b.createdAt).getTime();
+  const safeACreatedAt = Number.isFinite(aCreatedAt) ? aCreatedAt : 0;
+  const safeBCreatedAt = Number.isFinite(bCreatedAt) ? bCreatedAt : 0;
+  const createdAtDiff = safeACreatedAt - safeBCreatedAt;
+
+  if (createdAtDiff !== 0) {
+    return direction === "asc" ? createdAtDiff : -createdAtDiff;
+  }
+
+  return direction === "asc" ? a.id - b.id : b.id - a.id;
+}
+
+type SortOrder = "inputDesc" | "inputAsc";
 
 type FormState = {
   transactionDate: string;
@@ -235,17 +259,18 @@ const formatWonInput = (value: string | number) => {
 const parseWonInput = (value: string) =>
   value.replace(/,/g, "").replace(/원/g, "").trim();
 
-
 function WonInput({
   value,
   onChange,
   placeholder,
   suggestions,
+  highlightZero = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   suggestions?: string[];
+  highlightZero?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -283,7 +308,13 @@ function WonInput({
           setFocused(false);
           setDraft(value);
         }}
-        style={inputStyle}
+        style={{
+          ...inputStyle,
+          color:
+            highlightZero && isZeroAmount(displayValue)
+              ? zeroAmountTextColor(displayValue)
+              : inputStyle.color,
+        }}
       />
 
       {suggestions && (
@@ -316,7 +347,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [searchField, setSearchField] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
 
   const [productOptions, setProductOptions] = useState<SearchOption[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<SearchOption[]>([]);
@@ -343,9 +374,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         throw new Error(data.error || "목록 조회 실패");
       }
 
-      const nextRows = [...(data.rows || [])].sort(
-  (a, b) => Number(b.id || 0) - Number(a.id || 0)
-);
+      const nextRows = ([...(data.rows || [])] as LedgerRow[]).sort((a, b) =>
+        compareCreatedOrder(a, b, "desc")
+      );
       setRows(nextRows);
       setInlineEdits((current) => {
         const next = { ...current };
@@ -429,24 +460,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     });
 
     return nextRows.sort((a, b) => {
-      if (sortOrder === "inputDesc") return b.id - a.id;
-      if (sortOrder === "inputAsc") return a.id - b.id;
-
-      const dateDiff =
-        new Date(a.transactionDate).getTime() -
-        new Date(b.transactionDate).getTime();
-
-      if (sortOrder === "dateAsc") {
-        return dateDiff !== 0 ? dateDiff : a.id - b.id;
-      }
-
-      if (dateDiff !== 0) return -dateDiff;
-
-      const createdAtDiff =
-        new Date(a.createdAt).getTime() -
-        new Date(b.createdAt).getTime();
-
-      return createdAtDiff !== 0 ? -createdAtDiff : b.id - a.id;
+      return compareCreatedOrder(
+        a,
+        b,
+        sortOrder === "inputAsc" ? "asc" : "desc"
+      );
     });
   }, [rows, keyword, searchField, startDate, endDate, sortOrder, productCodeByName]);
 
@@ -499,13 +517,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   }
 
   function applySaleUnitPrice(unitPrice: number, quantityValue = form.quantity) {
-    const parsedQuantity = Number(quantityValue);
-    const quantity = Number.isFinite(parsedQuantity) && parsedQuantity !== 0
-      ? parsedQuantity
-      : 1;
     setSelectedCustomerUnitPrice(unitPrice);
     setSaleUnitPriceInput(String(unitPrice));
-    changeForm("saleAmount", String(unitPrice * quantity));
+    changeForm(
+      "saleAmount",
+      String(calculateLedgerAmount(unitPrice, quantityValue))
+    );
     setIsSalePriceManuallyEdited(false);
   }
 
@@ -552,13 +569,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       }
 
       const unitPrice = Number(matched.customerPrice) || 0;
-      const parsedQuantity = Number(quantityValue);
-      const quantity =
-        Number.isFinite(parsedQuantity) && parsedQuantity !== 0
-          ? parsedQuantity
-          : 1;
-
-      applySaleUnitPrice(unitPrice, String(quantity));
+      applySaleUnitPrice(unitPrice, quantityValue);
     } catch (error) {
       console.error("거래처 판매단가 자동 적용 오류:", error);
       applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
@@ -697,7 +708,16 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          saleUnitPrice: parseWonInput(saleUnitPriceInput || "0"),
+          saleAmount: String(
+            calculateLedgerAmount(
+              parseWonInput(saleUnitPriceInput || "0"),
+              form.quantity
+            )
+          ),
+        }),
       });
 
       const rawText = await response.text();
@@ -720,8 +740,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             (item) => item.id !== savedRow.id
           );
 
-          return [savedRow, ...rowsWithoutSaved].sort(
-            (a, b) => Number(b.id || 0) - Number(a.id || 0)
+          return [savedRow, ...rowsWithoutSaved].sort((a, b) =>
+            compareCreatedOrder(a, b, "desc")
           );
         });
 
@@ -909,7 +929,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   }
 
   return (
-    <div style={pageStyle}>
+    <div
+      style={pageStyle}
+      className={listOnly ? "wl-list-only-page" : undefined}
+    >
       <style>{`
         .wl-two-column-layout {
           display: block;
@@ -1048,8 +1071,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         }
 
         .wl-list-only-pane .wl-table-wrap {
-          max-height: clamp(300px, calc(100vh - 245px), 820px) !important;
-          height: clamp(300px, calc(100vh - 245px), 820px) !important;
+          max-height: clamp(360px, calc(100vh - 190px), 860px) !important;
+          height: clamp(360px, calc(100vh - 190px), 860px) !important;
         }
 
         .wl-right-pane .wl-table-wrap thead th,
@@ -1088,58 +1111,69 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         }
 
 
-        /* 전체 거래내역: 거래처 정산·미수 내역과 같은 보기 좋은 크기 */
+        /* 입출고 전용 압축 레이아웃 */
         .wl-list-only-table {
-          width: 1080px !important;
-          min-width: 1080px !important;
+          width: 1010px !important;
+          min-width: 1010px !important;
         }
 
         .wl-list-only-table th {
-          padding: 7px 4px !important;
-          font-size: 13px !important;
+          height: 34px !important;
+          padding: 6px 5px !important;
+          font-size: 11px !important;
           line-height: 1.25 !important;
+          box-sizing: border-box;
         }
 
         .wl-list-only-table td {
-          padding: 12px 10px !important;
-          font-size: 14px !important;
-          line-height: 1.35 !important;
-          height: 45px !important;
+          height: 39px !important;
+          padding: 5px 7px !important;
+          font-size: 12px !important;
+          line-height: 1.25 !important;
+          box-sizing: border-box;
         }
 
         .wl-list-only-table .wl-product-name-cell {
-          font-size: 14px !important;
-          line-height: 1.35 !important;
+          font-size: 12px !important;
+          line-height: 1.25 !important;
           white-space: normal !important;
-          overflow: visible !important;
-          text-overflow: clip !important;
+          overflow: hidden !important;
+        }
+
+        .wl-list-only-table .wl-product-name-text {
+          display: -webkit-box;
+          overflow: hidden;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
         }
 
         .wl-transaction-summary {
           display: grid;
-          grid-template-columns: repeat(4, 190px);
-          gap: 10px;
-          margin-bottom: 16px;
+          grid-template-columns: repeat(4, 160px);
+          gap: 8px;
+          margin-bottom: 10px;
           justify-content: start;
         }
 
         .wl-transaction-summary-card {
-          padding: 18px;
+          min-height: 66px;
+          padding: 11px 12px;
           background: #fff;
           border: 1px solid #e5e7eb;
-          border-radius: 12px;
+          border-radius: 9px;
           box-sizing: border-box;
         }
 
         .wl-transaction-summary-title {
           color: #6b7280;
-          font-size: 13px;
-          margin-bottom: 8px;
+          font-size: 11px;
+          margin-bottom: 5px;
         }
 
         .wl-transaction-summary-value {
           color: #111827;
-          font-size: 22px;
+          font-size: 18px;
           font-weight: 900;
         }
 
@@ -1150,15 +1184,75 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         @media (max-width: 850px) {
           .wl-transaction-summary {
-            grid-template-columns: repeat(2, minmax(150px, 190px));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
           }
         }
 
         @media (max-width: 430px) {
           .wl-transaction-summary {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             width: 100%;
           }
+        }
+
+        .wl-list-only-page .wl-toolbar {
+          gap: 6px !important;
+          margin-bottom: 7px !important;
+          align-items: flex-end !important;
+        }
+
+        .wl-list-only-page .wl-search-type {
+          width: 70px !important;
+          min-width: 70px !important;
+          height: 34px !important;
+          padding: 0 20px 0 8px !important;
+          border-radius: 8px !important;
+          font-size: 11px !important;
+        }
+
+        .wl-list-only-page .wl-search-input {
+          width: 250px !important;
+          min-width: 180px !important;
+          height: 34px !important;
+          padding: 0 10px !important;
+          border-radius: 8px !important;
+          font-size: 12px !important;
+        }
+
+        .wl-list-only-page .wl-date-filter {
+          gap: 5px !important;
+        }
+
+        .wl-list-only-page .wl-date-filter label {
+          gap: 2px !important;
+          font-size: 10px !important;
+        }
+
+        .wl-list-only-page .wl-date-filter input {
+          width: 108px !important;
+          min-width: 108px !important;
+          height: 34px !important;
+          padding: 0 7px !important;
+          border-radius: 8px !important;
+          font-size: 11px !important;
+        }
+
+        .wl-list-only-page .wl-date-filter button,
+        .wl-list-only-page .wl-sort-select {
+          height: 34px !important;
+          min-height: 34px !important;
+          border-radius: 8px !important;
+          font-size: 11px !important;
+        }
+
+        .wl-list-only-page .wl-sort-select {
+          width: 90px !important;
+          min-width: 90px !important;
+        }
+
+        .wl-list-only-page .wl-date-filter > span {
+          padding-bottom: 9px !important;
         }
 
         .wl-inline-input {
@@ -1297,17 +1391,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           }
         }
       `}</style>
-      <div style={headerStyle}>
-        <div>
-          <h1 style={titleStyle}>{listOnly ? "전체 거래내역" : "도매 거래 한 줄 장부"}</h1>
-          <p style={descriptionStyle}>
-            {listOnly
-              ? "도매 거래 한 줄 장부에 등록된 모든 거래가 자동으로 표시됩니다."
-              : "상품번호로 상품을 빠르게 불러오고 매입·판매·정산까지 관리합니다."}
-          </p>
-        </div>
-      </div>
-
       {listOnly && (
         <div className="wl-transaction-summary">
           <div className="wl-transaction-summary-card">
@@ -1406,7 +1489,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     : selectedCustomerUnitPrice;
                   changeForm(
                     "saleAmount",
-                    String((Number.isFinite(unitPrice) ? unitPrice : 0) * safeQuantity)
+                    String(
+                      calculateLedgerAmount(
+                        Number.isFinite(unitPrice) ? unitPrice : 0,
+                        safeQuantity
+                      )
+                    )
                   );
                 }
               }}
@@ -1541,6 +1629,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <div>
               <WonInput
                 value={saleUnitPriceInput}
+                highlightZero
                 onChange={(value) => {
                   setSaleUnitPriceInput(value);
                   setIsSalePriceManuallyEdited(true);
@@ -1550,7 +1639,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   setSelectedCustomerUnitPrice(Number.isFinite(unitPrice) ? unitPrice : 0);
                   changeForm(
                     "saleAmount",
-                    String((Number.isFinite(unitPrice) ? unitPrice : 0) * safeQuantity)
+                    String(
+                      calculateLedgerAmount(
+                        Number.isFinite(unitPrice) ? unitPrice : 0,
+                        safeQuantity
+                      )
+                    )
                   );
                 }}
                 placeholder="1개 가격 입력"
@@ -1670,6 +1764,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             onClick={() => {
               setStartDate("");
               setEndDate("");
+              setSortOrder("inputDesc");
             }}
             style={resetButtonStyle}
           >
@@ -1684,8 +1779,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           className="wl-sort-select"
           aria-label="정렬 순서"
         >
-          <option value="dateDesc">최근순서</option>
-          <option value="dateAsc">오래된순서</option>
           <option value="inputDesc">최근 입력순</option>
           <option value="inputAsc">오래된 입력순</option>
         </select>
@@ -1707,21 +1800,21 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={{ ...tableStyle, width: listOnly ? "1170px" : "925px", minWidth: listOnly ? "1170px" : "925px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
+        <table style={{ ...tableStyle, width: listOnly ? "1010px" : "925px", minWidth: listOnly ? "1010px" : "925px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
           <colgroup>
             {listOnly ? (
               <>
-                <col style={{ width: "90px" }} />
-                <col style={{ width: "90px" }} />
-                <col style={{ width: "240px" }} />
-                <col style={{ width: "55px" }} />
-                <col style={{ width: "85px" }} />
-                <col style={{ width: "90px" }} />
-                <col style={{ width: "90px" }} />
-                <col style={{ width: "95px" }} />
-                <col style={{ width: "90px" }} />
                 <col style={{ width: "75px" }} />
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "215px" }} />
+                <col style={{ width: "42px" }} />
+                <col style={{ width: "70px" }} />
+                <col style={{ width: "78px" }} />
                 <col style={{ width: "75px" }} />
+                <col style={{ width: "80px" }} />
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "62px" }} />
+                <col style={{ width: "62px" }} />
                 <col style={{ width: "95px" }} />
               </>
             ) : (
@@ -1817,25 +1910,48 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       }}
                       title={row.productName}
                     >
-                      {row.productName}
+                      <span className={listOnly ? "wl-product-name-text" : undefined}>
+                        {row.productName}
+                      </span>
                     </td>
                     <td style={centerTdStyle}>{money(row.quantity)}</td>
                     <td style={tdStyle}>{row.supplierName || "-"}</td>
 
                     {listOnly && (
-                      <td style={numberTdStyle}>{money(row.purchaseAmount)}원</td>
+                      <td
+                        style={{
+                          ...numberTdStyle,
+                          color: zeroAmountTextColor(row.purchaseAmount),
+                        }}
+                      >
+                        {money(row.purchaseAmount)}원
+                      </td>
                     )}
 
                     <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                     <td style={tdStyle}>{row.customerName || "-"}</td>
 
                     {listOnly ? (
-                      <td style={numberTdStyle}>{money(row.saleAmount)}원</td>
+                      <td
+                        style={{
+                          ...numberTdStyle,
+                          color: zeroAmountTextColor(row.saleAmount),
+                        }}
+                      >
+                        {money(row.saleAmount)}원
+                      </td>
                     ) : (
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input wl-inline-money"
-                          style={isInlineRowChanged(row) ? changedInlineInputStyle : undefined}
+                          style={{
+                            ...(isInlineRowChanged(row) ? changedInputStyle : {}),
+                            color: zeroAmountTextColor(
+                              inlineEdits[row.id]?.saleAmount ??
+                                String(row.saleAmount ?? 0),
+                              "#0f172a"
+                            ),
+                          }}
                           data-ledger-row={rowIndex}
                           data-ledger-column={0}
                           value={inlineEdits[row.id]?.saleAmount ?? String(row.saleAmount ?? 0)}
@@ -1865,7 +1981,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input wl-inline-money"
-                          style={isInlineRowChanged(row) ? changedInlineInputStyle : undefined}
+                          style={isInlineRowChanged(row) ? changedInputStyle : undefined}
                           data-ledger-row={rowIndex}
                           data-ledger-column={1}
                           value={inlineEdits[row.id]?.shippingFee ?? String(row.shippingFee ?? 0)}
@@ -1893,7 +2009,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={{
                         ...numberTdStyle,
                         fontWeight: 900,
-                        color: profit >= 0 ? "#166534" : "#b91c1c",
+                        color: zeroAmountTextColor(
+                          profit,
+                          profit >= 0 ? "#166534" : "#b91c1c"
+                        ),
                       }}>
                         {money(profit)}원
                       </td>
@@ -1905,7 +2024,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       <td style={tdStyle}>
                         <input
                           className="wl-inline-input"
-                          style={isInlineRowChanged(row) ? changedInlineInputStyle : undefined}
+                          style={isInlineRowChanged(row) ? changedInputStyle : undefined}
                           data-ledger-row={rowIndex}
                           data-ledger-column={2}
                           value={inlineEdits[row.id]?.memo ?? (row.memo || "")}
@@ -2220,25 +2339,6 @@ const pageStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "20px",
-};
-
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: "clamp(22px, 2vw, 28px)",
-  fontWeight: 900,
-  color: "#0f172a",
-};
-
-const descriptionStyle: React.CSSProperties = {
-  margin: "7px 0 0",
-  color: "#64748b",
-};
-
 const formCardStyle: React.CSSProperties = {
   background: "white",
   height: "fit-content",
@@ -2446,11 +2546,6 @@ const bulkSaveButtonStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 800,
   flexShrink: 0,
-};
-
-const changedInlineInputStyle: React.CSSProperties = {
-  background: "#fef9c3",
-  borderColor: "#eab308",
 };
 
 const sortSelectStyle: React.CSSProperties = {

@@ -180,10 +180,9 @@ export default function BrokerPurchaseManager() {
     <div style={pageStyle}>
       <div style={headerStyle}>
         <div>
-          <h1 style={titleStyle}>🏪 업체별 매입목록</h1>
+          <h1 style={titleStyle}>🏪 입고목록</h1>
           <p style={subtitleStyle}>
-            도매 거래 한 줄 장부에 입력된 공급업체별 매입 내역을 자동으로
-            보여줍니다.
+            등록된 입고 내역을 조회합니다.
           </p>
         </div>
 

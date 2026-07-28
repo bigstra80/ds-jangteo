@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 
-type SortOrder = "dateDesc" | "dateAsc" | "inputDesc" | "inputAsc";
+type SortOrder = "inputDesc" | "inputAsc";
 
 type LedgerDetail = {
   id: number;
@@ -18,6 +18,7 @@ type LedgerDetail = {
   shippingFee: number;
   settlementStatus: string;
   memo: string | null;
+  createdAt: string;
 };
 
 type Settlement = {
@@ -57,7 +58,7 @@ export default function SupplierSettlementManager() {
   const [searchField, setSearchField] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("dateDesc");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
   const [isAdmin, setIsAdmin] = useState(false);
 
   async function loadCurrentUser() {
@@ -121,18 +122,12 @@ export default function SupplierSettlementManager() {
         return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
       })
       .sort((a, b) => {
-        if (sortOrder === "inputDesc") return b.id - a.id;
-        if (sortOrder === "inputAsc") return a.id - b.id;
-
-        const dateDiff =
-          new Date(a.transactionDate).getTime() -
-          new Date(b.transactionDate).getTime();
-
-        if (sortOrder === "dateAsc") {
-          return dateDiff !== 0 ? dateDiff : a.id - b.id;
+        const createdDiff =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (createdDiff !== 0) {
+          return sortOrder === "inputAsc" ? createdDiff : -createdDiff;
         }
-
-        return dateDiff !== 0 ? -dateDiff : b.id - a.id;
+        return sortOrder === "inputAsc" ? a.id - b.id : b.id - a.id;
       });
   }, [data, search, searchField, startDate, endDate, sortOrder]);
 
@@ -216,10 +211,9 @@ export default function SupplierSettlementManager() {
         }
       `}</style>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ marginBottom: 8 }}>📕 공급업체 정산</h1>
+        <h1 style={{ marginBottom: 8 }}>📕 입고</h1>
         <p style={{ margin: 0, color: "#6b7280" }}>
-          도매 거래 한 줄 장부의 공급업체별 매입·반품·정산금액을 자동으로
-          집계합니다.
+          입고 내역을 조회하고 관리합니다.
         </p>
       </div>
 
@@ -283,6 +277,7 @@ export default function SupplierSettlementManager() {
             onClick={() => {
               setStartDate("");
               setEndDate("");
+              setSortOrder("inputDesc");
             }}
             style={dateResetButtonStyle}
             className="supplier-settlement-reset-button"
@@ -298,8 +293,6 @@ export default function SupplierSettlementManager() {
               className="supplier-settlement-sort-select"
               aria-label="정렬 순서"
             >
-              <option value="dateDesc">최근순서</option>
-              <option value="dateAsc">오래된순서</option>
               <option value="inputDesc">최근 입력순</option>
               <option value="inputAsc">오래된 입력순</option>
             </select>
