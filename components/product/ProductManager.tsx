@@ -354,42 +354,26 @@ export default function ProductManager() {
   }
 
   function downloadProductExcel() {
-    const rows = products.length
-      ? products.map((product) => ({
-          상품코드: product.code,
-          상품명: product.name,
-          공급업체: product.supplier?.name || "",
-          단가: product.cost ?? "",
-          색상: product.colors || "",
-          사이즈: product.sizes || "",
-          판매가: product.price ?? "",
-          브랜드: product.brand || "",
-          카테고리: product.category || "",
-          이미지URL: product.imageUrl || "",
-          상품유형: product.productType === "BROKER" ? "중도매" : "직접",
-        }))
-      : [
-          {
-            상품코드: "A0001",
-            상품명: "예시 상품",
-            공급업체: "예시 공급업체",
-            단가: 1.5,
-            색상: "블랙,화이트",
-            사이즈: "M,L,XL",
-            판매가: "",
-            브랜드: "",
-            카테고리: "",
-            이미지URL: "",
-            상품유형: "직접",
-          },
-        ];
+    if (filteredProducts.length === 0) {
+      alert("다운로드할 상품이 없습니다.");
+      return;
+    }
+
+    const rows = filteredProducts.map((product) => ({
+      상품코드: product.code,
+      상품명: product.name,
+      공급업체: product.supplier?.name || "",
+      단가: product.cost ?? "",
+      색상: product.colors || "",
+      사이즈: product.sizes || "",
+      판매가: product.price ?? "",
+    }));
 
     const guideRows = [
       { 항목: "필수", 설명: "상품코드, 상품명" },
       { 항목: "선택 항목", 설명: "공급업체, 단가, 색상, 사이즈 등 나머지 컬럼은 없어도 등록됩니다." },
       { 항목: "기본값", 설명: "공급업체·색상·사이즈는 빈칸, 단가는 0으로 등록되며 상품관리에서 수정할 수 있습니다." },
       { 항목: "공급업체", 설명: "기존 업체명 또는 업체코드를 입력합니다. 없는 업체는 자동 등록됩니다." },
-      { 항목: "상품유형", 설명: "직접 또는 중도매를 입력합니다. 비워두면 직접으로 등록됩니다." },
       { 항목: "재업로드", 설명: "같은 상품코드가 있으면 해당 상품을 수정하고, 없으면 새 상품으로 등록합니다." },
     ];
 
@@ -398,7 +382,7 @@ export default function ProductManager() {
     const guideSheet = XLSX.utils.json_to_sheet(guideRows);
     productSheet["!cols"] = [
       { wch: 16 }, { wch: 30 }, { wch: 18 }, { wch: 10 }, { wch: 22 },
-      { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 40 }, { wch: 12 },
+      { wch: 22 }, { wch: 10 },
     ];
     guideSheet["!cols"] = [{ wch: 16 }, { wch: 80 }];
     XLSX.utils.book_append_sheet(workbook, productSheet, "상품목록");
@@ -589,8 +573,8 @@ export default function ProductManager() {
       if (!keyword) return true;
 
       const fields: Record<string, unknown[]> = {
-        all: [product.code, product.name, product.brand, product.category, product.colors, product.sizes, product.sourceProductName, product.supplier?.name, product.supplier2?.name, product.supplier3?.name],
-        code: [product.code], name: [product.name, product.sourceProductName], supplier: [product.supplier?.name, product.supplier2?.name, product.supplier3?.name], brand: [product.brand], category: [product.category],
+        all: [product.code, product.name, product.brand, product.category, product.colors, product.sizes, product.sourceProductName, product.supplier?.code, product.supplier?.name, product.supplier2?.code, product.supplier2?.name, product.supplier3?.code, product.supplier3?.name],
+        code: [product.code], name: [product.name, product.sourceProductName], supplier: [product.supplier?.code, product.supplier?.name, product.supplier2?.code, product.supplier2?.name, product.supplier3?.code, product.supplier3?.name], brand: [product.brand], category: [product.category],
       };
       return (fields[searchField] || fields.all).some((value) => {
         const normalizedValue = normalizeProductSearchText(value);
