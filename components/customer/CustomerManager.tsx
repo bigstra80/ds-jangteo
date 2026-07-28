@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 
 type Customer = {
@@ -13,10 +13,6 @@ type Customer = {
   address: string | null;
   memo: string | null;
   isActive: boolean;
-  totalOrders: number;
-  totalQuantity: number;
-  totalSales: number;
-  lastOrderAt: string | null;
 };
 
 type CustomerForm = {
@@ -28,6 +24,8 @@ type CustomerForm = {
   address: string;
   memo: string;
 };
+
+type CustomerExcelRow = Record<string, unknown>;
 
 const emptyForm: CustomerForm = {
   code: "",
@@ -51,6 +49,9 @@ export default function CustomerManager() {
   const [statusFilter, setStatusFilter] =
     useState("전체");
   const [loading, setLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [importingExcel, setImportingExcel] = useState(false);
+  const excelInputRef = useRef<HTMLInputElement>(null);
   async function loadCustomers() {
     try {
       const response = await fetch(
@@ -143,6 +144,7 @@ export default function CustomerManager() {
 
       setForm(emptyForm);
       setEditingId(null);
+      setIsFormOpen(false);
       await loadCustomers();
     } catch (error) {
       console.error(error);
@@ -154,6 +156,7 @@ export default function CustomerManager() {
 
   function startEdit(customer: Customer) {
     setEditingId(customer.id);
+    setIsFormOpen(true);
 
     setForm({
       code: customer.code,
@@ -272,26 +275,6 @@ export default function CustomerManager() {
       statusFilter,
     ]);
 
-  const summary = useMemo(
-    () => ({
-      total: customers.length,
-      active: customers.filter(
-        (customer) => customer.isActive
-      ).length,
-      orders: filteredCustomers.reduce(
-        (sum, customer) =>
-          sum + customer.totalOrders,
-        0
-      ),
-      sales: filteredCustomers.reduce(
-        (sum, customer) =>
-          sum + customer.totalSales,
-        0
-      ),
-    }),
-    [customers, filteredCustomers]
-  );
-
   function downloadExcel() {
     const rows = filteredCustomers.map(
       (customer) => ({
@@ -304,20 +287,20 @@ export default function CustomerManager() {
         상태: customer.isActive
           ? "사용중"
           : "사용중지",
-        주문건수: customer.totalOrders,
-        구매수량: customer.totalQuantity,
-        누적매출: customer.totalSales,
-        최근주문:
-          customer.lastOrderAt
-            ? new Date(
-                customer.lastOrderAt
-              ).toLocaleString("ko-KR")
-            : "",
       })
     );
 
-    const worksheet =
-      XLSX.utils.json_to_sheet(rows);
+    const worksheet = XLSX.utils.json_to_sheet(rows, {
+      header: [
+        "고객코드",
+        "고객명",
+        "등급",
+        "전화번호",
+        "이메일",
+        "주소",
+        "상태",
+      ],
+    });
     const workbook = XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(
@@ -332,108 +315,111 @@ export default function CustomerManager() {
     );
   }
 
+  async function uploadExcel(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      setImportingExcel(true);
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<CustomerExcelRow>(firstSheet, { defval: "" });
+
+      if (rows.length === 0) {
+        alert("엑셀 파일에 등록할 거래처가 없습니다.");
+        return;
+      }
+
+      const getValue = (row: CustomerExcelRow, names: string[]) => {
+        for (const name of names) {
+          const value = row[name];
+          if (value !== undefined && String(value).trim()) return String(value).trim();
+        }
+        return "";
+      };
+
+      let successCount = 0;
+      const failures: string[] = [];
+
+      for (const [index, row] of rows.entries()) {
+        const code = getValue(row, ["거래처코드", "고객코드", "코드"]);
+        const name = getValue(row, ["거래처명", "고객명", "이름"]);
+        const rawGrade = getValue(row, ["등급", "거래처등급", "고객등급"])
+          .toUpperCase()
+          .replace("그룹", "");
+        const grade = ["A", "B", "C", "D"].includes(rawGrade) ? rawGrade : "D";
+
+        if (!code || !name) {
+          failures.push(`${index + 2}행: 거래처 코드 또는 거래처명이 없습니다.`);
+          continue;
+        }
+
+        try {
+          const response = await fetch("/api/customers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code,
+              name,
+              grade,
+              phone: getValue(row, ["전화번호", "연락처", "전화"]),
+              email: getValue(row, ["이메일", "email", "Email"]),
+              address: getValue(row, ["주소"]),
+              memo: getValue(row, ["거래처메모", "고객메모", "메모"]),
+            }),
+          });
+          const result = await response.json();
+          if (!response.ok) {
+            failures.push(`${code}: ${result.message || "등록 실패"}`);
+            continue;
+          }
+          successCount += 1;
+        } catch {
+          failures.push(`${code}: 등록 요청 중 오류가 발생했습니다.`);
+        }
+      }
+
+      await loadCustomers();
+      alert(
+        `엑셀 업로드가 완료되었습니다.\n신규 등록: ${successCount}개\n실패: ${failures.length}개` +
+          (failures.length ? `\n\n${failures.slice(0, 10).join("\n")}` : "")
+      );
+    } catch (error) {
+      console.error(error);
+      alert("엑셀 파일을 읽는 중 오류가 발생했습니다.");
+    } finally {
+      setImportingExcel(false);
+    }
+  }
+
   return (
-    <div style={{ width: "100%", maxWidth: "1080px", margin: "0", boxSizing: "border-box" }}>
-      <div style={summaryGrid}>
-        <SummaryCard
-          label="전체 거래처"
-          value={`${summary.total}명`}
-        />
-        <SummaryCard
-          label="사용중 거래처"
-          value={`${summary.active}명`}
-        />
-        <SummaryCard
-          label="검색 거래처 주문"
-          value={`${summary.orders}건`}
-        />
-        <SummaryCard
-          label="검색 거래처 매출"
-          value={`${summary.sales.toLocaleString()}원`}
-        />
-      </div>
-
-      <section style={section}>
-        <h2 style={{ marginTop: 0 }}>
-          {editingId
-            ? "✏️ 고객 수정"
-            : "🤝 거래처 등록"}
-        </h2>
-
-        <form onSubmit={handleSubmit}>
-          <div style={grid}>
-            <input name="code" value={form.code} onChange={handleChange} placeholder="거래처 코드 예: C001" style={input} />
-            <input name="name" value={form.name} onChange={handleChange} placeholder="거래처명" style={input} />
-            <select
-              name="grade"
-              value={form.grade}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  grade: event.target.value as CustomerForm["grade"],
-                }))
-              }
-              style={{ ...input, backgroundColor: "white" }}
-              aria-label="거래처 등급"
-            >
-              <option value="A">A그룹</option>
-              <option value="B">B그룹</option>
-              <option value="C">C그룹</option>
-              <option value="D">D그룹</option>
-            </select>
-            <input name="phone" value={form.phone} onChange={handleChange} placeholder="전화번호" style={input} />
-            <input name="email" value={form.email} onChange={handleChange} placeholder="이메일" style={input} />
-          </div>
-
+    <div style={{ width: "100%", maxWidth: "820px", margin: "0", boxSizing: "border-box" }}>
+      <div style={topActionRow}>
+        <button
+          type="button"
+          style={formToggleButton}
+          aria-expanded={isFormOpen}
+          onClick={() => setIsFormOpen((current) => !current)}
+        >
+          {isFormOpen ? "거래처 등록 닫기" : "+ 거래처 등록"}
+        </button>
+        <div style={excelActionRow}>
           <input
-            name="address"
-            value={form.address}
-            onChange={handleChange}
-            placeholder="주소"
-            style={fullInput}
+            ref={excelInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={uploadExcel}
+            style={{ display: "none" }}
           />
-
-          <textarea
-            name="memo"
-            value={form.memo}
-            onChange={handleChange}
-            placeholder="거래처 메모"
-            style={textarea}
-          />
-
-          <div style={buttonRow}>
-            <button
-              type="submit"
-              disabled={loading}
-              style={saveButton}
-            >
-              {loading
-                ? "저장 중..."
-                : editingId
-                ? "고객 수정 저장"
-                : "거래처 저장"}
-            </button>
-
-            {editingId && (
-              <button
-                type="button"
-                style={cancelButton}
-                onClick={() => {
-                  setEditingId(null);
-                  setForm(emptyForm);
-                }}
-              >
-                수정 취소
-              </button>
-            )}
-          </div>
-        </form>
-      </section>
-
-      <section style={{ marginTop: "22px" }}>
-        <div style={titleRow}>
-          <h2>거래처 목록</h2>
-
+          <button
+            type="button"
+            style={excelUploadButton}
+            disabled={importingExcel}
+            onClick={() => excelInputRef.current?.click()}
+          >
+            {importingExcel ? "업로드 중..." : "엑셀 업로드"}
+          </button>
           <button
             type="button"
             style={excelButton}
@@ -442,7 +428,97 @@ export default function CustomerManager() {
             엑셀 다운로드
           </button>
         </div>
+      </div>
 
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: isFormOpen ? "1fr" : "0fr",
+          transition: "grid-template-rows 180ms ease",
+        }}
+      >
+        <div style={{ overflow: "hidden" }}>
+          <section style={section}>
+            <h2 style={formTitle}>
+              {editingId
+                ? "고객 수정"
+                : "거래처 등록"}
+            </h2>
+
+            <form onSubmit={handleSubmit}>
+              <div style={grid}>
+                <input name="code" value={form.code} onChange={handleChange} placeholder="코드" style={shortInput} />
+                <input name="name" value={form.name} onChange={handleChange} placeholder="거래처명" style={shortInput} />
+                <select
+                  name="grade"
+                  value={form.grade}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      grade: event.target.value as CustomerForm["grade"],
+                    }))
+                  }
+                  style={{ ...gradeInput, backgroundColor: "white" }}
+                  aria-label="거래처 등급"
+                >
+                  <option value="A">A그룹</option>
+                  <option value="B">B그룹</option>
+                  <option value="C">C그룹</option>
+                  <option value="D">D그룹</option>
+                </select>
+                <input name="phone" value={form.phone} onChange={handleChange} placeholder="전화번호" style={phoneInput} />
+                <input name="email" value={form.email} onChange={handleChange} placeholder="이메일" style={emailInput} />
+              </div>
+
+              <input
+                name="address"
+                value={form.address}
+                onChange={handleChange}
+                placeholder="주소"
+                style={fullInput}
+              />
+
+              <textarea
+                name="memo"
+                value={form.memo}
+                onChange={handleChange}
+                placeholder="거래처 메모"
+                style={textarea}
+              />
+
+              <div style={buttonRow}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={saveButton}
+                >
+                  {loading
+                    ? "저장 중..."
+                    : editingId
+                    ? "고객 수정 저장"
+                    : "거래처 저장"}
+                </button>
+
+                {editingId && (
+                  <button
+                    type="button"
+                    style={cancelButton}
+                    onClick={() => {
+                      setEditingId(null);
+                      setForm(emptyForm);
+                      setIsFormOpen(false);
+                    }}
+                  >
+                    수정 취소
+                  </button>
+                )}
+              </div>
+            </form>
+          </section>
+        </div>
+      </div>
+
+      <section style={{ marginTop: "10px" }}>
         <div style={filterRow}>
           <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={filterSelect} aria-label="검색 항목 선택">
             <option value="all">전체</option><option value="code">거래처 코드</option><option value="name">이름</option><option value="phone">연락처</option><option value="email">이메일</option><option value="address">주소</option>
@@ -482,12 +558,9 @@ export default function CustomerManager() {
             <thead>
               <tr>
                 <th style={{ ...th, width: "90px" }}>코드</th>
-                <th style={{ ...th, width: "130px" }}>거래처명</th>
-                <th style={{ ...th, width: "68px" }}>등급</th>
-                <th style={{ ...th, width: "115px" }}>전화번호</th>
-                <th style={{ ...th, width: "62px" }}>주문</th>
-                <th style={{ ...th, width: "76px" }}>구매수량</th>
-                <th style={{ ...th, width: "100px" }}>누적매출</th>
+                <th style={{ ...th, width: "90px" }}>거래처명</th>
+                <th style={{ ...th, width: "68px" }}>그룹</th>
+                <th style={{ ...th, width: "130px" }}>전화번호</th>
                 <th style={{ ...th, width: "72px" }}>상태</th>
                 <th style={{ ...th, width: "238px" }}>관리</th>
               </tr>
@@ -510,17 +583,6 @@ export default function CustomerManager() {
                     </td>
                     <td style={td}>
                       {customer.phone || "-"}
-                    </td>
-                    <td style={td}>
-                      {customer.totalOrders}건
-                    </td>
-                    <td style={td}>
-                      {customer.totalQuantity}개
-                    </td>
-                    <td style={td}>
-                      <strong>
-                        {customer.totalSales.toLocaleString()}원
-                      </strong>
                     </td>
                     <td style={td}>
                       {customer.isActive
@@ -576,66 +638,54 @@ export default function CustomerManager() {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div style={card}>
-      <div style={cardLabel}>
-        {label}
-      </div>
-      <div style={cardValue}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-const summaryGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(160px, 1fr))",
-  gap: "10px",
-  marginBottom: "18px",
+const topActionRow: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "8px",
+  marginBottom: "8px",
 };
 
-const card: React.CSSProperties = {
-  padding: "13px 14px",
-  border: "1px solid #e5e7eb",
-  borderRadius: "9px",
-  backgroundColor: "white",
-};
-
-const cardLabel: React.CSSProperties = {
-  color: "#6b7280",
-  marginBottom: "5px",
+const formToggleButton: React.CSSProperties = {
+  minHeight: "34px",
+  padding: "7px 13px",
+  border: "none",
+  borderRadius: "6px",
+  backgroundColor: "#2563eb",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700,
   fontSize: "13px",
 };
 
-const cardValue: React.CSSProperties = {
-  fontSize: "21px",
-  fontWeight: "bold",
+const excelActionRow: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+  gap: "6px",
 };
 
 const section: React.CSSProperties = {
   border: "1px solid #e5e7eb",
-  borderRadius: "10px",
-  padding: "14px",
+  borderRadius: "8px",
+  padding: "10px",
+  marginBottom: "2px",
+};
+
+const formTitle: React.CSSProperties = {
+  margin: "0 0 8px",
+  fontSize: "16px",
 };
 
 const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(145px, 1fr))",
-  gap: "8px",
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "6px",
 };
 
 const input: React.CSSProperties = {
-  padding: "9px 10px",
+  minHeight: "36px",
+  padding: "7px 9px",
   border: "1px solid #d1d5db",
   borderRadius: "6px",
   fontSize: "14px",
@@ -643,29 +693,55 @@ const input: React.CSSProperties = {
   minWidth: 0,
 };
 
+const shortInput: React.CSSProperties = {
+  ...input,
+  width: "105px",
+  flex: "0 0 105px",
+};
+
+const gradeInput: React.CSSProperties = {
+  ...input,
+  width: "90px",
+  flex: "0 0 90px",
+};
+
+const phoneInput: React.CSSProperties = {
+  ...input,
+  width: "150px",
+  flex: "0 0 150px",
+};
+
+const emailInput: React.CSSProperties = {
+  ...input,
+  minWidth: "180px",
+  flex: "1 1 220px",
+};
+
 const fullInput: React.CSSProperties = {
   ...input,
   width: "100%",
-  marginTop: "10px",
+  marginTop: "6px",
   boxSizing: "border-box",
 };
 
 const textarea: React.CSSProperties = {
   ...input,
   width: "100%",
-  height: "65px",
-  marginTop: "8px",
+  minHeight: "54px",
+  height: "54px",
+  marginTop: "6px",
   resize: "vertical",
 };
 
 const buttonRow: React.CSSProperties = {
   display: "flex",
-  gap: "10px",
-  marginTop: "10px",
+  gap: "7px",
+  marginTop: "7px",
 };
 
 const saveButton: React.CSSProperties = {
-  padding: "9px 18px",
+  minHeight: "34px",
+  padding: "7px 14px",
   border: "none",
   borderRadius: "6px",
   backgroundColor: "#1f2937",
@@ -676,7 +752,8 @@ const saveButton: React.CSSProperties = {
 };
 
 const cancelButton: React.CSSProperties = {
-  padding: "9px 18px",
+  minHeight: "34px",
+  padding: "7px 14px",
   border: "none",
   borderRadius: "6px",
   backgroundColor: "#6b7280",
@@ -684,14 +761,9 @@ const cancelButton: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const titleRow: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-};
-
 const excelButton: React.CSSProperties = {
-  padding: "8px 12px",
+  minHeight: "34px",
+  padding: "7px 12px",
   border: "none",
   borderRadius: "7px",
   backgroundColor: "#15803d",
@@ -701,16 +773,23 @@ const excelButton: React.CSSProperties = {
   fontSize: "13px",
 };
 
+const excelUploadButton: React.CSSProperties = {
+  ...excelButton,
+  backgroundColor: "#ef4444",
+};
+
 const filterRow: React.CSSProperties = {
   display: "flex",
+  flexWrap: "wrap",
   gap: "7px",
-  marginBottom: "9px",
+  marginBottom: "7px",
 };
 
 const searchInput: React.CSSProperties = {
   ...input,
   flex: 1,
-  padding: "7px 9px",
+  minWidth: "230px",
+  padding: "6px 9px",
   fontSize: "13px",
 };
 
@@ -718,14 +797,14 @@ const filterSelect: React.CSSProperties = {
   ...input,
   width: "125px",
   backgroundColor: "white",
-  padding: "7px 9px",
+  padding: "6px 9px",
   fontSize: "13px",
 };
 
 const table: React.CSSProperties = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: "950px",
+  minWidth: "688px",
   tableLayout: "fixed",
   fontSize: "12px",
 };
@@ -733,14 +812,16 @@ const table: React.CSSProperties = {
 const th: React.CSSProperties = {
   border: "1px solid #d1d5db",
   backgroundColor: "#f3f4f6",
-  padding: "6px 4px",
+  height: "34px",
+  padding: "5px 4px",
   textAlign: "center",
   whiteSpace: "nowrap",
 };
 
 const td: React.CSSProperties = {
   border: "1px solid #d1d5db",
-  padding: "5px 4px",
+  height: "38px",
+  padding: "4px",
   textAlign: "center",
   lineHeight: 1.25,
 };
@@ -754,7 +835,8 @@ const actionRow: React.CSSProperties = {
 };
 
 const priceButton: React.CSSProperties = {
-  padding: "5px 7px",
+  minHeight: "30px",
+  padding: "4px 7px",
   border: "none",
   borderRadius: "5px",
   backgroundColor: "#7c3aed",
