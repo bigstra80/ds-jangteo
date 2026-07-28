@@ -3,6 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { zeroAmountTextColor } from "@/lib/zero-amount-style";
+import {
+  COMPACT_CONTROL_HEIGHT,
+  COMPACT_TABLE_BODY_FONT_SIZE,
+  COMPACT_TABLE_CELL_PADDING,
+  COMPACT_TABLE_HEADER_FONT_SIZE,
+  COMPACT_TABLE_HEADER_HEIGHT,
+  COMPACT_TABLE_LINE_HEIGHT,
+  COMPACT_TABLE_ROW_HEIGHT,
+  SETTLEMENT_DATE_COLUMN_WIDTH,
+  SETTLEMENT_MEMO_MIN_WIDTH,
+  SETTLEMENT_TABLE_MIN_WIDTH,
+  settlementDateCellStyle,
+  settlementWrappingCellStyle,
+} from "@/lib/settlement-table-layout";
 
 type SortOrder = "inputDesc" | "inputAsc";
 
@@ -181,57 +195,57 @@ export default function CustomerSettlementManager() {
   }, [filteredRows]);
 
   return (
-    <div style={{ width: "100%", minWidth: 0 }}>
+    <div style={{ width: "100%", maxWidth: SETTLEMENT_TABLE_MIN_WIDTH, minWidth: 0, margin: 0 }}>
       <style jsx>{`
         .customer-settlement-summary {
           display: grid;
-          grid-template-columns: repeat(4, 190px);
+          grid-template-columns: repeat(4, 160px);
           gap: 10px;
-          margin-bottom: 16px;
+          margin-bottom: 10px;
           justify-content: start;
         }
 
         .customer-settlement-toolbar {
           display: flex;
           align-items: flex-end;
-          gap: 8px;
-          width: min(1080px, 100%);
+          gap: 6px;
+          width: 100%;
           min-width: 0;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
         }
 
         .customer-settlement-filter-left {
           display: flex;
           align-items: flex-end;
-          gap: 8px;
+          gap: 6px;
           flex: 1 1 auto;
           min-width: 0;
         }
 
         .customer-settlement-search-type {
-          flex: 0 1 96px;
-          min-width: 72px !important;
-          width: 96px;
+          flex: 0 0 70px;
+          min-width: 70px !important;
+          width: 70px;
         }
 
         .customer-settlement-search {
-          flex: 1 1 260px;
-          width: auto !important;
-          min-width: 90px;
+          flex: 0 1 250px;
+          width: 250px !important;
+          min-width: 180px;
         }
 
         .customer-settlement-toolbar-right {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex: 0 1 auto;
           min-width: 0;
         }
 
         .customer-settlement-sort-select {
-          flex: 0 1 128px;
-          min-width: 92px;
-          width: 128px !important;
+          flex: 0 0 90px;
+          min-width: 90px;
+          width: 90px !important;
         }
 
         .customer-settlement-excel-button {
@@ -241,8 +255,8 @@ export default function CustomerSettlementManager() {
 
         .customer-settlement-date-group {
           display: flex;
-          flex: 0 1 128px;
-          min-width: 104px;
+          flex: 0 1 108px;
+          min-width: 108px;
           flex-direction: column;
           gap: 4px;
         }
@@ -256,8 +270,8 @@ export default function CustomerSettlementManager() {
         .customer-settlement-date-input {
           width: 100%;
           min-width: 0;
-          height: 36px;
-          padding: 0 9px;
+          height: ${COMPACT_CONTROL_HEIGHT}px;
+          padding: 0 8px;
           border: 1px solid #cbd5e1;
           border-radius: 8px;
           box-sizing: border-box;
@@ -266,8 +280,8 @@ export default function CustomerSettlementManager() {
         }
 
         .customer-settlement-reset-button {
-          height: 36px;
-          padding: 0 10px;
+          height: ${COMPACT_CONTROL_HEIGHT}px;
+          padding: 0 9px;
           flex: 0 1 88px;
           min-width: 72px;
           white-space: nowrap;
@@ -280,9 +294,10 @@ export default function CustomerSettlementManager() {
         }
 
         .customer-settlement-table-wrap {
-          width: min(1080px, 100%);
+          width: 100%;
+          max-width: 100%;
           min-width: 0;
-          max-height: clamp(260px, calc(100vh - 390px), 680px);
+          max-height: clamp(360px, calc(100vh - 260px), 760px);
           overflow-x: auto;
           overflow-y: auto;
           margin-right: auto;
@@ -299,7 +314,7 @@ export default function CustomerSettlementManager() {
 
         .customer-settlement-table {
           width: 100%;
-          min-width: 0;
+          min-width: ${SETTLEMENT_TABLE_MIN_WIDTH}px;
           border-collapse: collapse;
           table-layout: fixed;
         }
@@ -311,46 +326,56 @@ export default function CustomerSettlementManager() {
         }
 
         .customer-settlement-table th {
-          padding: 7px 4px !important;
-          font-size: 11px !important;
+          height: ${COMPACT_TABLE_HEADER_HEIGHT}px;
+          padding: 6px 5px !important;
+          font-size: ${COMPACT_TABLE_HEADER_FONT_SIZE}px !important;
+          line-height: ${COMPACT_TABLE_LINE_HEIGHT} !important;
+          box-sizing: border-box;
         }
 
         .customer-settlement-table td {
-          padding: 12px 10px !important;
-          font-size: 14px !important;
-          line-height: 1.45 !important;
+          height: ${COMPACT_TABLE_ROW_HEIGHT}px;
+          padding: ${COMPACT_TABLE_CELL_PADDING} !important;
+          font-size: ${COMPACT_TABLE_BODY_FONT_SIZE}px !important;
+          line-height: ${COMPACT_TABLE_LINE_HEIGHT} !important;
+          box-sizing: border-box;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .customer-settlement-table .product-cell,
-        .customer-settlement-table .memo-cell {
+        .customer-settlement-table .product-cell {
+          overflow: visible;
+          overflow-wrap: anywhere;
+          text-overflow: clip;
           white-space: normal;
+          word-break: keep-all;
+        }
+
+        .customer-settlement-table .memo-cell {
+          overflow: visible;
+          overflow-wrap: anywhere;
+          text-overflow: clip;
+          white-space: normal;
+          word-break: keep-all;
+        }
+
+        .customer-settlement-table .transaction-date-cell {
+          overflow: visible;
+          text-overflow: clip;
+          white-space: nowrap;
         }
 
         @media (max-width: 1250px) {
-          .customer-settlement-table th {
-            padding: 9px 6px !important;
-            font-size: 11px !important;
-          }
-
-          .customer-settlement-table td {
-            padding: 12px 10px !important;
-            font-size: 14px !important;
-            line-height: 1.45 !important;
-          }
-
-          .customer-settlement-table .memo-cell {
-            padding-left: 8px !important;
-          }
-
           .customer-settlement-table .total-amount-cell,
           .customer-settlement-table .total-amount-head {
-            padding-right: 8px !important;
+            padding-right: 7px !important;
           }
         }
 
         @media (max-width: 980px) {
           .customer-settlement-summary {
-            grid-template-columns: repeat(2, 190px);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
           }
 
@@ -367,16 +392,6 @@ export default function CustomerSettlementManager() {
             margin-left: auto;
           }
 
-          .customer-settlement-table th {
-            padding: 7px 4px !important;
-            font-size: 10px !important;
-          }
-
-          .customer-settlement-table td {
-            padding: 10px 8px !important;
-            font-size: 14px !important;
-            line-height: 1.4 !important;
-          }
         }
 
         @media (max-width: 700px) {
@@ -423,25 +438,8 @@ export default function CustomerSettlementManager() {
             width: auto !important;
           }
 
-          .customer-settlement-table th {
-            font-size: 9px !important;
-            padding: 6px 3px !important;
-          }
-
-          .customer-settlement-table td {
-            font-size: 13px !important;
-            padding: 8px 5px !important;
-            line-height: 1.35 !important;
-          }
         }
       `}</style>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ marginBottom: 8 }}>📒 출고</h1>
-        <p style={{ margin: 0, color: "#6b7280" }}>
-          출고 내역을 조회하고 관리합니다.
-        </p>
-      </div>
-
       <div className="customer-settlement-summary">
         <SummaryCard
           title="건수"
@@ -530,21 +528,21 @@ export default function CustomerSettlementManager() {
       <div className="customer-settlement-table-wrap" style={tableWrapStyle}>
         <table className="customer-settlement-table" style={tableStyle}>
           <colgroup>
-            <col style={{ width: 92 }} />
-            <col style={{ width: 82 }} />
-            <col style={{ width: 105 }} />
-            <col style={{ width: 205 }} />
-            <col style={{ width: 90 }} />
-            <col style={{ width: 125 }} />
-            <col style={{ width: 48 }} />
-            <col style={{ width: 90 }} />
-            <col style={{ width: 78 }} />
-            <col style={{ width: 92 }} />
-            <col style={{ width: 145 }} />
+            <col style={{ width: SETTLEMENT_DATE_COLUMN_WIDTH }} />
+            <col style={{ width: 75 }} />
+            <col style={{ width: 85 }} />
+            <col style={{ width: 255 }} />
+            <col style={{ width: 75 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 40 }} />
+            <col style={{ width: 65 }} />
+            <col style={{ width: 55 }} />
+            <col style={{ width: 70 }} />
+            <col style={{ width: SETTLEMENT_MEMO_MIN_WIDTH }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              <th style={centerThStyle}>거래일</th>
+              <th className="transaction-date-cell" style={{ ...centerThStyle, ...settlementDateCellStyle }}>거래일</th>
               <th style={leftThStyle}>거래처</th>
               <th style={leftThStyle}>상품번호</th>
               <th style={leftThStyle}>상품명</th>
@@ -589,12 +587,12 @@ export default function CustomerSettlementManager() {
                     color: shouldHighlightRed ? "#dc2626" : undefined,
                   }}
                 >
-                  <td style={centerTdStyle}>
+                  <td className="transaction-date-cell" style={{ ...centerTdStyle, ...settlementDateCellStyle }}>
                     {new Date(row.transactionDate).toLocaleDateString("ko-KR")}
                   </td>
                   <td style={tdStyle}>{row.deliveryCompanyName || "-"}</td>
                   <td style={tdStyle}>{row.productCode || "-"}</td>
-                  <td className="product-cell" style={tdStyle}><strong>{row.productName}</strong></td>
+                  <td className="product-cell" style={{ ...tdStyle, ...settlementWrappingCellStyle }}><strong>{row.productName}</strong></td>
                   <td style={tdStyle}>{row.customerName || "-"}</td>
                   <td style={tdStyle}>{row.customerPhone || "-"}</td>
                   <td style={centerTdStyle}>{row.quantity}</td>
@@ -618,7 +616,7 @@ export default function CustomerSettlementManager() {
                   >
                     {money((row.saleAmount || 0) + (row.shippingFee || 0))}
                   </td>
-                  <td className="memo-cell" style={{ ...tdStyle, paddingLeft: 30 }}>
+                  <td className="memo-cell" style={{ ...tdStyle, ...settlementWrappingCellStyle }}>
                     {row.memo || "-"}
                   </td>
                 </tr>
@@ -648,7 +646,7 @@ function SummaryCard({
       <div style={summaryTitleStyle}>{title}</div>
       <div
         style={{
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: 900,
           color: emphasize ? "#dc2626" : "#111827",
         }}
@@ -661,22 +659,24 @@ function SummaryCard({
 
 const summaryGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: 14,
-  marginBottom: 24,
+  gridTemplateColumns: "repeat(4, 160px)",
+  gap: 8,
+  marginBottom: 10,
+  justifyContent: "start",
 };
 
 const summaryCardStyle: React.CSSProperties = {
-  padding: 18,
+  minHeight: 66,
+  padding: "11px 12px",
   backgroundColor: "#fff",
   border: "1px solid #e5e7eb",
-  borderRadius: 12,
+  borderRadius: 9,
 };
 
 const summaryTitleStyle: React.CSSProperties = {
   color: "#6b7280",
-  fontSize: 13,
-  marginBottom: 8,
+  fontSize: 11,
+  marginBottom: 5,
 };
 
 const toolbarStyle: React.CSSProperties = {
@@ -689,9 +689,10 @@ const toolbarStyle: React.CSSProperties = {
 
 
 const sortSelectStyle: React.CSSProperties = {
-  width: 128,
-  height: 36,
-  padding: "0 10px",
+  width: 90,
+  minWidth: 90,
+  height: COMPACT_CONTROL_HEIGHT,
+  padding: "0 20px 0 8px",
   border: "1px solid #cbd5e1",
   borderRadius: 8,
   background: "#fff",
@@ -701,8 +702,8 @@ const sortSelectStyle: React.CSSProperties = {
 };
 
 const excelButtonStyle: React.CSSProperties = {
-  height: 42,
-  padding: "0 18px",
+  height: COMPACT_CONTROL_HEIGHT,
+  padding: "0 14px",
   border: "none",
   borderRadius: 8,
   background: "#16a34a",
@@ -713,44 +714,46 @@ const excelButtonStyle: React.CSSProperties = {
 };
 
 const searchTypeStyle: React.CSSProperties = {
-  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
+  width: 70, minWidth: 70, height: COMPACT_CONTROL_HEIGHT, padding: "0 20px 0 8px", border: "1px solid #cbd5e1", borderRadius: 8, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer", fontSize: 11,
 };
 
 const searchStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: 620,
-  height: 42,
-  padding: "0 14px",
+  width: 250,
+  minWidth: 180,
+  maxWidth: 250,
+  height: COMPACT_CONTROL_HEIGHT,
+  padding: "0 10px",
   border: "1px solid #d1d5db",
   borderRadius: 8,
-  fontSize: 14,
+  fontSize: 12,
 };
 
 const tableWrapStyle: React.CSSProperties = {
-  width: "min(1080px, 100%)",
+  width: "100%",
   minWidth: 0,
-  maxHeight: "clamp(260px, calc(100vh - 390px), 680px)",
+  maxHeight: "clamp(360px, calc(100vh - 260px), 760px)",
   overflowX: "auto",
   overflowY: "auto",
   marginRight: "auto",
   scrollbarGutter: "stable",
   overscrollBehavior: "contain",
   border: "1px solid #e5e7eb",
-  borderRadius: 12,
+  borderRadius: 14,
   backgroundColor: "#fff",
 };
 
 const tableStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: 1080,
-  minWidth: 0,
+  maxWidth: "none",
+  minWidth: SETTLEMENT_TABLE_MIN_WIDTH,
   borderCollapse: "collapse",
   tableLayout: "fixed",
 };
 
 const thStyle: React.CSSProperties = {
-  padding: "12px 10px",
-  fontSize: 13,
+  height: COMPACT_TABLE_HEADER_HEIGHT,
+  padding: "6px 5px",
+  fontSize: COMPACT_TABLE_HEADER_FONT_SIZE,
   whiteSpace: "nowrap",
   verticalAlign: "middle",
   borderBottom: "1px solid #e5e7eb",
@@ -772,10 +775,11 @@ const rightThStyle: React.CSSProperties = {
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "12px 10px",
-  fontSize: 14,
+  height: COMPACT_TABLE_ROW_HEIGHT,
+  padding: COMPACT_TABLE_CELL_PADDING,
+  fontSize: COMPACT_TABLE_BODY_FONT_SIZE,
   verticalAlign: "middle",
-  lineHeight: 1.45,
+  lineHeight: COMPACT_TABLE_LINE_HEIGHT,
 };
 
 const centerTdStyle: React.CSSProperties = {

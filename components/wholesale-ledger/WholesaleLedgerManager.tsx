@@ -8,6 +8,20 @@ import {
 } from "@/lib/zero-amount-style";
 import { calculateLedgerAmount } from "@/lib/ledger-amount";
 import { changedInputStyle } from "@/lib/dirty-input-style";
+import {
+  COMPACT_CONTROL_HEIGHT,
+  COMPACT_TABLE_BODY_FONT_SIZE,
+  COMPACT_TABLE_CELL_PADDING,
+  COMPACT_TABLE_HEADER_FONT_SIZE,
+  COMPACT_TABLE_HEADER_HEIGHT,
+  COMPACT_TABLE_LINE_HEIGHT,
+  COMPACT_TABLE_ROW_HEIGHT,
+  SETTLEMENT_DATE_COLUMN_WIDTH,
+  SETTLEMENT_MEMO_MIN_WIDTH,
+  SETTLEMENT_TABLE_MIN_WIDTH,
+  settlementDateCellStyle,
+  settlementWrappingCellStyle,
+} from "@/lib/settlement-table-layout";
 
 type LedgerRow = {
   id: number;
@@ -930,7 +944,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
   return (
     <div
-      style={pageStyle}
+      style={{
+        ...pageStyle,
+        ...(listOnly
+          ? { maxWidth: SETTLEMENT_TABLE_MIN_WIDTH, margin: 0 }
+          : {}),
+      }}
       className={listOnly ? "wl-list-only-page" : undefined}
     >
       <style>{`
@@ -1071,8 +1090,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         }
 
         .wl-list-only-pane .wl-table-wrap {
-          max-height: clamp(360px, calc(100vh - 190px), 860px) !important;
-          height: clamp(360px, calc(100vh - 190px), 860px) !important;
+          max-height: clamp(360px, calc(100vh - 260px), 760px) !important;
+          height: clamp(360px, calc(100vh - 260px), 760px) !important;
         }
 
         .wl-right-pane .wl-table-wrap thead th,
@@ -1113,23 +1132,23 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         /* 입출고 전용 압축 레이아웃 */
         .wl-list-only-table {
-          width: 1010px !important;
-          min-width: 1010px !important;
+          width: 100% !important;
+          min-width: ${SETTLEMENT_TABLE_MIN_WIDTH}px !important;
         }
 
         .wl-list-only-table th {
-          height: 34px !important;
+          height: ${COMPACT_TABLE_HEADER_HEIGHT}px !important;
           padding: 6px 5px !important;
-          font-size: 11px !important;
-          line-height: 1.25 !important;
+          font-size: ${COMPACT_TABLE_HEADER_FONT_SIZE}px !important;
+          line-height: ${COMPACT_TABLE_LINE_HEIGHT} !important;
           box-sizing: border-box;
         }
 
         .wl-list-only-table td {
-          height: 39px !important;
-          padding: 5px 7px !important;
-          font-size: 12px !important;
-          line-height: 1.25 !important;
+          height: ${COMPACT_TABLE_ROW_HEIGHT}px !important;
+          padding: ${COMPACT_TABLE_CELL_PADDING} !important;
+          font-size: ${COMPACT_TABLE_BODY_FONT_SIZE}px !important;
+          line-height: ${COMPACT_TABLE_LINE_HEIGHT} !important;
           box-sizing: border-box;
         }
 
@@ -1141,11 +1160,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         }
 
         .wl-list-only-table .wl-product-name-text {
-          display: -webkit-box;
-          overflow: hidden;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-          line-clamp: 2;
+          display: block;
+          overflow: visible;
+          white-space: normal;
+          word-break: keep-all;
+          overflow-wrap: anywhere;
         }
 
         .wl-transaction-summary {
@@ -1205,7 +1224,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         .wl-list-only-page .wl-search-type {
           width: 70px !important;
           min-width: 70px !important;
-          height: 34px !important;
+          height: ${COMPACT_CONTROL_HEIGHT}px !important;
           padding: 0 20px 0 8px !important;
           border-radius: 8px !important;
           font-size: 11px !important;
@@ -1214,7 +1233,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         .wl-list-only-page .wl-search-input {
           width: 250px !important;
           min-width: 180px !important;
-          height: 34px !important;
+          height: ${COMPACT_CONTROL_HEIGHT}px !important;
           padding: 0 10px !important;
           border-radius: 8px !important;
           font-size: 12px !important;
@@ -1232,7 +1251,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         .wl-list-only-page .wl-date-filter input {
           width: 108px !important;
           min-width: 108px !important;
-          height: 34px !important;
+          height: ${COMPACT_CONTROL_HEIGHT}px !important;
           padding: 0 7px !important;
           border-radius: 8px !important;
           font-size: 11px !important;
@@ -1240,8 +1259,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         .wl-list-only-page .wl-date-filter button,
         .wl-list-only-page .wl-sort-select {
-          height: 34px !important;
-          min-height: 34px !important;
+          height: ${COMPACT_CONTROL_HEIGHT}px !important;
+          min-height: ${COMPACT_CONTROL_HEIGHT}px !important;
           border-radius: 8px !important;
           font-size: 11px !important;
         }
@@ -1800,22 +1819,22 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={{ ...tableStyle, width: listOnly ? "1010px" : "925px", minWidth: listOnly ? "1010px" : "925px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
+        <table style={{ ...tableStyle, width: listOnly ? "100%" : "925px", minWidth: listOnly ? `${SETTLEMENT_TABLE_MIN_WIDTH}px` : "925px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
           <colgroup>
             {listOnly ? (
               <>
-                <col style={{ width: "75px" }} />
-                <col style={{ width: "78px" }} />
-                <col style={{ width: "215px" }} />
-                <col style={{ width: "42px" }} />
-                <col style={{ width: "70px" }} />
-                <col style={{ width: "78px" }} />
-                <col style={{ width: "75px" }} />
+                <col style={{ width: SETTLEMENT_DATE_COLUMN_WIDTH }} />
                 <col style={{ width: "80px" }} />
-                <col style={{ width: "78px" }} />
-                <col style={{ width: "62px" }} />
-                <col style={{ width: "62px" }} />
-                <col style={{ width: "95px" }} />
+                <col style={{ width: "235px" }} />
+                <col style={{ width: "40px" }} />
+                <col style={{ width: "65px" }} />
+                <col style={{ width: "75px" }} />
+                <col style={{ width: "70px" }} />
+                <col style={{ width: "75px" }} />
+                <col style={{ width: "75px" }} />
+                <col style={{ width: "55px" }} />
+                <col style={{ width: "60px" }} />
+                <col style={{ width: SETTLEMENT_MEMO_MIN_WIDTH }} />
               </>
             ) : (
               <>
@@ -1895,7 +1914,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                         : undefined
                     }
                   >
-                    <td className="wl-date-cell" style={tdStyle}>
+                    <td className="wl-date-cell" style={{ ...tdStyle, ...(listOnly ? settlementDateCellStyle : {}) }}>
                       {dateOnly(row.transactionDate)}
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 700 }} title={productCodeByName.get(row.productName.trim().toLowerCase()) || ""}>
@@ -1905,6 +1924,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       className="wl-product-name-cell"
                       style={{
                         ...tdStyle,
+                        ...(listOnly ? settlementWrappingCellStyle : {}),
                         fontWeight: 800,
                         fontSize: listOnly ? "14px" : "12px",
                       }}
@@ -2019,7 +2039,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     )}
 
                     {listOnly ? (
-                      <td style={tdStyle}>{row.memo || "-"}</td>
+                      <td style={{ ...tdStyle, ...settlementWrappingCellStyle }}>{row.memo || "-"}</td>
                     ) : (
                       <td style={tdStyle}>
                         <input

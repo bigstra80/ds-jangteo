@@ -2,6 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import {
+  COMPACT_CONTROL_HEIGHT,
+  COMPACT_TABLE_BODY_FONT_SIZE,
+  COMPACT_TABLE_CELL_PADDING,
+  COMPACT_TABLE_HEADER_FONT_SIZE,
+  COMPACT_TABLE_HEADER_HEIGHT,
+  COMPACT_TABLE_LINE_HEIGHT,
+  COMPACT_TABLE_ROW_HEIGHT,
+  SETTLEMENT_DATE_COLUMN_WIDTH,
+  SETTLEMENT_MEMO_MIN_WIDTH,
+  SETTLEMENT_TABLE_MIN_WIDTH,
+  settlementDateCellStyle,
+  settlementWrappingCellStyle,
+} from "@/lib/settlement-table-layout";
 
 type SortOrder = "inputDesc" | "inputAsc";
 
@@ -193,10 +207,13 @@ export default function SupplierSettlementManager() {
   }, [filteredRows]);
 
   return (
-    <div style={{ width: "100%" }} className="supplier-settlement-page">
+    <div
+      style={{ width: "100%", maxWidth: SETTLEMENT_TABLE_MIN_WIDTH, margin: 0 }}
+      className="supplier-settlement-page"
+    >
       <style jsx global>{`
         .supplier-settlement-table-wrap {
-          max-height: clamp(260px, calc(100vh - 390px), 680px);
+          max-height: clamp(360px, calc(100vh - 260px), 760px);
           overflow-x: auto !important;
           overflow-y: auto !important;
           scrollbar-gutter: stable;
@@ -209,14 +226,29 @@ export default function SupplierSettlementManager() {
           z-index: 2;
           background: #f8fafc;
         }
-      `}</style>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ marginBottom: 8 }}>📕 입고</h1>
-        <p style={{ margin: 0, color: "#6b7280" }}>
-          입고 내역을 조회하고 관리합니다.
-        </p>
-      </div>
 
+        .supplier-settlement-table th {
+          height: ${COMPACT_TABLE_HEADER_HEIGHT}px;
+          padding: 6px 5px !important;
+          font-size: ${COMPACT_TABLE_HEADER_FONT_SIZE}px !important;
+          line-height: ${COMPACT_TABLE_LINE_HEIGHT} !important;
+          box-sizing: border-box;
+        }
+
+        .supplier-settlement-table td {
+          height: ${COMPACT_TABLE_ROW_HEIGHT}px;
+          padding: ${COMPACT_TABLE_CELL_PADDING} !important;
+          font-size: ${COMPACT_TABLE_BODY_FONT_SIZE}px !important;
+          line-height: ${COMPACT_TABLE_LINE_HEIGHT} !important;
+          box-sizing: border-box;
+        }
+
+        .supplier-settlement-transaction-date {
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: nowrap !important;
+        }
+      `}</style>
       <div style={summaryGridStyle} className="supplier-settlement-summary">
         <SummaryCard
           title="전체 거래건수"
@@ -310,20 +342,20 @@ export default function SupplierSettlementManager() {
       </div>
 
       <div style={tableWrapStyle} className="supplier-settlement-table-wrap">
-        <table style={tableStyle}>
+        <table style={tableStyle} className="supplier-settlement-table">
           <colgroup>
+            <col style={{ width: SETTLEMENT_DATE_COLUMN_WIDTH }} />
             <col style={{ width: 100 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 280 }} />
-            <col style={{ width: 120 }} />
-            <col style={{ width: 60 }} />
-            <col style={{ width: 120 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 180 }} />
+            <col style={{ width: 450 }} />
+            <col style={{ width: 100 }} />
+            <col style={{ width: 45 }} />
+            <col style={{ width: 80 }} />
+            <col style={{ width: 55 }} />
+            <col style={{ width: SETTLEMENT_MEMO_MIN_WIDTH }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              <th style={centerThStyle}>거래일</th>
+              <th className="supplier-settlement-transaction-date" style={{ ...centerThStyle, ...settlementDateCellStyle }}>거래일</th>
               <th style={leftThStyle}>공급업체</th>
               <th style={leftThStyle}>상품명</th>
               <th style={leftThStyle}>이름</th>
@@ -354,17 +386,12 @@ export default function SupplierSettlementManager() {
                     color: shouldHighlightMemo(row.memo) ? "#dc2626" : undefined,
                   }}
                 >
-                  <td style={centerTdStyle}>
+                  <td className="supplier-settlement-transaction-date" style={{ ...centerTdStyle, ...settlementDateCellStyle }}>
                     {new Date(row.transactionDate).toLocaleDateString("ko-KR")}
                   </td>
                   <td style={tdStyle}>{row.supplierName || "-"}</td>
                   <td
-                    style={{
-                      ...tdStyle,
-                      whiteSpace: "normal",
-                      overflowWrap: "anywhere",
-                      wordBreak: "keep-all",
-                    }}
+                    style={{ ...tdStyle, ...settlementWrappingCellStyle }}
                   >
                     <strong>{row.productName}</strong>
                   </td>
@@ -375,9 +402,8 @@ export default function SupplierSettlementManager() {
                   <td
                     style={{
                       ...tdStyle,
+                      ...settlementWrappingCellStyle,
                       paddingLeft: 6,
-                      whiteSpace: "normal",
-                      overflowWrap: "anywhere",
                       textAlign: "center",
                     }}
                     title={row.memo || ""}
@@ -410,7 +436,7 @@ function SummaryCard({
       <div style={summaryTitleStyle}>{title}</div>
       <div
         style={{
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: 900,
           color: emphasize ? "#dc2626" : "#111827",
         }}
@@ -423,39 +449,39 @@ function SummaryCard({
 
 const summaryGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, 190px)",
-  gap: 10,
-  marginBottom: 16,
+  gridTemplateColumns: "repeat(4, 160px)",
+  gap: 8,
+  marginBottom: 10,
   justifyContent: "start",
 };
 
 const summaryCardStyle: React.CSSProperties = {
-  padding: "11px 13px",
-  minHeight: 74,
+  padding: "11px 12px",
+  minHeight: 66,
   backgroundColor: "#fff",
   border: "1px solid #e5e7eb",
-  borderRadius: 10,
+  borderRadius: 9,
 };
 
 const summaryTitleStyle: React.CSSProperties = {
   color: "#6b7280",
-  fontSize: 13,
-  marginBottom: 8,
+  fontSize: 11,
+  marginBottom: 5,
 };
 
 const toolbarStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-end",
   justifyContent: "flex-start",
-  gap: 10,
-  marginBottom: 12,
+  gap: 6,
+  marginBottom: 7,
   flexWrap: "wrap",
 };
 
 const filterLeftStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-end",
-  gap: 8,
+  gap: 6,
   flexWrap: "wrap",
 };
 
@@ -472,9 +498,9 @@ const dateLabelStyle: React.CSSProperties = {
 };
 
 const dateInputStyle: React.CSSProperties = {
-  width: 128,
-  height: 36,
-  padding: "0 9px",
+  width: 108,
+  height: COMPACT_CONTROL_HEIGHT,
+  padding: "0 7px",
   border: "1px solid #cbd5e1",
   borderRadius: 8,
   boxSizing: "border-box",
@@ -483,7 +509,7 @@ const dateInputStyle: React.CSSProperties = {
 };
 
 const dateResetButtonStyle: React.CSSProperties = {
-  height: 36,
+  height: COMPACT_CONTROL_HEIGHT,
   minWidth: 88,
   padding: "0 10px",
   whiteSpace: "nowrap",
@@ -500,15 +526,16 @@ const dateResetButtonStyle: React.CSSProperties = {
 const toolbarActionStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-end",
-  gap: 8,
+  gap: 6,
   flexWrap: "nowrap",
   marginLeft: 12,
 };
 
 const sortSelectStyle: React.CSSProperties = {
-  width: 128,
-  height: 36,
-  padding: "0 10px",
+  width: 90,
+  minWidth: 90,
+  height: COMPACT_CONTROL_HEIGHT,
+  padding: "0 20px 0 8px",
   border: "1px solid #cbd5e1",
   borderRadius: 8,
   background: "#fff",
@@ -518,8 +545,8 @@ const sortSelectStyle: React.CSSProperties = {
 };
 
 const excelButtonStyle: React.CSSProperties = {
-  height: 42,
-  padding: "0 18px",
+  height: COMPACT_CONTROL_HEIGHT,
+  padding: "0 14px",
   border: "none",
   borderRadius: 8,
   background: "#16a34a",
@@ -530,44 +557,45 @@ const excelButtonStyle: React.CSSProperties = {
 };
 
 const searchTypeStyle: React.CSSProperties = {
-  height: 42, minWidth: 96, padding: "0 30px 0 12px", border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer",
+  width: 70, minWidth: 70, height: COMPACT_CONTROL_HEIGHT, padding: "0 20px 0 8px", border: "1px solid #cbd5e1", borderRadius: 8, background: "#fff", fontWeight: 700, color: "#334155", cursor: "pointer", fontSize: 11,
 };
 
 const searchStyle: React.CSSProperties = {
-  width: 300,
+  width: 250,
   maxWidth: "100%",
-  height: 36,
-  padding: "0 12px",
+  height: COMPACT_CONTROL_HEIGHT,
+  padding: "0 10px",
   border: "1px solid #d1d5db",
   borderRadius: 8,
-  fontSize: 13,
+  fontSize: 12,
 };
 
 const tableWrapStyle: React.CSSProperties = {
-  width: "min(1080px, 100%)",
+  width: "100%",
   minWidth: 0,
-  maxHeight: "clamp(260px, calc(100vh - 390px), 680px)",
+  maxHeight: "clamp(360px, calc(100vh - 260px), 760px)",
   overflowX: "auto",
   overflowY: "auto",
   marginRight: "auto",
   scrollbarGutter: "stable",
   overscrollBehavior: "contain",
   border: "1px solid #e5e7eb",
-  borderRadius: 12,
+  borderRadius: 14,
   backgroundColor: "#fff",
 };
 
 const tableStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: 1080,
-  minWidth: 0,
+  maxWidth: "none",
+  minWidth: SETTLEMENT_TABLE_MIN_WIDTH,
   borderCollapse: "collapse",
   tableLayout: "fixed",
 };
 
 const thStyle: React.CSSProperties = {
-  padding: "7px 4px",
-  fontSize: 11,
+  height: COMPACT_TABLE_HEADER_HEIGHT,
+  padding: "6px 5px",
+  fontSize: COMPACT_TABLE_HEADER_FONT_SIZE,
   whiteSpace: "nowrap",
   verticalAlign: "middle",
   borderBottom: "1px solid #e5e7eb",
@@ -589,10 +617,11 @@ const rightThStyle: React.CSSProperties = {
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "12px 10px",
-  fontSize: 14,
+  height: COMPACT_TABLE_ROW_HEIGHT,
+  padding: COMPACT_TABLE_CELL_PADDING,
+  fontSize: COMPACT_TABLE_BODY_FONT_SIZE,
   verticalAlign: "middle",
-  lineHeight: 1.45,
+  lineHeight: COMPACT_TABLE_LINE_HEIGHT,
 };
 
 const centerTdStyle: React.CSSProperties = {
