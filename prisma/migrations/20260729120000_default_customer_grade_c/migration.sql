@@ -1,0 +1,2 @@
+ALTER TABLE "Customer"
+ALTER COLUMN "grade" SET DEFAULT 'C';

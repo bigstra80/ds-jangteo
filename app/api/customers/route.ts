@@ -7,9 +7,9 @@ function extractOrderNumber(memo: string | null) {
   return match?.[1]?.trim() || null;
 }
 
-function normalizeCustomerGrade(value: unknown) {
-  const grade = String(value || "D").toUpperCase();
-  return ["A", "B", "C", "D"].includes(grade) ? grade : "D";
+function normalizeCustomerGrade(value: unknown, fallback: "C" | "D" = "D") {
+  const grade = String(value || fallback).toUpperCase();
+  return ["A", "B", "C", "D"].includes(grade) ? grade : fallback;
 }
 
 // 고객 목록 + 주문/매출 요약 조회
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       data: {
         code,
         name,
-        grade: normalizeCustomerGrade(body.grade),
+        grade: normalizeCustomerGrade(body.grade, "C"),
         phone: String(body.phone || "").trim() || null,
         email: String(body.email || "").trim() || null,
         address: String(body.address || "").trim() || null,

@@ -84,6 +84,9 @@ type SearchOption = {
   id: string;
   label: string;
   keywords?: string;
+  code?: string;
+  customerGrade?: string;
+  isActive?: boolean;
   productCode?: string;
   productName?: string;
   basePrice?: number;
@@ -235,11 +238,16 @@ function nameOptionsFromPayload(payload: unknown, kind: "supplier" | "customer")
 
       const phone = String(item?.phone ?? "").trim();
       const contact = String(item?.contact ?? item?.managerName ?? "").trim();
+      const code = String(item?.code ?? "").trim();
 
       return {
         id: String(item?.id ?? index),
         label: name,
-        keywords: [name, phone, contact].filter(Boolean).join(" "),
+        code,
+        customerGrade:
+          kind === "customer" ? String(item?.grade || "D").toUpperCase() : undefined,
+        isActive: item?.isActive !== false,
+        keywords: [code, name, phone, contact].filter(Boolean).join(" "),
       };
     })
     .filter(Boolean) as SearchOption[];
@@ -374,6 +382,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [selectedCustomerUnitPrice, setSelectedCustomerUnitPrice] = useState(0);
   const [saleUnitPriceInput, setSaleUnitPriceInput] = useState("");
   const [isSalePriceManuallyEdited, setIsSalePriceManuallyEdited] = useState(false);
+  const [formResetKey, setFormResetKey] = useState(0);
 
   async function loadRows() {
     setLoading(true);
@@ -417,7 +426,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       await Promise.all([
         fetchOptions(["/api/products", "/api/product"]),
         fetchOptions(["/api/suppliers", "/api/supplier"]),
-        fetchOptions(["/api/customers", "/api/customer"]),
+        fetchOptions(["/api/wholesale-ledger/customers"]),
       ]);
 
     setProductOptions(productOptionsFromPayload(productsPayload));
@@ -563,29 +572,33 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
     try {
       const response = await fetch(
-        `/api/customer-prices?customerId=${encodeURIComponent(customerId)}`,
+        `/api/wholesale-ledger/customer-price?customerId=${encodeURIComponent(customerId)}&productId=${encodeURIComponent(productId)}`,
         { cache: "no-store" }
       );
 
       if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        console.error("납품업체 등급 조회 실패:", response.status, errorPayload);
+        setSaveMessage("납품업체 등급을 불러오지 못했습니다.");
         applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
         return;
       }
 
-      const products = await response.json();
-      const matched = Array.isArray(products)
-        ? products.find((item: any) => String(item.id) === String(productId))
-        : null;
+      const matched = await response.json();
 
       if (matched?.customerPrice === null || matched?.customerPrice === undefined) {
+        console.error("납품업체 등급 단가 응답에 customerPrice가 없습니다.", matched);
+        setSaveMessage("납품업체 등급을 불러오지 못했습니다.");
         applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
         return;
       }
 
       const unitPrice = Number(matched.customerPrice) || 0;
+      setSaveMessage("");
       applySaleUnitPrice(unitPrice, quantityValue);
     } catch (error) {
       console.error("거래처 판매단가 자동 적용 오류:", error);
+      setSaveMessage("납품업체 등급을 불러오지 못했습니다.");
       applySaleUnitPrice(selectedProduct?.basePrice || 0, quantityValue);
     }
   }
@@ -604,6 +617,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         option.id,
         form.quantity
       );
+    } else if (form.deliveryCompanyName.trim()) {
+      applySaleUnitPrice(0, form.quantity);
     } else {
       applySaleUnitPrice(option.basePrice || 0, form.quantity);
     }
@@ -688,9 +703,19 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function cancelEdit() {
-    setEditingId(null);
-    setForm(emptyForm());
+  function resetOrderForm({
+    preserveDate = true,
+    clearMessage = true,
+  }: {
+    preserveDate?: boolean;
+    clearMessage?: boolean;
+  } = {}) {
+    const nextForm = emptyForm();
+    if (preserveDate) {
+      nextForm.transactionDate = form.transactionDate;
+    }
+
+    setForm(nextForm);
     setSelectedProductSuppliers([]);
     setSelectedUnitCost(0);
     setSelectedProductId("");
@@ -699,6 +724,18 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setSaleUnitPriceInput("");
     setIsSalePriceManuallyEdited(false);
     setProductCode("");
+    setEditingId(null);
+    setFormResetKey((current) => current + 1);
+    if (clearMessage) setSaveMessage("");
+  }
+
+  function resetNewOrderForm() {
+    if (editingId !== null) return;
+    resetOrderForm({ preserveDate: true });
+  }
+
+  function cancelEdit() {
+    resetOrderForm({ preserveDate: false });
   }
 
   async function saveTransaction() {
@@ -724,6 +761,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         cache: "no-store",
         body: JSON.stringify({
           ...form,
+          productId: selectedProductId || null,
+          deliveryCustomerId: selectedDeliveryCustomerId || null,
+          isSalePriceManuallyEdited,
           saleUnitPrice: parseWonInput(saleUnitPriceInput || "0"),
           saleAmount: String(
             calculateLedgerAmount(
@@ -772,16 +812,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       }
 
       setSaveMessage(editing ? "수정 완료" : "거래 저장 완료");
-      setEditingId(null);
-      setForm(emptyForm());
-      setProductCode("");
-      setSelectedProductSuppliers([]);
-      setSelectedUnitCost(0);
-      setSelectedProductId("");
-      setSelectedDeliveryCustomerId("");
-      setSelectedCustomerUnitPrice(0);
-      setSaleUnitPriceInput("");
-        setSaving(false);
+      resetOrderForm({ preserveDate: true, clearMessage: false });
+      setSaving(false);
     } catch (error) {
       console.error("거래 저장 오류:", error);
       const message = error instanceof Error ? error.message : "저장하지 못했습니다.";
@@ -993,7 +1025,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           3줄: 공급업체 / 단가 / 수량
           4줄: 납품업체 / 판매금액 / 배송비 / 고객이름 / 전화번호 / 메모
         */
-        .wl-form-grid > label:nth-child(1)  { grid-row: 1; grid-column: 1; }
+        .wl-form-grid > label:nth-child(1)  { grid-row: 1; grid-column: 1 / span 3; }
         .wl-form-grid > label:nth-child(2)  { grid-row: 2; grid-column: 1; }
         .wl-form-grid > label:nth-child(4)  { grid-row: 2; grid-column: 2 / span 2; }
         .wl-form-grid > label:nth-child(5)  { grid-row: 3; grid-column: 1; }
@@ -1047,6 +1079,42 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           height: 34px !important;
           padding-left: 8px !important;
           padding-right: 8px !important;
+        }
+
+        .wl-date-reset-row {
+          display: flex;
+          flex-wrap: nowrap;
+          align-items: center;
+          gap: 6px;
+          width: 100%;
+        }
+
+        .wl-date-reset-row input {
+          flex: 0 1 110px;
+          width: 110px !important;
+        }
+
+        .wl-input-reset-button {
+          flex: 0 0 78px;
+          width: 78px !important;
+          min-width: 78px !important;
+          height: 34px !important;
+          min-height: 34px !important;
+          padding: 6px 10px !important;
+          border: 1px solid #4ade80 !important;
+          border-radius: 8px !important;
+          background: #bbf7d0 !important;
+          color: #166534 !important;
+          font-size: 11px !important;
+          font-weight: 800 !important;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+
+        .wl-input-reset-button:hover {
+          border-color: #22c55e !important;
+          background: #86efac !important;
+          color: #14532d !important;
         }
 
         .wl-left-pane form > div:last-child {
@@ -1395,6 +1463,20 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             margin: 0 !important;
           }
 
+          .wl-left-pane form.wl-order-form .wl-date-reset-row {
+            flex-wrap: wrap;
+          }
+
+          .wl-left-pane form.wl-order-form .wl-date-reset-row input {
+            flex: 1 1 170px;
+            width: auto !important;
+          }
+
+          .wl-left-pane form.wl-order-form .wl-input-reset-button {
+            flex: 0 0 100%;
+            width: 100% !important;
+          }
+
           .wl-left-pane form.wl-order-form > div:last-child {
             display: flex !important;
             width: 100% !important;
@@ -1442,15 +1524,31 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       <div className={listOnly ? "" : "wl-two-column-layout"}>
         {!listOnly && (
         <div className="wl-left-pane">
-      <form onSubmit={submit} style={formCardStyle} className="wl-order-form">
+      <form
+        key={formResetKey}
+        onSubmit={submit}
+        style={formCardStyle}
+        className="wl-order-form"
+      >
         <div style={formGridStyle} className="wl-form-grid">
           <Field label="날짜" className="wl-field-date">
-            <input
-              type="date"
-              value={form.transactionDate}
-              onChange={(e) => changeForm("transactionDate", e.target.value)}
-              style={inputStyle}
-            />
+            <div className="wl-date-reset-row">
+              <input
+                type="date"
+                value={form.transactionDate}
+                onChange={(e) => changeForm("transactionDate", e.target.value)}
+                style={inputStyle}
+              />
+              {!editingId && (
+                <button
+                  type="button"
+                  onClick={resetNewOrderForm}
+                  className="wl-input-reset-button"
+                >
+                  입력 초기화
+                </button>
+              )}
+            </div>
           </Field>
 
           <Field label="상품번호" className="wl-field-product-code">
@@ -1541,6 +1639,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                       matched.id,
                       form.quantity
                     );
+                  } else if (form.deliveryCompanyName.trim()) {
+                    applySaleUnitPrice(0, form.quantity);
                   } else {
                     applySaleUnitPrice(matched.basePrice || 0, form.quantity);
                   }
@@ -1602,25 +1702,14 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
               value={form.deliveryCompanyName}
               onChange={(value) => {
                 changeForm("deliveryCompanyName", value);
-
-                const matched = customerOptions.find(
-                  (option) => option.label === value
+                setSelectedDeliveryCustomerId("");
+                const selectedProduct = productOptions.find(
+                  (option) => option.id === selectedProductId
                 );
-
-                if (matched) {
-                  setSelectedDeliveryCustomerId(matched.id);
-                  applyCustomerSalePrice(
-                    matched.id,
-                    selectedProductId,
-                    form.quantity
-                  );
-                } else {
-                  setSelectedDeliveryCustomerId("");
-                  const selectedProduct = productOptions.find(
-                    (option) => option.id === selectedProductId
-                  );
-                  applySaleUnitPrice(selectedProduct?.basePrice || 0, form.quantity);
-                }
+                applySaleUnitPrice(
+                  value.trim() ? 0 : selectedProduct?.basePrice || 0,
+                  form.quantity
+                );
               }}
               onSelect={(option) => {
                 changeForm("deliveryCompanyName", option.label);

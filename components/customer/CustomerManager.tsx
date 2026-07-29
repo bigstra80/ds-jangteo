@@ -30,12 +30,24 @@ type CustomerExcelRow = Record<string, unknown>;
 const emptyForm: CustomerForm = {
   code: "",
   name: "",
-  grade: "D",
+  grade: "C",
   phone: "",
   email: "",
   address: "",
   memo: "",
 };
+
+function normalizeGradeSearch(value: string) {
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/그룹$/u, "");
+
+  return ["A", "B", "C", "D"].includes(normalized)
+    ? normalized
+    : null;
+}
 
 export default function CustomerManager() {
   const [customers, setCustomers] =
@@ -261,9 +273,16 @@ export default function CustomerManager() {
             return true;
           }
 
+          if (searchField === "grade") {
+            const normalizedGrade = normalizeGradeSearch(search);
+            return normalizedGrade !== null &&
+              (customer.grade || "D") === normalizedGrade;
+          }
+
           const fields: Record<string, unknown[]> = {
-            all: [customer.code, customer.name, customer.grade, customer.phone, customer.email, customer.address],
-            code: [customer.code], name: [customer.name], phone: [customer.phone], email: [customer.email], address: [customer.address],
+            all: [customer.code, customer.name],
+            code: [customer.code],
+            name: [customer.name],
           };
           return (fields[searchField] || fields.all).some((value) => String(value || "").toLowerCase().includes(keyword));
         }
@@ -348,7 +367,7 @@ export default function CustomerManager() {
         const rawGrade = getValue(row, ["등급", "거래처등급", "고객등급"])
           .toUpperCase()
           .replace("그룹", "");
-        const grade = ["A", "B", "C", "D"].includes(rawGrade) ? rawGrade : "D";
+        const grade = ["A", "B", "C", "D"].includes(rawGrade) ? rawGrade : "C";
 
         if (!code || !name) {
           failures.push(`${index + 2}행: 거래처 코드 또는 거래처명이 없습니다.`);
@@ -520,8 +539,19 @@ export default function CustomerManager() {
 
       <section style={{ marginTop: "10px" }}>
         <div style={filterRow}>
-          <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={filterSelect} aria-label="검색 항목 선택">
-            <option value="all">전체</option><option value="code">거래처 코드</option><option value="name">이름</option><option value="phone">연락처</option><option value="email">이메일</option><option value="address">주소</option>
+          <select
+            value={searchField}
+            onChange={(event) => {
+              setSearchField(event.target.value);
+              setSearch("");
+            }}
+            style={filterSelect}
+            aria-label="검색 항목 선택"
+          >
+            <option value="all">전체</option>
+            <option value="code">거래처 코드</option>
+            <option value="name">이름</option>
+            <option value="grade">그룹별</option>
           </select>
           <input
             style={searchInput}
@@ -529,7 +559,15 @@ export default function CustomerManager() {
             onChange={(event) =>
               setSearch(event.target.value)
             }
-            placeholder="거래처 코드, 이름, 연락처, 이메일 검색"
+            placeholder={
+              searchField === "code"
+                ? "거래처 코드 검색"
+                : searchField === "name"
+                  ? "거래처명 검색"
+                  : searchField === "grade"
+                    ? "A, B, C, D 그룹 검색"
+                    : "거래처 코드 또는 이름 검색"
+            }
           />
 
           <select

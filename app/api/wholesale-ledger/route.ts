@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { calculateLedgerAmount } from "@/lib/ledger-amount";
+import { resolveLedgerSaleAmount } from "@/lib/wholesale-ledger-sale-price";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,22 +19,6 @@ function toOneDecimal(value: unknown, fallback = 0) {
 function toNullableText(value: unknown) {
   const text = String(value ?? "").trim();
   return text ? text : null;
-}
-
-function resolveSaleAmount(
-  body: Record<string, unknown>,
-  quantity: number
-) {
-  if (
-    body.saleUnitPrice !== undefined &&
-    body.saleUnitPrice !== null &&
-    body.saleUnitPrice !== ""
-  ) {
-    return calculateLedgerAmount(body.saleUnitPrice, quantity);
-  }
-
-  // 기존 목록 인라인 수정 요청은 saleAmount를 총액으로 전달합니다.
-  return toOneDecimal(body.saleAmount, 0);
 }
 
 export async function GET() {
@@ -94,7 +78,7 @@ export async function POST(request: NextRequest) {
         customerPhone: toNullableText(body.customerPhone),
 
         // 신규/수정 폼은 단가 × 수량을 총 판매금액으로 저장합니다.
-        saleAmount: resolveSaleAmount(body, quantity),
+        saleAmount: await resolveLedgerSaleAmount(body, quantity),
         shippingFee: toOneDecimal(body.shippingFee, 0),
 
         settlementStatus:

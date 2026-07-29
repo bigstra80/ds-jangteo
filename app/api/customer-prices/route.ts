@@ -53,9 +53,6 @@ export async function GET(request: Request) {
       });
       const savedCustomerPrice =
         product.customerPrices.length > 0 ? product.customerPrices[0].price : null;
-      const isZeroStartGrade =
-        String(customer?.grade || "D").toUpperCase() === "C";
-
       return {
         id: product.id,
         code: product.code,
@@ -64,8 +61,7 @@ export async function GET(request: Request) {
         price: product.price,
         calculatedPrice,
         savedCustomerPrice,
-        // C그룹은 기존 전용단가가 있더라도 거래 입력 시 항상 0에서 시작합니다.
-        customerPrice: isZeroStartGrade ? 0 : savedCustomerPrice ?? calculatedPrice,
+        customerPrice: savedCustomerPrice ?? calculatedPrice,
       };
     });
 
