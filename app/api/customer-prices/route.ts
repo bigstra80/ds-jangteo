@@ -53,6 +53,7 @@ export async function GET(request: Request) {
       });
       const savedCustomerPrice =
         product.customerPrices.length > 0 ? product.customerPrices[0].price : null;
+      const customerGrade = String(customer?.grade || "D").toUpperCase();
       return {
         id: product.id,
         code: product.code,
@@ -61,7 +62,10 @@ export async function GET(request: Request) {
         price: product.price,
         calculatedPrice,
         savedCustomerPrice,
-        customerPrice: savedCustomerPrice ?? calculatedPrice,
+        customerPrice:
+          customerGrade === "C"
+            ? calculatedPrice
+            : savedCustomerPrice ?? calculatedPrice,
       };
     });
 

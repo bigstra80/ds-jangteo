@@ -52,7 +52,8 @@ export async function getAutomaticLedgerSalePrice(
     customerGrade,
   });
   const savedCustomerPrice = product.customerPrices[0]?.price;
-  const customerPrice = savedCustomerPrice ?? calculatedPrice;
+  const customerPrice =
+    customerGrade === "C" ? calculatedPrice : savedCustomerPrice ?? calculatedPrice;
 
   return {
     customerId,
@@ -66,18 +67,21 @@ export async function resolveLedgerSaleAmount(
   body: Record<string, unknown>,
   quantity: number
 ) {
-  if (body.isSalePriceManuallyEdited === false) {
-    const deliveryCompanyName = String(body.deliveryCompanyName ?? "").trim();
-    const deliveryCustomerId = positiveId(body.deliveryCustomerId);
+  const deliveryCustomerId = positiveId(body.deliveryCustomerId);
+  const deliveryCompanyName = String(body.deliveryCompanyName ?? "").trim();
+  const automaticPrice = deliveryCustomerId
+    ? await getAutomaticLedgerSalePrice(deliveryCustomerId, body.productId)
+    : null;
 
+  // C그룹은 화면의 수동 입력 여부와 관계없이 주문 저장 금액을 0원으로 고정한다.
+  if (automaticPrice?.customerGrade === "C") {
+    return 0;
+  }
+
+  if (body.isSalePriceManuallyEdited === false) {
     if (!deliveryCustomerId && deliveryCompanyName) {
       return 0;
     }
-
-    const automaticPrice = await getAutomaticLedgerSalePrice(
-      deliveryCustomerId,
-      body.productId
-    );
 
     if (automaticPrice) {
       return calculateLedgerAmount(automaticPrice.customerPrice, quantity);

@@ -22,13 +22,15 @@ export function calculatePriceByCustomerGrade({
   const leadingStars = trimmedName.match(/^\*+/)?.[0].length ?? 0;
   const trailingStars = trimmedName.match(/\*+$/)?.[0].length ?? 0;
 
+  if (grade === "C") {
+    return 0;
+  }
+
   let discount = 0;
   if (grade === "A") {
     discount = (leadingStars > 0 ? leadingStars : trailingStars) * 0.5;
   } else if (grade === "B") {
     discount = trailingStars * 0.5;
-  } else if (grade === "C" && trailingStars > 0) {
-    discount = 0.5;
   }
 
   return Math.max(0, safeBasePrice - discount);
