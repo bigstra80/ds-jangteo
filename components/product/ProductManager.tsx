@@ -3566,6 +3566,12 @@ const productListStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr)",
   gap: "3px",
+  maxHeight: "700px",
+  overflowX: "auto",
+  overflowY: "auto",
+  scrollbarGutter: "stable",
+  overscrollBehavior: "contain",
+  paddingRight: "3px",
 };
 
 const productCardStyle: React.CSSProperties = {
