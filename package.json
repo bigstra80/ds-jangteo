@@ -9,7 +9,7 @@
     "start": "next start",
     "start:lan": "next start -H 0.0.0.0",
     "lint": "eslint",
-    "start:render": "next start -H 0.0.0.0 -p $PORT"
+    "start:render": "prisma migrate deploy && next start -H 0.0.0.0 -p $PORT"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
