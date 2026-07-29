@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  isEditableOneDecimalPrice,
+  parseOneDecimalPrice,
+} from "@/lib/one-decimal-price";
 
 type Customer = {
   id: number;
@@ -104,11 +108,13 @@ export default function CustomerPriceManager() {
 
   // 가격 입력
   const handlePriceChange = (productId: number, value: string) => {
-    const onlyNumber = value.replace(/[^0-9]/g, "");
+    if (!isEditableOneDecimalPrice(value)) {
+      return;
+    }
 
     setPriceInputs((prev) => ({
       ...prev,
-      [productId]: onlyNumber,
+      [productId]: value,
     }));
   };
 
@@ -120,8 +126,9 @@ export default function CustomerPriceManager() {
     }
 
     const value = priceInputs[productId];
+    const parsedPrice = parseOneDecimalPrice(value);
 
-    if (value === undefined || value === "") {
+    if (parsedPrice === null) {
       alert("거래처 판매단가를 입력해주세요.");
       return;
     }
@@ -137,7 +144,7 @@ export default function CustomerPriceManager() {
         body: JSON.stringify({
           customerId: Number(selectedCustomerId),
           productId,
-          price: Number(value),
+          price: parsedPrice,
         }),
       });
 
@@ -152,11 +159,15 @@ export default function CustomerPriceManager() {
           product.id === productId
             ? {
                 ...product,
-                customerPrice: Number(value),
+                customerPrice: parsedPrice,
               }
             : product
         )
       );
+      setPriceInputs((prev) => ({
+        ...prev,
+        [productId]: String(parsedPrice),
+      }));
 
       alert("판매단가가 저장되었습니다.");
     } catch (error) {
@@ -486,7 +497,8 @@ export default function CustomerPriceManager() {
                       <td style={tdStyle}>
                         <input
                           type="text"
-                          inputMode="numeric"
+                          inputMode="decimal"
+                          pattern="[0-9]+([.][0-9])?"
                           value={priceInputs[product.id] || ""}
                           onChange={(e) =>
                             handlePriceChange(product.id, e.target.value)
@@ -500,8 +512,17 @@ export default function CustomerPriceManager() {
                             width: "150px",
                             height: "38px",
                             padding: "0 10px",
-                            border: "1px solid #d1d5db",
+                            border:
+                              parseOneDecimalPrice(priceInputs[product.id]) !==
+                              product.customerPrice
+                                ? "1px solid #f59e0b"
+                                : "1px solid #d1d5db",
                             borderRadius: "6px",
+                            backgroundColor:
+                              parseOneDecimalPrice(priceInputs[product.id]) !==
+                              product.customerPrice
+                                ? "#fffbeb"
+                                : "#ffffff",
                             textAlign: "right",
                           }}
                         />

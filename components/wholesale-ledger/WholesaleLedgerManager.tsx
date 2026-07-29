@@ -7,6 +7,7 @@ import {
   zeroAmountTextColor,
 } from "@/lib/zero-amount-style";
 import { calculateLedgerAmount } from "@/lib/ledger-amount";
+import { getLocalDateString } from "@/lib/local-date";
 import { changedInputStyle } from "@/lib/dirty-input-style";
 import {
   COMPACT_CONTROL_HEIGHT,
@@ -16,10 +17,13 @@ import {
   COMPACT_TABLE_HEADER_HEIGHT,
   COMPACT_TABLE_LINE_HEIGHT,
   COMPACT_TABLE_ROW_HEIGHT,
+  COMPACT_TOOLBAR_MARGIN_BOTTOM,
   SETTLEMENT_DATE_COLUMN_WIDTH,
   SETTLEMENT_MEMO_MIN_WIDTH,
   SETTLEMENT_TABLE_MIN_WIDTH,
+  orderPageStyle,
   settlementDateCellStyle,
+  settlementPageStyle,
   settlementWrappingCellStyle,
 } from "@/lib/settlement-table-layout";
 
@@ -93,7 +97,7 @@ type SearchOption = {
   supplierCosts?: SupplierCostOption[];
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = getLocalDateString;
 
 const emptyForm = (): FormState => ({
   transactionDate: today(),
@@ -367,7 +371,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   }>>({});
   const [keyword, setKeyword] = useState("");
   const [searchField, setSearchField] = useState("all");
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
 
@@ -978,11 +982,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     <div
       style={{
         ...pageStyle,
-        ...(listOnly
-          ? { maxWidth: SETTLEMENT_TABLE_MIN_WIDTH, margin: 0 }
-          : {}),
+        ...(listOnly ? settlementPageStyle : orderPageStyle),
       }}
-      className={listOnly ? "wl-list-only-page" : undefined}
+      className={
+        listOnly
+          ? "wl-list-only-page settlement-fixed-page"
+          : "order-fixed-page"
+      }
     >
       <style>{`
         .wl-two-column-layout {
@@ -1285,7 +1291,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         .wl-list-only-page .wl-toolbar {
           gap: 6px !important;
-          margin-bottom: 7px !important;
+          margin-bottom: ${COMPACT_TOOLBAR_MARGIN_BOTTOM}px !important;
           align-items: flex-end !important;
         }
 
@@ -1832,7 +1838,15 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         )}
 
         <div className={listOnly ? "wl-list-only-pane" : "wl-right-pane"}>
-      <div style={toolbarStyle} className="wl-toolbar">
+      <div
+        style={{
+          ...toolbarStyle,
+          ...(!listOnly
+            ? { flexWrap: "nowrap", gap: 6, width: "100%" }
+            : {}),
+        }}
+        className="wl-toolbar"
+      >
         <select value={searchField} onChange={(e) => setSearchField(e.target.value)} style={searchTypeStyle} className="wl-search-type" aria-label="검색 항목 선택">
           <option value="all">전체</option><option value="product">상품명</option><option value="supplier">공급업체</option><option value="deliveryCompany">납품업체</option><option value="customer">고객명</option><option value="phone">전화번호</option><option value="memo">메모</option>
         </select>
@@ -1870,7 +1884,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           <button
             type="button"
             onClick={() => {
-              setStartDate("");
+              setStartDate(today());
               setEndDate("");
               setSortOrder("inputDesc");
             }}
@@ -1908,7 +1922,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       </div>
 
       <div style={tableWrapStyle} className="wl-table-wrap">
-        <table style={{ ...tableStyle, width: listOnly ? "100%" : "925px", minWidth: listOnly ? `${SETTLEMENT_TABLE_MIN_WIDTH}px` : "925px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
+        <table style={{ ...tableStyle, width: listOnly ? "100%" : "951px", minWidth: listOnly ? `${SETTLEMENT_TABLE_MIN_WIDTH}px` : "951px" }} className={listOnly ? "wl-list-only-table" : "wl-compact-ledger-table"}>
           <colgroup>
             {listOnly ? (
               <>
@@ -1937,7 +1951,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 <col style={{ width: "78px" }} />
                 <col style={{ width: "74px" }} />
                 <col style={{ width: "92px" }} />
-                <col style={{ width: "84px" }} />
+                <col style={{ width: "110px" }} />
               </>
             )}
           </colgroup>

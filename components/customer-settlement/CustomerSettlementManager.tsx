@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import { getLocalDateString } from "@/lib/local-date";
 import { zeroAmountTextColor } from "@/lib/zero-amount-style";
 import {
   COMPACT_CONTROL_HEIGHT,
@@ -11,10 +12,12 @@ import {
   COMPACT_TABLE_HEADER_HEIGHT,
   COMPACT_TABLE_LINE_HEIGHT,
   COMPACT_TABLE_ROW_HEIGHT,
+  COMPACT_TOOLBAR_MARGIN_BOTTOM,
   SETTLEMENT_DATE_COLUMN_WIDTH,
   SETTLEMENT_MEMO_MIN_WIDTH,
   SETTLEMENT_TABLE_MIN_WIDTH,
   settlementDateCellStyle,
+  settlementPageStyle,
   settlementWrappingCellStyle,
 } from "@/lib/settlement-table-layout";
 
@@ -60,7 +63,7 @@ export default function CustomerSettlementManager() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("all");
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(getLocalDateString);
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
 
@@ -195,7 +198,7 @@ export default function CustomerSettlementManager() {
   }, [filteredRows]);
 
   return (
-    <div style={{ width: "100%", maxWidth: SETTLEMENT_TABLE_MIN_WIDTH, minWidth: 0, margin: 0 }}>
+    <div style={settlementPageStyle} className="settlement-fixed-page">
       <style jsx>{`
         .customer-settlement-summary {
           display: grid;
@@ -498,7 +501,7 @@ export default function CustomerSettlementManager() {
             type="button"
             className="customer-settlement-reset-button"
             onClick={() => {
-              setStartDate("");
+              setStartDate(getLocalDateString());
               setEndDate("");
               setSortOrder("inputDesc");
             }}
@@ -684,7 +687,7 @@ const toolbarStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
-  marginBottom: 16,
+  marginBottom: COMPACT_TOOLBAR_MARGIN_BOTTOM,
 };
 
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import { getLocalDateString } from "@/lib/local-date";
 import {
   COMPACT_CONTROL_HEIGHT,
   COMPACT_TABLE_BODY_FONT_SIZE,
@@ -10,10 +11,12 @@ import {
   COMPACT_TABLE_HEADER_HEIGHT,
   COMPACT_TABLE_LINE_HEIGHT,
   COMPACT_TABLE_ROW_HEIGHT,
+  COMPACT_TOOLBAR_MARGIN_BOTTOM,
   SETTLEMENT_DATE_COLUMN_WIDTH,
   SETTLEMENT_MEMO_MIN_WIDTH,
   SETTLEMENT_TABLE_MIN_WIDTH,
   settlementDateCellStyle,
+  settlementPageStyle,
   settlementWrappingCellStyle,
 } from "@/lib/settlement-table-layout";
 
@@ -70,7 +73,7 @@ export default function SupplierSettlementManager() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("all");
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(getLocalDateString);
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -208,8 +211,8 @@ export default function SupplierSettlementManager() {
 
   return (
     <div
-      style={{ width: "100%", maxWidth: SETTLEMENT_TABLE_MIN_WIDTH, margin: 0 }}
-      className="supplier-settlement-page"
+      style={settlementPageStyle}
+      className="supplier-settlement-page settlement-fixed-page"
     >
       <style jsx global>{`
         .supplier-settlement-table-wrap {
@@ -307,7 +310,7 @@ export default function SupplierSettlementManager() {
           <button
             type="button"
             onClick={() => {
-              setStartDate("");
+              setStartDate(getLocalDateString());
               setEndDate("");
               setSortOrder("inputDesc");
             }}
@@ -474,7 +477,7 @@ const toolbarStyle: React.CSSProperties = {
   alignItems: "flex-end",
   justifyContent: "flex-start",
   gap: 6,
-  marginBottom: 7,
+  marginBottom: COMPACT_TOOLBAR_MARGIN_BOTTOM,
   flexWrap: "wrap",
 };
 

@@ -96,7 +96,7 @@ model CustomerProductPrice {
   id         Int      @id @default(autoincrement())
   customerId Int
   productId  Int
-  price      Int
+  price      Float
 
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { calculatePriceByCustomerGrade } from "@/lib/customer-grade-price";
+import { parseOneDecimalPrice } from "@/lib/one-decimal-price";
 
 // 거래처별 판매단가 조회
 export async function GET(request: Request) {
@@ -53,7 +54,6 @@ export async function GET(request: Request) {
       });
       const savedCustomerPrice =
         product.customerPrices.length > 0 ? product.customerPrices[0].price : null;
-      const customerGrade = String(customer?.grade || "D").toUpperCase();
       return {
         id: product.id,
         code: product.code,
@@ -62,10 +62,7 @@ export async function GET(request: Request) {
         price: product.price,
         calculatedPrice,
         savedCustomerPrice,
-        customerPrice:
-          customerGrade === "C"
-            ? calculatedPrice
-            : savedCustomerPrice ?? calculatedPrice,
+        customerPrice: savedCustomerPrice ?? calculatedPrice,
       };
     });
 
@@ -87,12 +84,12 @@ export async function POST(request: Request) {
 
     const customerId = Number(body.customerId);
     const productId = Number(body.productId);
-    const price = Number(body.price);
+    const price = parseOneDecimalPrice(body.price);
 
     if (
-      Number.isNaN(customerId) ||
-      Number.isNaN(productId) ||
-      Number.isNaN(price)
+      !Number.isInteger(customerId) ||
+      !Number.isInteger(productId) ||
+      price === null
     ) {
       return NextResponse.json(
         { error: "입력값이 올바르지 않습니다." },

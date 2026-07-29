@@ -233,7 +233,7 @@ export type CustomerProductPriceWhereInput = {
   id?: Prisma.IntFilter<"CustomerProductPrice"> | number
   customerId?: Prisma.IntFilter<"CustomerProductPrice"> | number
   productId?: Prisma.IntFilter<"CustomerProductPrice"> | number
-  price?: Prisma.IntFilter<"CustomerProductPrice"> | number
+  price?: Prisma.FloatFilter<"CustomerProductPrice"> | number
   createdAt?: Prisma.DateTimeFilter<"CustomerProductPrice"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CustomerProductPrice"> | Date | string
   customer?: Prisma.XOR<Prisma.CustomerScalarRelationFilter, Prisma.CustomerWhereInput>
@@ -259,7 +259,7 @@ export type CustomerProductPriceWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.CustomerProductPriceWhereInput | Prisma.CustomerProductPriceWhereInput[]
   customerId?: Prisma.IntFilter<"CustomerProductPrice"> | number
   productId?: Prisma.IntFilter<"CustomerProductPrice"> | number
-  price?: Prisma.IntFilter<"CustomerProductPrice"> | number
+  price?: Prisma.FloatFilter<"CustomerProductPrice"> | number
   createdAt?: Prisma.DateTimeFilter<"CustomerProductPrice"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CustomerProductPrice"> | Date | string
   customer?: Prisma.XOR<Prisma.CustomerScalarRelationFilter, Prisma.CustomerWhereInput>
@@ -287,7 +287,7 @@ export type CustomerProductPriceScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"CustomerProductPrice"> | number
   customerId?: Prisma.IntWithAggregatesFilter<"CustomerProductPrice"> | number
   productId?: Prisma.IntWithAggregatesFilter<"CustomerProductPrice"> | number
-  price?: Prisma.IntWithAggregatesFilter<"CustomerProductPrice"> | number
+  price?: Prisma.FloatWithAggregatesFilter<"CustomerProductPrice"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CustomerProductPrice"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"CustomerProductPrice"> | Date | string
 }
@@ -310,7 +310,7 @@ export type CustomerProductPriceUncheckedCreateInput = {
 }
 
 export type CustomerProductPriceUpdateInput = {
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.CustomerUpdateOneRequiredWithoutProductPricesNestedInput
@@ -321,7 +321,7 @@ export type CustomerProductPriceUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   customerId?: Prisma.IntFieldUpdateOperationsInput | number
   productId?: Prisma.IntFieldUpdateOperationsInput | number
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -336,7 +336,7 @@ export type CustomerProductPriceCreateManyInput = {
 }
 
 export type CustomerProductPriceUpdateManyMutationInput = {
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -345,7 +345,7 @@ export type CustomerProductPriceUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   customerId?: Prisma.IntFieldUpdateOperationsInput | number
   productId?: Prisma.IntFieldUpdateOperationsInput | number
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -490,6 +490,14 @@ export type CustomerProductPriceUncheckedUpdateManyWithoutCustomerNestedInput = 
   deleteMany?: Prisma.CustomerProductPriceScalarWhereInput | Prisma.CustomerProductPriceScalarWhereInput[]
 }
 
+export type FloatFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type CustomerProductPriceCreateWithoutProductInput = {
   price: number
   createdAt?: Date | string
@@ -538,7 +546,7 @@ export type CustomerProductPriceScalarWhereInput = {
   id?: Prisma.IntFilter<"CustomerProductPrice"> | number
   customerId?: Prisma.IntFilter<"CustomerProductPrice"> | number
   productId?: Prisma.IntFilter<"CustomerProductPrice"> | number
-  price?: Prisma.IntFilter<"CustomerProductPrice"> | number
+  price?: Prisma.FloatFilter<"CustomerProductPrice"> | number
   createdAt?: Prisma.DateTimeFilter<"CustomerProductPrice"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CustomerProductPrice"> | Date | string
 }
@@ -593,7 +601,7 @@ export type CustomerProductPriceCreateManyProductInput = {
 }
 
 export type CustomerProductPriceUpdateWithoutProductInput = {
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.CustomerUpdateOneRequiredWithoutProductPricesNestedInput
@@ -602,7 +610,7 @@ export type CustomerProductPriceUpdateWithoutProductInput = {
 export type CustomerProductPriceUncheckedUpdateWithoutProductInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   customerId?: Prisma.IntFieldUpdateOperationsInput | number
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -610,7 +618,7 @@ export type CustomerProductPriceUncheckedUpdateWithoutProductInput = {
 export type CustomerProductPriceUncheckedUpdateManyWithoutProductInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   customerId?: Prisma.IntFieldUpdateOperationsInput | number
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -624,7 +632,7 @@ export type CustomerProductPriceCreateManyCustomerInput = {
 }
 
 export type CustomerProductPriceUpdateWithoutCustomerInput = {
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.ProductUpdateOneRequiredWithoutCustomerPricesNestedInput
@@ -633,7 +641,7 @@ export type CustomerProductPriceUpdateWithoutCustomerInput = {
 export type CustomerProductPriceUncheckedUpdateWithoutCustomerInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   productId?: Prisma.IntFieldUpdateOperationsInput | number
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -641,7 +649,7 @@ export type CustomerProductPriceUncheckedUpdateWithoutCustomerInput = {
 export type CustomerProductPriceUncheckedUpdateManyWithoutCustomerInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   productId?: Prisma.IntFieldUpdateOperationsInput | number
-  price?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1145,7 +1153,7 @@ export interface CustomerProductPriceFieldRefs {
   readonly id: Prisma.FieldRef<"CustomerProductPrice", 'Int'>
   readonly customerId: Prisma.FieldRef<"CustomerProductPrice", 'Int'>
   readonly productId: Prisma.FieldRef<"CustomerProductPrice", 'Int'>
-  readonly price: Prisma.FieldRef<"CustomerProductPrice", 'Int'>
+  readonly price: Prisma.FieldRef<"CustomerProductPrice", 'Float'>
   readonly createdAt: Prisma.FieldRef<"CustomerProductPrice", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"CustomerProductPrice", 'DateTime'>
 }
