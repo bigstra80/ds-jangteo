@@ -371,6 +371,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   }>>({});
   const [keyword, setKeyword] = useState("");
   const [searchField, setSearchField] = useState("all");
+  const [zeroSaleOnly, setZeroSaleOnly] = useState(false);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
@@ -476,6 +477,17 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         if (rowDate > end) return false;
       }
 
+      if (
+        zeroSaleOnly &&
+        !(
+          typeof row.saleAmount === "number" &&
+          Number.isFinite(row.saleAmount) &&
+          row.saleAmount === 0
+        )
+      ) {
+        return false;
+      }
+
       if (!normalizedKeyword) return true;
 
       const rowProductCode = productCodeByName.get(row.productName.trim().toLowerCase()) || "";
@@ -493,7 +505,16 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         sortOrder === "inputAsc" ? "asc" : "desc"
       );
     });
-  }, [rows, keyword, searchField, startDate, endDate, sortOrder, productCodeByName]);
+  }, [
+    rows,
+    keyword,
+    searchField,
+    zeroSaleOnly,
+    startDate,
+    endDate,
+    sortOrder,
+    productCodeByName,
+  ]);
 
   const summary = useMemo(() => {
     return filteredRows.reduce(
@@ -1149,6 +1170,60 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
         .wl-right-pane .wl-toolbar {
           max-width: 100% !important;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+
+        .wl-right-pane .wl-search-type {
+          width: 64px !important;
+          min-width: 64px !important;
+          height: 36px !important;
+          padding-left: 7px !important;
+          font-size: 11px !important;
+        }
+
+        .wl-right-pane .wl-search-input {
+          width: 240px !important;
+          min-width: 240px !important;
+          height: 36px !important;
+          padding: 0 8px !important;
+          border-radius: 8px !important;
+          font-size: 11px !important;
+        }
+
+        .wl-compound-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          width: 100%;
+          margin-bottom: 5px;
+        }
+
+        .wl-zero-sale-filter {
+          display: inline-flex;
+          flex: 0 0 auto;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          width: 94px;
+          height: 36px;
+          padding: 0 7px;
+          box-sizing: border-box;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          background: #fff;
+          color: #334155;
+          font-size: 11px;
+          font-weight: 700;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+
+        .wl-zero-sale-filter input {
+          width: 14px;
+          height: 14px;
+          margin: 0;
+          accent-color: #2563eb;
         }
 
         .wl-right-pane .wl-table-wrap,
@@ -1376,6 +1451,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
           .wl-right-pane .wl-toolbar {
             align-items: stretch !important;
+            flex-wrap: wrap !important;
+            overflow-x: visible;
           }
         }
 
@@ -1838,6 +1915,18 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         )}
 
         <div className={listOnly ? "wl-list-only-pane" : "wl-right-pane"}>
+      {!listOnly && (
+        <div className="wl-compound-filter-row">
+          <label className="wl-zero-sale-filter">
+            <input
+              type="checkbox"
+              checked={zeroSaleOnly}
+              onChange={(event) => setZeroSaleOnly(event.target.checked)}
+            />
+            판매금액 0원
+          </label>
+        </div>
+      )}
       <div
         style={{
           ...toolbarStyle,
