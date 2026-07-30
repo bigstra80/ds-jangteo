@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth";
 import { resolveLedgerSaleAmount } from "@/lib/wholesale-ledger-sale-price";
+import {
+  calculateRegisteredProductPurchaseAmount,
+  hasRegisteredProductId,
+  PurchaseAmountResolutionError,
+} from "@/lib/wholesale-ledger-purchase-amount";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -96,7 +101,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const purchaseAmount = toOneDecimal(parsedPurchaseAmount);
+    const purchaseAmount =
+      sessionUser.role !== "ADMIN" &&
+      hasRegisteredProductId(body.productId)
+        ? await calculateRegisteredProductPurchaseAmount(body, quantity)
+        : toOneDecimal(parsedPurchaseAmount);
 
     const saleValue =
       body.saleUnitPrice !== undefined &&
@@ -146,6 +155,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ row }, { status: 201 });
   } catch (error) {
+    if (error instanceof PurchaseAmountResolutionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
     console.error("도매 거래 등록 오류:", error);
 
     return NextResponse.json(

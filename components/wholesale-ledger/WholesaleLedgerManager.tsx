@@ -708,13 +708,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setProductCode(value);
 
     const normalized = value.trim().toLowerCase();
-    if (!normalized) {
-      setSelectedSupplierId("");
-      setSelectedProductSuppliers([]);
-      setSelectedUnitCost(0);
-      setSelectedProductId("");
-      return;
-    }
+    if (!normalized) return;
 
     const matched = productOptions.find(
       (option) => (option.productCode || "").toLowerCase() === normalized
@@ -722,11 +716,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
     if (matched) {
       selectProduct(matched);
-    } else {
-      setSelectedProductId("");
-      setSelectedSupplierId("");
-      setSelectedProductSuppliers([]);
-      setSelectedUnitCost(0);
     }
   }
 
@@ -1947,6 +1936,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
             <SearchSelect
               value={form.productName}
               onChange={(value) => {
+                const wasRegisteredProduct = Boolean(selectedProductId);
                 changeForm("productName", value);
                 setSelectedProductSuppliers([]);
                 setSelectedUnitCost(0);
@@ -1973,6 +1963,9 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   setSelectedProductId("");
                   setSelectedCustomerUnitPrice(0);
                   setSaleUnitPriceInput("");
+                  if (wasRegisteredProduct && !isAdmin) {
+                    changeForm("purchaseAmount", "");
+                  }
                 }
               }}
               onSelect={(option) => {
@@ -2016,11 +2009,26 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </Field>
 
           <Field label="단가" className="wl-field-unit-price">
-            <WonInput
-              value={form.purchaseAmount}
-              onChange={(value) => changeForm("purchaseAmount", value)}
-              placeholder="직접 입력"
-            />
+            {!isAdmin && Boolean(selectedProductId) ? (
+              <input
+                type="text"
+                value="**"
+                readOnly
+                aria-label="단가"
+                style={{
+                  ...inputStyle,
+                  cursor: "not-allowed",
+                  background: "#f8fafc",
+                  fontWeight: 800,
+                }}
+              />
+            ) : (
+              <WonInput
+                value={form.purchaseAmount}
+                onChange={(value) => changeForm("purchaseAmount", value)}
+                placeholder="직접 입력"
+              />
+            )}
           </Field>
 
           <Field label="납품업체" className="wl-field-delivery-company">
