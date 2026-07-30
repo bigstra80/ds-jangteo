@@ -80,6 +80,7 @@ type FormState = {
 };
 
 type SupplierCostOption = {
+  id?: string;
   name: string;
   unitCost: number;
 };
@@ -204,13 +205,25 @@ function productOptionsFromPayload(payload: unknown): SearchOption[] {
 
       const supplierCosts: SupplierCostOption[] = [
         product?.supplier?.name
-          ? { name: String(product.supplier.name), unitCost: Number(product?.cost || 0) }
+          ? {
+              id: String(product.supplier.id),
+              name: String(product.supplier.name),
+              unitCost: Number(product?.cost || 0),
+            }
           : null,
         product?.supplier2?.name
-          ? { name: String(product.supplier2.name), unitCost: Number(product?.cost2 || 0) }
+          ? {
+              id: String(product.supplier2.id),
+              name: String(product.supplier2.name),
+              unitCost: Number(product?.cost2 || 0),
+            }
           : null,
         product?.supplier3?.name
-          ? { name: String(product.supplier3.name), unitCost: Number(product?.cost3 || 0) }
+          ? {
+              id: String(product.supplier3.id),
+              name: String(product.supplier3.name),
+              unitCost: Number(product?.cost3 || 0),
+            }
           : null,
       ].filter(Boolean) as SupplierCostOption[];
 
@@ -363,6 +376,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [bulkInlineSaving, setBulkInlineSaving] = useState(false);
   const [inlineEdits, setInlineEdits] = useState<Record<number, {
     saleAmount: string;
@@ -372,6 +386,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [keyword, setKeyword] = useState("");
   const [searchField, setSearchField] = useState("all");
   const [zeroSaleOnly, setZeroSaleOnly] = useState(false);
+  const [zeroPurchaseOnly, setZeroPurchaseOnly] = useState(false);
+  const [purchaseAmountEdits, setPurchaseAmountEdits] = useState<Record<number, string>>({});
+  const [savingPurchaseAmountId, setSavingPurchaseAmountId] = useState<number | null>(null);
+  const [bulkPurchaseSaving, setBulkPurchaseSaving] = useState(false);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
@@ -382,6 +400,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [productCode, setProductCode] = useState("");
   const [selectedProductSuppliers, setSelectedProductSuppliers] = useState<SupplierCostOption[]>([]);
   const [selectedUnitCost, setSelectedUnitCost] = useState(0);
+  const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [selectedDeliveryCustomerId, setSelectedDeliveryCustomerId] = useState<string>("");
   const [selectedCustomerUnitPrice, setSelectedCustomerUnitPrice] = useState(0);
@@ -439,9 +458,20 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setCustomerOptions(nameOptionsFromPayload(customersPayload, "customer"));
   }
 
+  async function loadCurrentUserRole() {
+    try {
+      const response = await fetch("/api/auth/me", { cache: "no-store" });
+      const data = await response.json();
+      setIsAdmin(response.ok && data?.isAdmin === true);
+    } catch {
+      setIsAdmin(false);
+    }
+  }
+
   useEffect(() => {
     loadRows();
     loadSearchOptions();
+    loadCurrentUserRole();
   }, []);
 
   const productCodeByName = useMemo(() => {
@@ -488,6 +518,19 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         return false;
       }
 
+      if (zeroPurchaseOnly) {
+        const rawPurchaseAmount = row.purchaseAmount as unknown;
+        if (
+          rawPurchaseAmount === null ||
+          rawPurchaseAmount === undefined ||
+          String(rawPurchaseAmount).trim() === "" ||
+          !Number.isFinite(Number(rawPurchaseAmount)) ||
+          Number(rawPurchaseAmount) !== 0
+        ) {
+          return false;
+        }
+      }
+
       if (!normalizedKeyword) return true;
 
       const rowProductCode = productCodeByName.get(row.productName.trim().toLowerCase()) || "";
@@ -510,6 +553,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     keyword,
     searchField,
     zeroSaleOnly,
+    zeroPurchaseOnly,
     startDate,
     endDate,
     sortOrder,
@@ -650,9 +694,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
     if (firstSupplier) {
       changeForm("supplierName", firstSupplier.name);
+      setSelectedSupplierId(firstSupplier.id || "");
       applyPurchaseAmount(firstSupplier.unitCost);
     } else {
       changeForm("supplierName", "");
+      setSelectedSupplierId("");
       changeForm("purchaseAmount", "0");
       setSelectedUnitCost(0);
     }
@@ -665,6 +711,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     if (!normalized) {
       changeForm("productName", "");
       changeForm("supplierName", "");
+      setSelectedSupplierId("");
       changeForm("purchaseAmount", "0");
       setSelectedProductSuppliers([]);
       setSelectedUnitCost(0);
@@ -688,6 +735,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   function selectSupplier(name: string) {
     changeForm("supplierName", name);
     const matched = selectedProductSuppliers.find((supplier) => supplier.name === name);
+    setSelectedSupplierId(matched?.id || "");
     applyPurchaseAmount(matched?.unitCost || 0);
   }
 
@@ -698,6 +746,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     );
     setProductCode(matchedProduct?.productCode || "");
     setSelectedProductId(matchedProduct?.id || "");
+    const matchedSupplier = matchedProduct?.supplierCosts?.find(
+      (supplier) => supplier.name === (row.supplierName || "")
+    );
+    setSelectedProductSuppliers(matchedProduct?.supplierCosts || []);
+    setSelectedSupplierId(matchedSupplier?.id || "");
 
     const matchedDeliveryCustomer = customerOptions.find(
       (option) => option.label === (row.deliveryCompanyName || "")
@@ -743,6 +796,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setForm(nextForm);
     setSelectedProductSuppliers([]);
     setSelectedUnitCost(0);
+    setSelectedSupplierId("");
     setSelectedProductId("");
     setSelectedDeliveryCustomerId("");
     setSelectedCustomerUnitPrice(0);
@@ -787,6 +841,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         body: JSON.stringify({
           ...form,
           productId: selectedProductId || null,
+          supplierId: selectedSupplierId || null,
           deliveryCustomerId: selectedDeliveryCustomerId || null,
           isSalePriceManuallyEdited,
           saleUnitPrice: parseWonInput(saleUnitPriceInput || "0"),
@@ -910,6 +965,145 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     );
   }
 
+  function changePurchaseAmountEdit(id: number, value: string) {
+    if (/^-?\d*(?:\.\d{0,1})?$/.test(value)) {
+      setPurchaseAmountEdits((current) => ({ ...current, [id]: value }));
+    }
+  }
+
+  function movePurchaseAmountInput(
+    event: KeyboardEvent<HTMLInputElement>,
+    rowIndex: number
+  ) {
+    if (
+      event.nativeEvent.isComposing ||
+      (event.key !== "ArrowUp" && event.key !== "ArrowDown")
+    ) {
+      return;
+    }
+
+    const targetRowIndex =
+      event.key === "ArrowUp" ? rowIndex - 1 : rowIndex + 1;
+    if (targetRowIndex < 0 || targetRowIndex >= filteredRows.length) return;
+
+    event.preventDefault();
+    const target = document.querySelector<HTMLInputElement>(
+      `[data-purchase-row="${targetRowIndex}"]`
+    );
+    target?.focus();
+    target?.select();
+  }
+
+  function isPurchaseAmountChanged(row: LedgerRow) {
+    const draft = purchaseAmountEdits[row.id];
+    if (draft === undefined) return false;
+    if (draft.trim() === "") return true;
+
+    const parsed = Number(draft);
+    return !Number.isFinite(parsed) || parsed !== Number(row.purchaseAmount ?? 0);
+  }
+
+  async function requestPurchaseAmountSave(row: LedgerRow) {
+    const draft = purchaseAmountEdits[row.id] ?? String(row.purchaseAmount ?? "");
+    if (!/^-?\d+(?:\.\d)?$/.test(draft.trim()) || !Number.isFinite(Number(draft))) {
+      throw new Error(`${row.productName}: 매입금액은 빈 값이 아닌 숫자로 입력해 주세요.`);
+    }
+
+    const response = await fetch(`/api/wholesale-ledger/${row.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ purchaseAmount: Number(draft) }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || `${row.productName}: 매입금액을 수정하지 못했습니다.`);
+    }
+
+    return data.row as LedgerRow;
+  }
+
+  async function savePurchaseAmount(row: LedgerRow) {
+    if (
+      !listOnly ||
+      !isAdmin ||
+      savingPurchaseAmountId !== null ||
+      bulkPurchaseSaving
+    ) return;
+
+    setSavingPurchaseAmountId(row.id);
+    try {
+      const savedRow = await requestPurchaseAmountSave(row);
+      setRows((current) =>
+        current.map((item) => (item.id === row.id ? savedRow : item))
+      );
+      setPurchaseAmountEdits((current) => ({
+        ...current,
+        [row.id]: String(savedRow.purchaseAmount ?? 0),
+      }));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "매입금액을 수정하지 못했습니다.");
+    } finally {
+      setSavingPurchaseAmountId(null);
+    }
+  }
+
+  async function saveAllPurchaseAmounts() {
+    if (
+      !listOnly ||
+      !isAdmin ||
+      bulkPurchaseSaving ||
+      savingPurchaseAmountId !== null
+    ) return;
+
+    const changedRows = rows.filter(isPurchaseAmountChanged);
+    if (changedRows.length === 0) {
+      alert("변경된 매입금액이 없습니다.");
+      return;
+    }
+
+    setBulkPurchaseSaving(true);
+    const results = await Promise.allSettled(
+      changedRows.map((row) => requestPurchaseAmountSave(row))
+    );
+
+    const savedRows = results.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : []
+    );
+    const savedById = new Map(savedRows.map((row) => [row.id, row]));
+
+    if (savedRows.length > 0) {
+      setRows((current) =>
+        current.map((row) => savedById.get(row.id) ?? row)
+      );
+      setPurchaseAmountEdits((current) => {
+        const next = { ...current };
+        for (const row of savedRows) {
+          next[row.id] = String(row.purchaseAmount ?? 0);
+        }
+        return next;
+      });
+    }
+
+    const failedMessages = results.flatMap((result) =>
+      result.status === "rejected"
+        ? [
+            result.reason instanceof Error
+              ? result.reason.message
+              : "매입금액 저장에 실패했습니다.",
+          ]
+        : []
+    );
+    setBulkPurchaseSaving(false);
+
+    if (failedMessages.length === 0) {
+      alert(`${savedRows.length}건의 매입금액이 모두 저장되었습니다.`);
+    } else {
+      alert(
+        `${changedRows.length}건 중 ${savedRows.length}건 저장 성공, ${failedMessages.length}건 저장 실패\n\n${failedMessages.join("\n")}`
+      );
+    }
+  }
+
   async function requestInlineRowSave(row: LedgerRow) {
     const edit = inlineEdits[row.id] || {
       saleAmount: String(row.saleAmount ?? 0),
@@ -923,8 +1117,17 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       body: JSON.stringify({
         transactionDate: row.transactionDate.slice(0, 10),
         productName: row.productName,
+        productId:
+          productOptions.find((option) => option.label === row.productName)?.id ||
+          null,
         quantity: String(row.quantity),
         supplierName: row.supplierName || "",
+        supplierId:
+          productOptions
+            .find((option) => option.label === row.productName)
+            ?.supplierCosts?.find(
+              (supplier) => supplier.name === (row.supplierName || "")
+            )?.id || null,
         purchaseAmount: String(row.purchaseAmount),
         deliveryCompanyName: row.deliveryCompanyName || "",
         customerName: row.customerName || "",
@@ -1224,6 +1427,46 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           height: 14px;
           margin: 0;
           accent-color: #2563eb;
+        }
+
+        .wl-purchase-edit-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 3px;
+          min-width: 0;
+        }
+
+        .wl-purchase-edit-input {
+          width: 58px;
+          min-width: 0;
+          height: 28px;
+          padding: 0 5px;
+          box-sizing: border-box;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          background: #fff;
+          color: #0f172a;
+          font: inherit;
+          text-align: center;
+        }
+
+        .wl-purchase-edit-save {
+          height: 28px;
+          padding: 0 6px;
+          border: 1px solid #2563eb;
+          border-radius: 6px;
+          background: #fff;
+          color: #2563eb;
+          font-size: 10px;
+          font-weight: 700;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+
+        .wl-purchase-edit-save:disabled {
+          cursor: wait;
+          opacity: 0.55;
         }
 
         .wl-right-pane .wl-table-wrap,
@@ -1709,6 +1952,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 changeForm("productName", value);
                 setSelectedProductSuppliers([]);
                 setSelectedUnitCost(0);
+                setSelectedSupplierId("");
 
                 const matched = productOptions.find(
                   (option) => option.label === value
@@ -1751,6 +1995,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 const matched = selectedProductSuppliers.find(
                   (supplier) => supplier.name === value
                 );
+                setSelectedSupplierId(matched?.id || "");
                 if (matched) applyPurchaseAmount(matched.unitCost);
               }}
               onSelect={(option) => selectSupplier(option.label)}
@@ -1773,11 +2018,26 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </Field>
 
           <Field label="단가" className="wl-field-unit-price">
-            <WonInput
-              value={form.purchaseAmount}
-              onChange={(value) => changeForm("purchaseAmount", value)}
-              placeholder="직접 입력"
-            />
+            {isAdmin ? (
+              <WonInput
+                value={form.purchaseAmount}
+                onChange={(value) => changeForm("purchaseAmount", value)}
+                placeholder="직접 입력"
+              />
+            ) : (
+              <input
+                type="text"
+                value="**"
+                readOnly
+                aria-label="단가"
+                style={{
+                  ...inputStyle,
+                  cursor: "not-allowed",
+                  background: "#f8fafc",
+                  fontWeight: 800,
+                }}
+              />
+            )}
           </Field>
 
           <Field label="납품업체" className="wl-field-delivery-company">
@@ -1915,6 +2175,18 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         )}
 
         <div className={listOnly ? "wl-list-only-pane" : "wl-right-pane"}>
+      {listOnly && (
+        <div className="wl-compound-filter-row">
+          <label className="wl-zero-sale-filter">
+            <input
+              type="checkbox"
+              checked={zeroPurchaseOnly}
+              onChange={(event) => setZeroPurchaseOnly(event.target.checked)}
+            />
+            매입금액 0원
+          </label>
+        </div>
+      )}
       {!listOnly && (
         <div className="wl-compound-filter-row">
           <label className="wl-zero-sale-filter">
@@ -1994,6 +2266,27 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           <option value="inputAsc">오래된 입력순</option>
         </select>
 
+        {listOnly && isAdmin && (
+          <button
+            type="button"
+            onClick={() => void saveAllPurchaseAmounts()}
+            disabled={bulkPurchaseSaving || savingPurchaseAmountId !== null}
+            style={{
+              ...bulkSaveButtonStyle,
+              height: 36,
+              padding: "0 12px",
+              opacity:
+                bulkPurchaseSaving || savingPurchaseAmountId !== null ? 0.65 : 1,
+              cursor:
+                bulkPurchaseSaving || savingPurchaseAmountId !== null
+                  ? "wait"
+                  : "pointer",
+            }}
+          >
+            {bulkPurchaseSaving ? "저장 중..." : "전체 저장"}
+          </button>
+        )}
+
         {!listOnly && (
           <button
             type="button"
@@ -2020,7 +2313,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 <col style={{ width: "235px" }} />
                 <col style={{ width: "40px" }} />
                 <col style={{ width: "65px" }} />
-                <col style={{ width: "75px" }} />
+                <col style={{ width: isAdmin ? "112px" : "75px" }} />
                 <col style={{ width: "70px" }} />
                 <col style={{ width: "75px" }} />
                 <col style={{ width: "75px" }} />
@@ -2074,8 +2367,14 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     "메모",
                     "관리",
                   ]
-              ).map((head) => (
-                <th key={head} style={{ ...thStyle, textAlign: "left" }}>
+              ).map((head, headIndex) => (
+                <th
+                  key={head}
+                  style={{
+                    ...thStyle,
+                    textAlign: listOnly && headIndex === 5 ? "center" : "left",
+                  }}
+                >
                   {head}
                 </th>
               ))}
@@ -2134,9 +2433,63 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                         style={{
                           ...numberTdStyle,
                           color: zeroAmountTextColor(row.purchaseAmount),
+                          textAlign: "center",
                         }}
                       >
-                        {money(row.purchaseAmount)}원
+                        {isAdmin ? (
+                          <div className="wl-purchase-edit-wrap">
+                            <input
+                              className="wl-purchase-edit-input"
+                              type="text"
+                              inputMode="decimal"
+                              data-purchase-row={rowIndex}
+                              aria-label={`${row.productName} 매입금액`}
+                              value={
+                                purchaseAmountEdits[row.id] ??
+                                String(row.purchaseAmount ?? 0)
+                              }
+                              disabled={
+                                savingPurchaseAmountId === row.id ||
+                                bulkPurchaseSaving
+                              }
+                              style={
+                                {
+                                  ...(isPurchaseAmountChanged(row)
+                                    ? changedInputStyle
+                                    : {}),
+                                  color: zeroAmountTextColor(
+                                    purchaseAmountEdits[row.id] ??
+                                      String(row.purchaseAmount ?? 0),
+                                    "#0f172a"
+                                  ),
+                                }
+                              }
+                              onChange={(event) =>
+                                changePurchaseAmountEdit(row.id, event.target.value)
+                              }
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  return;
+                                }
+                                movePurchaseAmountInput(event, rowIndex);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="wl-purchase-edit-save"
+                              disabled={
+                                savingPurchaseAmountId === row.id ||
+                                bulkPurchaseSaving
+                              }
+                              onClick={() => void savePurchaseAmount(row)}
+                            >
+                              {savingPurchaseAmountId === row.id ? "저장 중" : "저장"}
+                            </button>
+                          </div>
+                        ) : (
+                          <>{money(row.purchaseAmount)}원</>
+                        )}
                       </td>
                     )}
 
@@ -2150,7 +2503,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                           color: zeroAmountTextColor(row.saleAmount),
                         }}
                       >
-                        {money(row.saleAmount)}원
+                        {money(row.saleAmount)}
                       </td>
                     ) : (
                       <td style={tdStyle}>
@@ -2188,7 +2541,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     )}
 
                     {listOnly ? (
-                      <td style={numberTdStyle}>{money(row.shippingFee || 0)}원</td>
+                      <td style={numberTdStyle}>{money(row.shippingFee || 0)}</td>
                     ) : (
                       <td style={tdStyle}>
                         <input
@@ -2226,7 +2579,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                           profit >= 0 ? "#166534" : "#b91c1c"
                         ),
                       }}>
-                        {money(profit)}원
+                        {money(profit)}
                       </td>
                     )}
 

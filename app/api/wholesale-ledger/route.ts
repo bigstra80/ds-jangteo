@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth";
+import {
+  calculateStaffPurchaseAmount,
+  PurchaseAmountResolutionError,
+} from "@/lib/wholesale-ledger-purchase-amount";
 import { resolveLedgerSaleAmount } from "@/lib/wholesale-ledger-sale-price";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +48,14 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const sessionUser = await getCurrentSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json(
+        { error: "로그인이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     const productName = String(body.productName ?? "").trim();
@@ -60,6 +73,10 @@ export async function POST(request: NextRequest) {
       : new Date();
 
     const quantity = toInt(body.quantity, 1);
+    const purchaseAmount =
+      sessionUser.role === "ADMIN"
+        ? toOneDecimal(body.purchaseAmount, 0)
+        : await calculateStaffPurchaseAmount(body, quantity);
     const row = await prisma.wholesaleLedger.create({
       data: {
         transactionDate,
@@ -69,9 +86,7 @@ export async function POST(request: NextRequest) {
         quantity,
 
         supplierName: toNullableText(body.supplierName),
-
-        // 음수 매입금액도 그대로 저장
-        purchaseAmount: toOneDecimal(body.purchaseAmount, 0),
+        purchaseAmount,
 
         deliveryCompanyName: toNullableText(body.deliveryCompanyName),
         customerName: toNullableText(body.customerName),
@@ -90,6 +105,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ row }, { status: 201 });
   } catch (error) {
+    if (error instanceof PurchaseAmountResolutionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
     console.error("도매 거래 등록 오류:", error);
 
     return NextResponse.json(
