@@ -709,17 +709,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
     const normalized = value.trim().toLowerCase();
     if (!normalized) {
-      changeForm("productName", "");
-      changeForm("supplierName", "");
       setSelectedSupplierId("");
-      changeForm("purchaseAmount", "0");
       setSelectedProductSuppliers([]);
       setSelectedUnitCost(0);
       setSelectedProductId("");
-      setSelectedCustomerUnitPrice(0);
-      setSaleUnitPriceInput("");
-      setIsSalePriceManuallyEdited(false);
-      changeForm("saleAmount", "0");
       return;
     }
 
@@ -729,6 +722,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
     if (matched) {
       selectProduct(matched);
+    } else {
+      setSelectedProductId("");
+      setSelectedSupplierId("");
+      setSelectedProductSuppliers([]);
+      setSelectedUnitCost(0);
     }
   }
 
@@ -2018,26 +2016,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           </Field>
 
           <Field label="단가" className="wl-field-unit-price">
-            {isAdmin ? (
-              <WonInput
-                value={form.purchaseAmount}
-                onChange={(value) => changeForm("purchaseAmount", value)}
-                placeholder="직접 입력"
-              />
-            ) : (
-              <input
-                type="text"
-                value="**"
-                readOnly
-                aria-label="단가"
-                style={{
-                  ...inputStyle,
-                  cursor: "not-allowed",
-                  background: "#f8fafc",
-                  fontWeight: 800,
-                }}
-              />
-            )}
+            <WonInput
+              value={form.purchaseAmount}
+              onChange={(value) => changeForm("purchaseAmount", value)}
+              placeholder="직접 입력"
+            />
           </Field>
 
           <Field label="납품업체" className="wl-field-delivery-company">

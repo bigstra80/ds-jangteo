@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth";
-import {
-  calculateStaffPurchaseAmount,
-  PurchaseAmountResolutionError,
-} from "@/lib/wholesale-ledger-purchase-amount";
 import { resolveLedgerSaleAmount } from "@/lib/wholesale-ledger-sale-price";
 
 function toInt(value: unknown, fallback = 0) {
@@ -26,6 +22,18 @@ function toNullableText(value: unknown) {
 function parseId(value: string) {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function requiredNumber(value: unknown) {
+  if (
+    (typeof value !== "string" && typeof value !== "number") ||
+    String(value).trim() === ""
+  ) {
+    return null;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 export async function PATCH(
@@ -137,7 +145,7 @@ export async function PUT(
 
     if (!productName) {
       return NextResponse.json(
-        { error: "상품명이 필요합니다." },
+        { error: "상품명을 입력해주세요." },
         { status: 400 }
       );
     }
@@ -147,11 +155,44 @@ export async function PUT(
       ? new Date(`${transactionDateText}T00:00:00`)
       : new Date();
 
-    const quantity = toInt(body.quantity, 1);
-    const purchaseAmount =
-      sessionUser.role === "ADMIN"
-        ? toOneDecimal(body.purchaseAmount, 0)
-        : await calculateStaffPurchaseAmount(body, quantity);
+    const parsedQuantity = requiredNumber(body.quantity);
+    if (parsedQuantity === null || !Number.isInteger(parsedQuantity)) {
+      return NextResponse.json(
+        { error: "수량을 올바르게 입력해주세요." },
+        { status: 400 }
+      );
+    }
+    const quantity = toInt(parsedQuantity, 1);
+
+    const parsedPurchaseAmount = requiredNumber(body.purchaseAmount);
+    if (parsedPurchaseAmount === null) {
+      return NextResponse.json(
+        { error: "단가를 올바르게 입력해주세요." },
+        { status: 400 }
+      );
+    }
+    const purchaseAmount = toOneDecimal(parsedPurchaseAmount);
+
+    const saleValue =
+      body.saleUnitPrice !== undefined &&
+      body.saleUnitPrice !== null &&
+      body.saleUnitPrice !== ""
+        ? body.saleUnitPrice
+        : body.saleAmount;
+    if (requiredNumber(saleValue) === null) {
+      return NextResponse.json(
+        { error: "판매금액을 올바르게 입력해주세요." },
+        { status: 400 }
+      );
+    }
+
+    const parsedShippingFee = requiredNumber(body.shippingFee);
+    if (parsedShippingFee === null) {
+      return NextResponse.json(
+        { error: "배송비를 올바르게 입력해주세요." },
+        { status: 400 }
+      );
+    }
     const row = await prisma.wholesaleLedger.update({
       where: { id },
       data: {
@@ -171,7 +212,7 @@ export async function PUT(
 
         // 수정 폼에서도 단가 × 수량을 총 판매금액으로 저장합니다.
         saleAmount: await resolveLedgerSaleAmount(body, quantity),
-        shippingFee: toOneDecimal(body.shippingFee, 0),
+        shippingFee: toOneDecimal(parsedShippingFee),
 
         settlementStatus:
           String(body.settlementStatus ?? "").trim() || "미정산",
@@ -182,13 +223,6 @@ export async function PUT(
 
     return NextResponse.json({ row });
   } catch (error) {
-    if (error instanceof PurchaseAmountResolutionError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
-    }
-
     console.error("도매 거래 수정 오류:", error);
 
     return NextResponse.json(
