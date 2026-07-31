@@ -92,11 +92,7 @@ export default function Sidebar() {
         </button>
 
         <div style={logoAreaStyle}>
-          <div style={logoStyle}>👕</div>
-          <div>
-            <div className="sidebar-text" style={titleStyle}>의류 도매 ERP</div>
-            <div className="sidebar-text" style={subTitleStyle}>Wholesale Management</div>
-          </div>
+          <div style={titleStyle}>.</div>
         </div>
 
         <div style={dividerStyle} />
@@ -461,29 +457,14 @@ export default function Sidebar() {
 const logoAreaStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "12px",
-  padding: "5px 8px 16px",
-};
-
-const logoStyle: React.CSSProperties = {
-  width: "42px",
-  height: "42px",
-  borderRadius: "12px",
-  display: "grid",
-  placeItems: "center",
-  fontSize: "25px",
-  backgroundColor: "#2563eb",
+  minHeight: "12px",
+  padding: "0 8px",
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: "19px",
+  fontSize: "16px",
   fontWeight: 900,
-};
-
-const subTitleStyle: React.CSSProperties = {
-  marginTop: "4px",
-  fontSize: "11px",
-  color: "#94a3b8",
+  lineHeight: 1,
 };
 
 const dividerStyle: React.CSSProperties = {
