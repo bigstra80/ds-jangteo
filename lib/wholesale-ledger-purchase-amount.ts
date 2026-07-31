@@ -72,9 +72,7 @@ export async function calculateRegisteredProductPurchaseAmount(
   );
 
   if (unitCost === null) {
-    throw new PurchaseAmountResolutionError(
-      "선택한 상품의 공급업체 단가를 찾을 수 없습니다."
-    );
+    return 0;
   }
 
   return calculatePurchaseAmount(unitCost, quantity);

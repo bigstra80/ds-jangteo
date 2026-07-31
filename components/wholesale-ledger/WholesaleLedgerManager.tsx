@@ -1987,7 +1987,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                   (supplier) => supplier.name === value
                 );
                 setSelectedSupplierId(matched?.id || "");
-                if (matched) applyPurchaseAmount(matched.unitCost);
+                applyPurchaseAmount(matched?.unitCost ?? 0);
               }}
               onSelect={(option) => selectSupplier(option.label)}
               options={
