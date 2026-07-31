@@ -206,7 +206,9 @@ type ProductForm = {
   cost: string;
   additionalCost: string;
   cost2: string;
+  additionalCost2: string;
   cost3: string;
+  additionalCost3: string;
   price: string;
   additionalPrice: string;
   imageUrl: string;
@@ -231,7 +233,9 @@ const emptyForm: ProductForm = {
   cost: "",
   additionalCost: "",
   cost2: "",
+  additionalCost2: "",
   cost3: "",
+  additionalCost3: "",
   price: "",
   additionalPrice: "",
   imageUrl: "",
@@ -672,7 +676,9 @@ export default function ProductManager() {
       cost: String(product.cost || ""),
       additionalCost: "",
       cost2: String(product.cost2 || ""),
+      additionalCost2: "",
       cost3: String(product.cost3 || ""),
+      additionalCost3: "",
       price: String(product.price || ""),
       additionalPrice: "",
       imageUrl: product.imageUrl || "",
@@ -1036,8 +1042,8 @@ export default function ProductManager() {
             id: null,
             code: form.additionalCode.trim(),
             cost: form.additionalCost,
-            cost2: "",
-            cost3: "",
+            cost2: form.additionalCost2,
+            cost3: form.additionalCost3,
             price: form.additionalPrice || form.price,
           }),
         });
@@ -1563,7 +1569,7 @@ export default function ProductManager() {
         .pm-extra-supplier {
           grid-column: 1 / -1;
           display: grid;
-          grid-template-columns: minmax(0, 1.65fr) minmax(0, .75fr) auto;
+          grid-template-columns: minmax(180px, 1.65fr) minmax(84px, .75fr) minmax(84px, .75fr) auto;
           gap: 8px;
           align-items: end;
           padding: 9px;
@@ -2492,6 +2498,13 @@ export default function ProductManager() {
                     placeholder="0"
                     inputMode="decimal"
                   />
+                  <Field
+                    label="매입단가 추가"
+                    value={form.additionalCost2}
+                    onChange={(value) => updateForm("additionalCost2", normalizeOneDecimal(value))}
+                    placeholder="0"
+                    inputMode="decimal"
+                  />
                   <button type="button" className="pm-collapse-supplier" onClick={() => setVisibleSupplierCount(1)}>
                     − 접기
                   </button>
@@ -2510,6 +2523,13 @@ export default function ProductManager() {
                     label="매입단가 3"
                     value={form.cost3}
                     onChange={(value) => updateForm("cost3", normalizeOneDecimal(value))}
+                    placeholder="0"
+                    inputMode="decimal"
+                  />
+                  <Field
+                    label="매입단가 추가"
+                    value={form.additionalCost3}
+                    onChange={(value) => updateForm("additionalCost3", normalizeOneDecimal(value))}
                     placeholder="0"
                     inputMode="decimal"
                   />
