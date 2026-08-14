@@ -392,9 +392,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
   const [purchaseAmountEdits, setPurchaseAmountEdits] = useState<Record<number, string>>({});
   const [savingPurchaseAmountId, setSavingPurchaseAmountId] = useState<number | null>(null);
   const [bulkPurchaseSaving, setBulkPurchaseSaving] = useState(false);
-  // 입출고 조회 화면은 요청된 대로 오늘부터 조회하고, 주문 화면은
-  // 기존 거래가 처음부터 모두 보이도록 시작일 필터를 비워 둡니다.
-  const [startDate, setStartDate] = useState(() => (listOnly ? today() : ""));
+  // 주문과 입출고 조회 화면 모두 처음에는 오늘 거래만 표시합니다.
+  const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("inputDesc");
 
@@ -2233,7 +2232,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
           <button
             type="button"
             onClick={() => {
-              setStartDate(listOnly ? today() : "");
+              setStartDate(today());
               setEndDate("");
               setSortOrder("inputDesc");
             }}
