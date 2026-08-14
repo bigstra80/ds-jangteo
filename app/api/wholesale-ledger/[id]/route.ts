@@ -7,6 +7,10 @@ import {
   hasRegisteredProductId,
   PurchaseAmountResolutionError,
 } from "@/lib/wholesale-ledger-purchase-amount";
+import {
+  LedgerProductResolutionError,
+  resolveLedgerProduct,
+} from "@/lib/wholesale-ledger-product";
 
 function toInt(value: unknown, fallback = 0) {
   const number = Number(value);
@@ -146,7 +150,8 @@ export async function PUT(
 
     const body = await request.json();
 
-    const productName = String(body.productName ?? "").trim();
+    const resolvedProduct = await resolveLedgerProduct(body);
+    const productName = resolvedProduct.productName;
 
     if (!productName) {
       return NextResponse.json(
@@ -176,10 +181,11 @@ export async function PUT(
         { status: 400 }
       );
     }
+    const resolvedBody = { ...body, productId: resolvedProduct.productId };
     const purchaseAmount =
       sessionUser.role !== "ADMIN" &&
-      hasRegisteredProductId(body.productId)
-        ? await calculateRegisteredProductPurchaseAmount(body, quantity)
+      hasRegisteredProductId(resolvedProduct.productId)
+        ? await calculateRegisteredProductPurchaseAmount(resolvedBody, quantity)
         : toOneDecimal(parsedPurchaseAmount);
 
     const saleValue =
@@ -206,6 +212,8 @@ export async function PUT(
       where: { id },
       data: {
         transactionDate,
+        productId: resolvedProduct.productId,
+        productCode: resolvedProduct.productCode,
         productName,
 
         // 반품 처리를 위해 음수 수량 허용
@@ -220,7 +228,7 @@ export async function PUT(
         customerPhone: toNullableText(body.customerPhone),
 
         // 수정 폼에서도 단가 × 수량을 총 판매금액으로 저장합니다.
-        saleAmount: await resolveLedgerSaleAmount(body, quantity),
+        saleAmount: await resolveLedgerSaleAmount(resolvedBody, quantity),
         shippingFee: toOneDecimal(parsedShippingFee),
 
         settlementStatus:
@@ -232,6 +240,10 @@ export async function PUT(
 
     return NextResponse.json({ row });
   } catch (error) {
+    if (error instanceof LedgerProductResolutionError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
     if (error instanceof PurchaseAmountResolutionError) {
       return NextResponse.json(
         { error: error.message },

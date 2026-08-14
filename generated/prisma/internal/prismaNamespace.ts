@@ -1793,6 +1793,8 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 export const WholesaleLedgerScalarFieldEnum = {
   id: 'id',
   transactionDate: 'transactionDate',
+  productId: 'productId',
+  productCode: 'productCode',
   productName: 'productName',
   quantity: 'quantity',
   supplierName: 'supplierName',

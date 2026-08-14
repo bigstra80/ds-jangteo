@@ -31,6 +31,8 @@ type LedgerRow = {
   id: number;
   transactionDate: string;
   createdAt: string;
+  productId: number | null;
+  productCode: string | null;
   productName: string;
   quantity: number;
   supplierName: string | null;
@@ -474,21 +476,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     loadCurrentUserRole();
   }, []);
 
-  const productCodeByName = useMemo(() => {
-    const codeMap = new Map<string, string>();
-
-    productOptions.forEach((option) => {
-      const productName = String(option.productName || option.label || "").trim().toLowerCase();
-      const productCode = String(option.productCode || "").trim();
-
-      if (productName && productCode && !codeMap.has(productName)) {
-        codeMap.set(productName, productCode);
-      }
-    });
-
-    return codeMap;
-  }, [productOptions]);
-
   const filteredRows = useMemo(() => {
     const normalizedKeyword = normalizeSearchText(keyword);
 
@@ -533,7 +520,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
       if (!normalizedKeyword) return true;
 
-      const rowProductCode = productCodeByName.get(row.productName.trim().toLowerCase()) || "";
+      const rowProductCode = row.productCode || "";
       const fields: Record<string, unknown[]> = {
         all: [rowProductCode, row.productName, row.supplierName, row.deliveryCompanyName, row.customerName, row.customerPhone, row.shippingFee, row.memo],
         product: [rowProductCode, row.productName], supplier: [row.supplierName], deliveryCompany: [row.deliveryCompanyName], customer: [row.customerName], phone: [row.customerPhone], memo: [row.memo],
@@ -557,7 +544,6 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     startDate,
     endDate,
     sortOrder,
-    productCodeByName,
   ]);
 
   const summary = useMemo(() => {
@@ -677,6 +663,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     const firstSupplier = supplierCosts[0];
 
     changeForm("productName", option.label);
+    setProductCode(option.productCode || "");
     setSelectedProductSuppliers(supplierCosts);
     setSelectedProductId(option.id);
 
@@ -708,7 +695,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     setProductCode(value);
 
     const normalized = value.trim().toLowerCase();
-    if (!normalized) return;
+    if (!normalized) {
+      setSelectedProductId("");
+      return;
+    }
 
     const matched = productOptions.find(
       (option) => (option.productCode || "").toLowerCase() === normalized
@@ -716,6 +706,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
     if (matched) {
       selectProduct(matched);
+    } else {
+      setSelectedProductId("");
+      setSelectedProductSuppliers([]);
+      setSelectedSupplierId("");
     }
   }
 
@@ -728,8 +722,11 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
   function startEdit(row: LedgerRow) {
     setEditingId(row.id);
-    const matchedProduct = productOptions.find(
-      (option) => option.label === row.productName
+    const matchedProduct = productOptions.find((option) =>
+      row.productId
+        ? option.id === String(row.productId)
+        : Boolean(row.productCode) &&
+          option.productCode?.toLowerCase() === row.productCode?.toLowerCase()
     );
     setProductCode(matchedProduct?.productCode || "");
     setSelectedProductId(matchedProduct?.id || "");
@@ -828,6 +825,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
         body: JSON.stringify({
           ...form,
           productId: selectedProductId || null,
+          productCode: productCode.trim() || null,
           supplierId: selectedSupplierId || null,
           deliveryCustomerId: selectedDeliveryCustomerId || null,
           isSalePriceManuallyEdited,
@@ -1104,14 +1102,13 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
       body: JSON.stringify({
         transactionDate: row.transactionDate.slice(0, 10),
         productName: row.productName,
-        productId:
-          productOptions.find((option) => option.label === row.productName)?.id ||
-          null,
+        productId: row.productId || null,
+        productCode: row.productCode || null,
         quantity: String(row.quantity),
         supplierName: row.supplierName || "",
         supplierId:
           productOptions
-            .find((option) => option.label === row.productName)
+            .find((option) => option.id === String(row.productId))
             ?.supplierCosts?.find(
               (supplier) => supplier.name === (row.supplierName || "")
             )?.id || null,
@@ -1942,30 +1939,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                 setSelectedUnitCost(0);
                 setSelectedSupplierId("");
 
-                const matched = productOptions.find(
-                  (option) => option.label === value
-                );
-
-                if (matched) {
-                  setSelectedProductId(matched.id);
-                  if (selectedDeliveryCustomerId) {
-                    applyCustomerSalePrice(
-                      selectedDeliveryCustomerId,
-                      matched.id,
-                      form.quantity
-                    );
-                  } else if (form.deliveryCompanyName.trim()) {
-                    applySaleUnitPrice(0, form.quantity);
-                  } else {
-                    applySaleUnitPrice(matched.basePrice || 0, form.quantity);
-                  }
-                } else {
-                  setSelectedProductId("");
-                  setSelectedCustomerUnitPrice(0);
-                  setSaleUnitPriceInput("");
-                  if (wasRegisteredProduct && !isAdmin) {
-                    changeForm("purchaseAmount", "");
-                  }
+                setSelectedProductId("");
+                setProductCode("");
+                setSelectedCustomerUnitPrice(0);
+                setSaleUnitPriceInput("");
+                if (wasRegisteredProduct && !isAdmin) {
+                  changeForm("purchaseAmount", "");
                 }
               }}
               onSelect={(option) => {
@@ -2399,8 +2378,8 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     <td className="wl-date-cell" style={{ ...tdStyle, ...(listOnly ? settlementDateCellStyle : {}) }}>
                       {dateOnly(row.transactionDate)}
                     </td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }} title={productCodeByName.get(row.productName.trim().toLowerCase()) || ""}>
-                      {productCodeByName.get(row.productName.trim().toLowerCase()) || "-"}
+                    <td style={{ ...tdStyle, fontWeight: 700 }} title={row.productCode || ""}>
+                      {row.productCode || "-"}
                     </td>
                     <td
                       className="wl-product-name-cell"

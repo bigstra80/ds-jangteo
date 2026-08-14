@@ -41,6 +41,7 @@ model Product {
 
   skus              ProductSku[]
   customerPrices    CustomerProductPrice[]
+  wholesaleLedgers  WholesaleLedger[]
 
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
@@ -251,6 +252,9 @@ model User {
 model WholesaleLedger {
   id                  Int      @id @default(autoincrement())
   transactionDate     DateTime @default(now())
+  productId           Int?
+  product              Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productCode         String?
   productName         String
   quantity            Int      @default(1)
   supplierName        String?
@@ -267,4 +271,6 @@ model WholesaleLedger {
 
   @@index([transactionDate])
   @@index([settlementStatus])
+  @@index([productId])
+  @@index([productCode])
 }

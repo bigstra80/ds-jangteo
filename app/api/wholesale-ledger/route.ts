@@ -7,6 +7,10 @@ import {
   hasRegisteredProductId,
   PurchaseAmountResolutionError,
 } from "@/lib/wholesale-ledger-purchase-amount";
+import {
+  LedgerProductResolutionError,
+  resolveLedgerProduct,
+} from "@/lib/wholesale-ledger-product";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -71,7 +75,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const productName = String(body.productName ?? "").trim();
+    const resolvedProduct = await resolveLedgerProduct(body);
+    const productName = resolvedProduct.productName;
 
     if (!productName) {
       return NextResponse.json(
@@ -101,10 +106,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    const resolvedBody = { ...body, productId: resolvedProduct.productId };
     const purchaseAmount =
       sessionUser.role !== "ADMIN" &&
-      hasRegisteredProductId(body.productId)
-        ? await calculateRegisteredProductPurchaseAmount(body, quantity)
+      hasRegisteredProductId(resolvedProduct.productId)
+        ? await calculateRegisteredProductPurchaseAmount(resolvedBody, quantity)
         : toOneDecimal(parsedPurchaseAmount);
 
     const saleValue =
@@ -130,6 +136,8 @@ export async function POST(request: NextRequest) {
     const row = await prisma.wholesaleLedger.create({
       data: {
         transactionDate,
+        productId: resolvedProduct.productId,
+        productCode: resolvedProduct.productCode,
         productName,
 
         // 반품 처리를 위해 음수 수량 허용
@@ -143,7 +151,7 @@ export async function POST(request: NextRequest) {
         customerPhone: toNullableText(body.customerPhone),
 
         // 신규/수정 폼은 단가 × 수량을 총 판매금액으로 저장합니다.
-        saleAmount: await resolveLedgerSaleAmount(body, quantity),
+        saleAmount: await resolveLedgerSaleAmount(resolvedBody, quantity),
         shippingFee: toOneDecimal(parsedShippingFee),
 
         settlementStatus:
@@ -155,6 +163,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ row }, { status: 201 });
   } catch (error) {
+    if (error instanceof LedgerProductResolutionError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
     if (error instanceof PurchaseAmountResolutionError) {
       return NextResponse.json(
         { error: error.message },

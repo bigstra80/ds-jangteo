@@ -28,6 +28,7 @@ export type AggregateWholesaleLedger = {
 
 export type WholesaleLedgerAvgAggregateOutputType = {
   id: number | null
+  productId: number | null
   quantity: number | null
   purchaseAmount: number | null
   saleAmount: number | null
@@ -36,6 +37,7 @@ export type WholesaleLedgerAvgAggregateOutputType = {
 
 export type WholesaleLedgerSumAggregateOutputType = {
   id: number | null
+  productId: number | null
   quantity: number | null
   purchaseAmount: number | null
   saleAmount: number | null
@@ -45,6 +47,8 @@ export type WholesaleLedgerSumAggregateOutputType = {
 export type WholesaleLedgerMinAggregateOutputType = {
   id: number | null
   transactionDate: Date | null
+  productId: number | null
+  productCode: string | null
   productName: string | null
   quantity: number | null
   supplierName: string | null
@@ -63,6 +67,8 @@ export type WholesaleLedgerMinAggregateOutputType = {
 export type WholesaleLedgerMaxAggregateOutputType = {
   id: number | null
   transactionDate: Date | null
+  productId: number | null
+  productCode: string | null
   productName: string | null
   quantity: number | null
   supplierName: string | null
@@ -81,6 +87,8 @@ export type WholesaleLedgerMaxAggregateOutputType = {
 export type WholesaleLedgerCountAggregateOutputType = {
   id: number
   transactionDate: number
+  productId: number
+  productCode: number
   productName: number
   quantity: number
   supplierName: number
@@ -100,6 +108,7 @@ export type WholesaleLedgerCountAggregateOutputType = {
 
 export type WholesaleLedgerAvgAggregateInputType = {
   id?: true
+  productId?: true
   quantity?: true
   purchaseAmount?: true
   saleAmount?: true
@@ -108,6 +117,7 @@ export type WholesaleLedgerAvgAggregateInputType = {
 
 export type WholesaleLedgerSumAggregateInputType = {
   id?: true
+  productId?: true
   quantity?: true
   purchaseAmount?: true
   saleAmount?: true
@@ -117,6 +127,8 @@ export type WholesaleLedgerSumAggregateInputType = {
 export type WholesaleLedgerMinAggregateInputType = {
   id?: true
   transactionDate?: true
+  productId?: true
+  productCode?: true
   productName?: true
   quantity?: true
   supplierName?: true
@@ -135,6 +147,8 @@ export type WholesaleLedgerMinAggregateInputType = {
 export type WholesaleLedgerMaxAggregateInputType = {
   id?: true
   transactionDate?: true
+  productId?: true
+  productCode?: true
   productName?: true
   quantity?: true
   supplierName?: true
@@ -153,6 +167,8 @@ export type WholesaleLedgerMaxAggregateInputType = {
 export type WholesaleLedgerCountAggregateInputType = {
   id?: true
   transactionDate?: true
+  productId?: true
+  productCode?: true
   productName?: true
   quantity?: true
   supplierName?: true
@@ -258,6 +274,8 @@ export type WholesaleLedgerGroupByArgs<ExtArgs extends runtime.Types.Extensions.
 export type WholesaleLedgerGroupByOutputType = {
   id: number
   transactionDate: Date
+  productId: number | null
+  productCode: string | null
   productName: string
   quantity: number
   supplierName: string | null
@@ -299,6 +317,8 @@ export type WholesaleLedgerWhereInput = {
   NOT?: Prisma.WholesaleLedgerWhereInput | Prisma.WholesaleLedgerWhereInput[]
   id?: Prisma.IntFilter<"WholesaleLedger"> | number
   transactionDate?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
+  productId?: Prisma.IntNullableFilter<"WholesaleLedger"> | number | null
+  productCode?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   productName?: Prisma.StringFilter<"WholesaleLedger"> | string
   quantity?: Prisma.IntFilter<"WholesaleLedger"> | number
   supplierName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
@@ -312,11 +332,14 @@ export type WholesaleLedgerWhereInput = {
   memo?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
+  product?: Prisma.XOR<Prisma.ProductNullableScalarRelationFilter, Prisma.ProductWhereInput> | null
 }
 
 export type WholesaleLedgerOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  productId?: Prisma.SortOrderInput | Prisma.SortOrder
+  productCode?: Prisma.SortOrderInput | Prisma.SortOrder
   productName?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   supplierName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -330,6 +353,7 @@ export type WholesaleLedgerOrderByWithRelationInput = {
   memo?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  product?: Prisma.ProductOrderByWithRelationInput
 }
 
 export type WholesaleLedgerWhereUniqueInput = Prisma.AtLeast<{
@@ -338,6 +362,8 @@ export type WholesaleLedgerWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.WholesaleLedgerWhereInput[]
   NOT?: Prisma.WholesaleLedgerWhereInput | Prisma.WholesaleLedgerWhereInput[]
   transactionDate?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
+  productId?: Prisma.IntNullableFilter<"WholesaleLedger"> | number | null
+  productCode?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   productName?: Prisma.StringFilter<"WholesaleLedger"> | string
   quantity?: Prisma.IntFilter<"WholesaleLedger"> | number
   supplierName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
@@ -351,11 +377,14 @@ export type WholesaleLedgerWhereUniqueInput = Prisma.AtLeast<{
   memo?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
+  product?: Prisma.XOR<Prisma.ProductNullableScalarRelationFilter, Prisma.ProductWhereInput> | null
 }, "id">
 
 export type WholesaleLedgerOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  productId?: Prisma.SortOrderInput | Prisma.SortOrder
+  productCode?: Prisma.SortOrderInput | Prisma.SortOrder
   productName?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   supplierName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -382,6 +411,8 @@ export type WholesaleLedgerScalarWhereWithAggregatesInput = {
   NOT?: Prisma.WholesaleLedgerScalarWhereWithAggregatesInput | Prisma.WholesaleLedgerScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"WholesaleLedger"> | number
   transactionDate?: Prisma.DateTimeWithAggregatesFilter<"WholesaleLedger"> | Date | string
+  productId?: Prisma.IntNullableWithAggregatesFilter<"WholesaleLedger"> | number | null
+  productCode?: Prisma.StringNullableWithAggregatesFilter<"WholesaleLedger"> | string | null
   productName?: Prisma.StringWithAggregatesFilter<"WholesaleLedger"> | string
   quantity?: Prisma.IntWithAggregatesFilter<"WholesaleLedger"> | number
   supplierName?: Prisma.StringNullableWithAggregatesFilter<"WholesaleLedger"> | string | null
@@ -399,6 +430,7 @@ export type WholesaleLedgerScalarWhereWithAggregatesInput = {
 
 export type WholesaleLedgerCreateInput = {
   transactionDate?: Date | string
+  productCode?: string | null
   productName: string
   quantity?: number
   supplierName?: string | null
@@ -412,11 +444,14 @@ export type WholesaleLedgerCreateInput = {
   memo?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  product?: Prisma.ProductCreateNestedOneWithoutWholesaleLedgersInput
 }
 
 export type WholesaleLedgerUncheckedCreateInput = {
   id?: number
   transactionDate?: Date | string
+  productId?: number | null
+  productCode?: string | null
   productName: string
   quantity?: number
   supplierName?: string | null
@@ -434,6 +469,7 @@ export type WholesaleLedgerUncheckedCreateInput = {
 
 export type WholesaleLedgerUpdateInput = {
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  productCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productName?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   supplierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -447,11 +483,14 @@ export type WholesaleLedgerUpdateInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  product?: Prisma.ProductUpdateOneWithoutWholesaleLedgersNestedInput
 }
 
 export type WholesaleLedgerUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  productId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  productCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productName?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   supplierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -470,6 +509,8 @@ export type WholesaleLedgerUncheckedUpdateInput = {
 export type WholesaleLedgerCreateManyInput = {
   id?: number
   transactionDate?: Date | string
+  productId?: number | null
+  productCode?: string | null
   productName: string
   quantity?: number
   supplierName?: string | null
@@ -487,6 +528,7 @@ export type WholesaleLedgerCreateManyInput = {
 
 export type WholesaleLedgerUpdateManyMutationInput = {
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  productCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productName?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   supplierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -505,6 +547,8 @@ export type WholesaleLedgerUpdateManyMutationInput = {
 export type WholesaleLedgerUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  productId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  productCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productName?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   supplierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -520,9 +564,21 @@ export type WholesaleLedgerUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type WholesaleLedgerListRelationFilter = {
+  every?: Prisma.WholesaleLedgerWhereInput
+  some?: Prisma.WholesaleLedgerWhereInput
+  none?: Prisma.WholesaleLedgerWhereInput
+}
+
+export type WholesaleLedgerOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
+}
+
 export type WholesaleLedgerCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  productId?: Prisma.SortOrder
+  productCode?: Prisma.SortOrder
   productName?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   supplierName?: Prisma.SortOrder
@@ -540,6 +596,7 @@ export type WholesaleLedgerCountOrderByAggregateInput = {
 
 export type WholesaleLedgerAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  productId?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   purchaseAmount?: Prisma.SortOrder
   saleAmount?: Prisma.SortOrder
@@ -549,6 +606,8 @@ export type WholesaleLedgerAvgOrderByAggregateInput = {
 export type WholesaleLedgerMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  productId?: Prisma.SortOrder
+  productCode?: Prisma.SortOrder
   productName?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   supplierName?: Prisma.SortOrder
@@ -567,6 +626,8 @@ export type WholesaleLedgerMaxOrderByAggregateInput = {
 export type WholesaleLedgerMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  productId?: Prisma.SortOrder
+  productCode?: Prisma.SortOrder
   productName?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   supplierName?: Prisma.SortOrder
@@ -584,10 +645,214 @@ export type WholesaleLedgerMinOrderByAggregateInput = {
 
 export type WholesaleLedgerSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  productId?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   purchaseAmount?: Prisma.SortOrder
   saleAmount?: Prisma.SortOrder
   shippingFee?: Prisma.SortOrder
+}
+
+export type WholesaleLedgerCreateNestedManyWithoutProductInput = {
+  create?: Prisma.XOR<Prisma.WholesaleLedgerCreateWithoutProductInput, Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput> | Prisma.WholesaleLedgerCreateWithoutProductInput[] | Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput[]
+  connectOrCreate?: Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput | Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput[]
+  createMany?: Prisma.WholesaleLedgerCreateManyProductInputEnvelope
+  connect?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+}
+
+export type WholesaleLedgerUncheckedCreateNestedManyWithoutProductInput = {
+  create?: Prisma.XOR<Prisma.WholesaleLedgerCreateWithoutProductInput, Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput> | Prisma.WholesaleLedgerCreateWithoutProductInput[] | Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput[]
+  connectOrCreate?: Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput | Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput[]
+  createMany?: Prisma.WholesaleLedgerCreateManyProductInputEnvelope
+  connect?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+}
+
+export type WholesaleLedgerUpdateManyWithoutProductNestedInput = {
+  create?: Prisma.XOR<Prisma.WholesaleLedgerCreateWithoutProductInput, Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput> | Prisma.WholesaleLedgerCreateWithoutProductInput[] | Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput[]
+  connectOrCreate?: Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput | Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput[]
+  upsert?: Prisma.WholesaleLedgerUpsertWithWhereUniqueWithoutProductInput | Prisma.WholesaleLedgerUpsertWithWhereUniqueWithoutProductInput[]
+  createMany?: Prisma.WholesaleLedgerCreateManyProductInputEnvelope
+  set?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  disconnect?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  delete?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  connect?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  update?: Prisma.WholesaleLedgerUpdateWithWhereUniqueWithoutProductInput | Prisma.WholesaleLedgerUpdateWithWhereUniqueWithoutProductInput[]
+  updateMany?: Prisma.WholesaleLedgerUpdateManyWithWhereWithoutProductInput | Prisma.WholesaleLedgerUpdateManyWithWhereWithoutProductInput[]
+  deleteMany?: Prisma.WholesaleLedgerScalarWhereInput | Prisma.WholesaleLedgerScalarWhereInput[]
+}
+
+export type WholesaleLedgerUncheckedUpdateManyWithoutProductNestedInput = {
+  create?: Prisma.XOR<Prisma.WholesaleLedgerCreateWithoutProductInput, Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput> | Prisma.WholesaleLedgerCreateWithoutProductInput[] | Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput[]
+  connectOrCreate?: Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput | Prisma.WholesaleLedgerCreateOrConnectWithoutProductInput[]
+  upsert?: Prisma.WholesaleLedgerUpsertWithWhereUniqueWithoutProductInput | Prisma.WholesaleLedgerUpsertWithWhereUniqueWithoutProductInput[]
+  createMany?: Prisma.WholesaleLedgerCreateManyProductInputEnvelope
+  set?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  disconnect?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  delete?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  connect?: Prisma.WholesaleLedgerWhereUniqueInput | Prisma.WholesaleLedgerWhereUniqueInput[]
+  update?: Prisma.WholesaleLedgerUpdateWithWhereUniqueWithoutProductInput | Prisma.WholesaleLedgerUpdateWithWhereUniqueWithoutProductInput[]
+  updateMany?: Prisma.WholesaleLedgerUpdateManyWithWhereWithoutProductInput | Prisma.WholesaleLedgerUpdateManyWithWhereWithoutProductInput[]
+  deleteMany?: Prisma.WholesaleLedgerScalarWhereInput | Prisma.WholesaleLedgerScalarWhereInput[]
+}
+
+export type WholesaleLedgerCreateWithoutProductInput = {
+  transactionDate?: Date | string
+  productCode?: string | null
+  productName: string
+  quantity?: number
+  supplierName?: string | null
+  purchaseAmount?: number
+  deliveryCompanyName?: string | null
+  customerName?: string | null
+  customerPhone?: string | null
+  saleAmount?: number
+  shippingFee?: number
+  settlementStatus?: string
+  memo?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type WholesaleLedgerUncheckedCreateWithoutProductInput = {
+  id?: number
+  transactionDate?: Date | string
+  productCode?: string | null
+  productName: string
+  quantity?: number
+  supplierName?: string | null
+  purchaseAmount?: number
+  deliveryCompanyName?: string | null
+  customerName?: string | null
+  customerPhone?: string | null
+  saleAmount?: number
+  shippingFee?: number
+  settlementStatus?: string
+  memo?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type WholesaleLedgerCreateOrConnectWithoutProductInput = {
+  where: Prisma.WholesaleLedgerWhereUniqueInput
+  create: Prisma.XOR<Prisma.WholesaleLedgerCreateWithoutProductInput, Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput>
+}
+
+export type WholesaleLedgerCreateManyProductInputEnvelope = {
+  data: Prisma.WholesaleLedgerCreateManyProductInput | Prisma.WholesaleLedgerCreateManyProductInput[]
+  skipDuplicates?: boolean
+}
+
+export type WholesaleLedgerUpsertWithWhereUniqueWithoutProductInput = {
+  where: Prisma.WholesaleLedgerWhereUniqueInput
+  update: Prisma.XOR<Prisma.WholesaleLedgerUpdateWithoutProductInput, Prisma.WholesaleLedgerUncheckedUpdateWithoutProductInput>
+  create: Prisma.XOR<Prisma.WholesaleLedgerCreateWithoutProductInput, Prisma.WholesaleLedgerUncheckedCreateWithoutProductInput>
+}
+
+export type WholesaleLedgerUpdateWithWhereUniqueWithoutProductInput = {
+  where: Prisma.WholesaleLedgerWhereUniqueInput
+  data: Prisma.XOR<Prisma.WholesaleLedgerUpdateWithoutProductInput, Prisma.WholesaleLedgerUncheckedUpdateWithoutProductInput>
+}
+
+export type WholesaleLedgerUpdateManyWithWhereWithoutProductInput = {
+  where: Prisma.WholesaleLedgerScalarWhereInput
+  data: Prisma.XOR<Prisma.WholesaleLedgerUpdateManyMutationInput, Prisma.WholesaleLedgerUncheckedUpdateManyWithoutProductInput>
+}
+
+export type WholesaleLedgerScalarWhereInput = {
+  AND?: Prisma.WholesaleLedgerScalarWhereInput | Prisma.WholesaleLedgerScalarWhereInput[]
+  OR?: Prisma.WholesaleLedgerScalarWhereInput[]
+  NOT?: Prisma.WholesaleLedgerScalarWhereInput | Prisma.WholesaleLedgerScalarWhereInput[]
+  id?: Prisma.IntFilter<"WholesaleLedger"> | number
+  transactionDate?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
+  productId?: Prisma.IntNullableFilter<"WholesaleLedger"> | number | null
+  productCode?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  productName?: Prisma.StringFilter<"WholesaleLedger"> | string
+  quantity?: Prisma.IntFilter<"WholesaleLedger"> | number
+  supplierName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  purchaseAmount?: Prisma.FloatFilter<"WholesaleLedger"> | number
+  deliveryCompanyName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  customerName?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  customerPhone?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  saleAmount?: Prisma.FloatFilter<"WholesaleLedger"> | number
+  shippingFee?: Prisma.FloatFilter<"WholesaleLedger"> | number
+  settlementStatus?: Prisma.StringFilter<"WholesaleLedger"> | string
+  memo?: Prisma.StringNullableFilter<"WholesaleLedger"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"WholesaleLedger"> | Date | string
+}
+
+export type WholesaleLedgerCreateManyProductInput = {
+  id?: number
+  transactionDate?: Date | string
+  productCode?: string | null
+  productName: string
+  quantity?: number
+  supplierName?: string | null
+  purchaseAmount?: number
+  deliveryCompanyName?: string | null
+  customerName?: string | null
+  customerPhone?: string | null
+  saleAmount?: number
+  shippingFee?: number
+  settlementStatus?: string
+  memo?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type WholesaleLedgerUpdateWithoutProductInput = {
+  transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  productCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  productName?: Prisma.StringFieldUpdateOperationsInput | string
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  supplierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchaseAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  deliveryCompanyName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  saleAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  shippingFee?: Prisma.FloatFieldUpdateOperationsInput | number
+  settlementStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type WholesaleLedgerUncheckedUpdateWithoutProductInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  productCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  productName?: Prisma.StringFieldUpdateOperationsInput | string
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  supplierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchaseAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  deliveryCompanyName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  saleAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  shippingFee?: Prisma.FloatFieldUpdateOperationsInput | number
+  settlementStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type WholesaleLedgerUncheckedUpdateManyWithoutProductInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  productCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  productName?: Prisma.StringFieldUpdateOperationsInput | string
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  supplierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchaseAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  deliveryCompanyName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  saleAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  shippingFee?: Prisma.FloatFieldUpdateOperationsInput | number
+  settlementStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -595,6 +860,8 @@ export type WholesaleLedgerSumOrderByAggregateInput = {
 export type WholesaleLedgerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   transactionDate?: boolean
+  productId?: boolean
+  productCode?: boolean
   productName?: boolean
   quantity?: boolean
   supplierName?: boolean
@@ -608,11 +875,14 @@ export type WholesaleLedgerSelect<ExtArgs extends runtime.Types.Extensions.Inter
   memo?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  product?: boolean | Prisma.WholesaleLedger$productArgs<ExtArgs>
 }, ExtArgs["result"]["wholesaleLedger"]>
 
 export type WholesaleLedgerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   transactionDate?: boolean
+  productId?: boolean
+  productCode?: boolean
   productName?: boolean
   quantity?: boolean
   supplierName?: boolean
@@ -626,11 +896,14 @@ export type WholesaleLedgerSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   memo?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  product?: boolean | Prisma.WholesaleLedger$productArgs<ExtArgs>
 }, ExtArgs["result"]["wholesaleLedger"]>
 
 export type WholesaleLedgerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   transactionDate?: boolean
+  productId?: boolean
+  productCode?: boolean
   productName?: boolean
   quantity?: boolean
   supplierName?: boolean
@@ -644,11 +917,14 @@ export type WholesaleLedgerSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   memo?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  product?: boolean | Prisma.WholesaleLedger$productArgs<ExtArgs>
 }, ExtArgs["result"]["wholesaleLedger"]>
 
 export type WholesaleLedgerSelectScalar = {
   id?: boolean
   transactionDate?: boolean
+  productId?: boolean
+  productCode?: boolean
   productName?: boolean
   quantity?: boolean
   supplierName?: boolean
@@ -664,14 +940,27 @@ export type WholesaleLedgerSelectScalar = {
   updatedAt?: boolean
 }
 
-export type WholesaleLedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "transactionDate" | "productName" | "quantity" | "supplierName" | "purchaseAmount" | "deliveryCompanyName" | "customerName" | "customerPhone" | "saleAmount" | "shippingFee" | "settlementStatus" | "memo" | "createdAt" | "updatedAt", ExtArgs["result"]["wholesaleLedger"]>
+export type WholesaleLedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "transactionDate" | "productId" | "productCode" | "productName" | "quantity" | "supplierName" | "purchaseAmount" | "deliveryCompanyName" | "customerName" | "customerPhone" | "saleAmount" | "shippingFee" | "settlementStatus" | "memo" | "createdAt" | "updatedAt", ExtArgs["result"]["wholesaleLedger"]>
+export type WholesaleLedgerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  product?: boolean | Prisma.WholesaleLedger$productArgs<ExtArgs>
+}
+export type WholesaleLedgerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  product?: boolean | Prisma.WholesaleLedger$productArgs<ExtArgs>
+}
+export type WholesaleLedgerIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  product?: boolean | Prisma.WholesaleLedger$productArgs<ExtArgs>
+}
 
 export type $WholesaleLedgerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "WholesaleLedger"
-  objects: {}
+  objects: {
+    product: Prisma.$ProductPayload<ExtArgs> | null
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     transactionDate: Date
+    productId: number | null
+    productCode: string | null
     productName: string
     quantity: number
     supplierName: string | null
@@ -1079,6 +1368,7 @@ readonly fields: WholesaleLedgerFieldRefs;
  */
 export interface Prisma__WholesaleLedgerClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  product<T extends Prisma.WholesaleLedger$productArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WholesaleLedger$productArgs<ExtArgs>>): Prisma.Prisma__ProductClient<runtime.Types.Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1110,6 +1400,8 @@ export interface Prisma__WholesaleLedgerClient<T, Null = never, ExtArgs extends 
 export interface WholesaleLedgerFieldRefs {
   readonly id: Prisma.FieldRef<"WholesaleLedger", 'Int'>
   readonly transactionDate: Prisma.FieldRef<"WholesaleLedger", 'DateTime'>
+  readonly productId: Prisma.FieldRef<"WholesaleLedger", 'Int'>
+  readonly productCode: Prisma.FieldRef<"WholesaleLedger", 'String'>
   readonly productName: Prisma.FieldRef<"WholesaleLedger", 'String'>
   readonly quantity: Prisma.FieldRef<"WholesaleLedger", 'Int'>
   readonly supplierName: Prisma.FieldRef<"WholesaleLedger", 'String'>
@@ -1140,6 +1432,10 @@ export type WholesaleLedgerFindUniqueArgs<ExtArgs extends runtime.Types.Extensio
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
+  /**
    * Filter, which WholesaleLedger to fetch.
    */
   where: Prisma.WholesaleLedgerWhereUniqueInput
@@ -1158,6 +1454,10 @@ export type WholesaleLedgerFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.E
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
+  /**
    * Filter, which WholesaleLedger to fetch.
    */
   where: Prisma.WholesaleLedgerWhereUniqueInput
@@ -1175,6 +1475,10 @@ export type WholesaleLedgerFindFirstArgs<ExtArgs extends runtime.Types.Extension
    * Omit specific fields from the WholesaleLedger
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
   /**
    * Filter, which WholesaleLedger to fetch.
    */
@@ -1224,6 +1528,10 @@ export type WholesaleLedgerFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Ex
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
+  /**
    * Filter, which WholesaleLedger to fetch.
    */
   where?: Prisma.WholesaleLedgerWhereInput
@@ -1271,6 +1579,10 @@ export type WholesaleLedgerFindManyArgs<ExtArgs extends runtime.Types.Extensions
    * Omit specific fields from the WholesaleLedger
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
   /**
    * Filter, which WholesaleLedgers to fetch.
    */
@@ -1320,6 +1632,10 @@ export type WholesaleLedgerCreateArgs<ExtArgs extends runtime.Types.Extensions.I
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
+  /**
    * The data needed to create a WholesaleLedger.
    */
   data: Prisma.XOR<Prisma.WholesaleLedgerCreateInput, Prisma.WholesaleLedgerUncheckedCreateInput>
@@ -1353,6 +1669,10 @@ export type WholesaleLedgerCreateManyAndReturnArgs<ExtArgs extends runtime.Types
    */
   data: Prisma.WholesaleLedgerCreateManyInput | Prisma.WholesaleLedgerCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1367,6 +1687,10 @@ export type WholesaleLedgerUpdateArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the WholesaleLedger
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
   /**
    * The data needed to update a WholesaleLedger.
    */
@@ -1419,6 +1743,10 @@ export type WholesaleLedgerUpdateManyAndReturnArgs<ExtArgs extends runtime.Types
    * Limit how many WholesaleLedgers to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1433,6 +1761,10 @@ export type WholesaleLedgerUpsertArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the WholesaleLedger
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
   /**
    * The filter to search for the WholesaleLedger to update in case it exists.
    */
@@ -1460,6 +1792,10 @@ export type WholesaleLedgerDeleteArgs<ExtArgs extends runtime.Types.Extensions.I
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
+  /**
    * Filter which WholesaleLedger to delete.
    */
   where: Prisma.WholesaleLedgerWhereUniqueInput
@@ -1480,6 +1816,25 @@ export type WholesaleLedgerDeleteManyArgs<ExtArgs extends runtime.Types.Extensio
 }
 
 /**
+ * WholesaleLedger.product
+ */
+export type WholesaleLedger$productArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Product
+   */
+  select?: Prisma.ProductSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Product
+   */
+  omit?: Prisma.ProductOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ProductInclude<ExtArgs> | null
+  where?: Prisma.ProductWhereInput
+}
+
+/**
  * WholesaleLedger without action
  */
 export type WholesaleLedgerDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1491,4 +1846,8 @@ export type WholesaleLedgerDefaultArgs<ExtArgs extends runtime.Types.Extensions.
    * Omit specific fields from the WholesaleLedger
    */
   omit?: Prisma.WholesaleLedgerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WholesaleLedgerInclude<ExtArgs> | null
 }
