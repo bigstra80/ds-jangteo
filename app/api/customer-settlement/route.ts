@@ -6,7 +6,7 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    const [customers, ledgerRows] = await Promise.all([
+    const [customers, products, ledgerRows] = await Promise.all([
       prisma.customer.findMany({
         where: { isActive: true },
         select: {
@@ -15,6 +15,11 @@ export async function GET() {
           name: true,
         },
         orderBy: { name: "asc" },
+      }),
+
+      prisma.product.findMany({
+        select: { code: true, name: true },
+        orderBy: { id: "asc" },
       }),
 
       prisma.wholesaleLedger.findMany({
@@ -28,6 +33,13 @@ export async function GET() {
     const customerByName = new Map(
       customers.map((customer) => [normalizeName(customer.name), customer])
     );
+    const legacyProductCodeByName = new Map<string, string>();
+    for (const product of products) {
+      const name = normalizeName(product.name);
+      if (!legacyProductCodeByName.has(name)) {
+        legacyProductCodeByName.set(name, product.code);
+      }
+    }
 
     const grouped = new Map<
       string,
@@ -121,7 +133,10 @@ export async function GET() {
       item.rows.push({
         id: row.id,
         transactionDate: row.transactionDate,
-        productCode: row.productCode,
+        productCode:
+          row.productCode ??
+          legacyProductCodeByName.get(normalizeName(row.productName)) ??
+          null,
         productName: row.productName,
         quantity: row.quantity,
         supplierName: row.supplierName,

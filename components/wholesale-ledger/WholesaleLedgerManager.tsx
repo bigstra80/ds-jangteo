@@ -478,6 +478,18 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     loadCurrentUserRole();
   }, []);
 
+  // 상품코드가 저장되기 전 생성된 과거 거래만 기존 표시 방식을 사용합니다.
+  // 신규/수정 거래는 row.productCode가 항상 우선하므로 중복 상품명에 영향받지 않습니다.
+  const legacyProductCodeByName = useMemo(() => {
+    const codeMap = new Map<string, string>();
+    productOptions.forEach((option) => {
+      const name = String(option.productName || option.label || "").trim().toLowerCase();
+      const code = String(option.productCode || "").trim();
+      if (name && code && !codeMap.has(name)) codeMap.set(name, code);
+    });
+    return codeMap;
+  }, [productOptions]);
+
   const filteredRows = useMemo(() => {
     const normalizedKeyword = normalizeSearchText(keyword);
 
@@ -522,7 +534,10 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
       if (!normalizedKeyword) return true;
 
-      const rowProductCode = row.productCode || "";
+      const rowProductCode =
+        row.productCode ||
+        legacyProductCodeByName.get(row.productName.trim().toLowerCase()) ||
+        "";
       const fields: Record<string, unknown[]> = {
         all: [rowProductCode, row.productName, row.supplierName, row.deliveryCompanyName, row.customerName, row.customerPhone, row.shippingFee, row.memo],
         product: [rowProductCode, row.productName], supplier: [row.supplierName], deliveryCompany: [row.deliveryCompanyName], customer: [row.customerName], phone: [row.customerPhone], memo: [row.memo],
@@ -546,6 +561,7 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
     startDate,
     endDate,
     sortOrder,
+    legacyProductCodeByName,
   ]);
 
   const summary = useMemo(() => {
@@ -2380,8 +2396,17 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
                     <td className="wl-date-cell" style={{ ...tdStyle, ...(listOnly ? settlementDateCellStyle : {}) }}>
                       {dateOnly(row.transactionDate)}
                     </td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }} title={row.productCode || ""}>
-                      {row.productCode || "-"}
+                    <td
+                      style={{ ...tdStyle, fontWeight: 700 }}
+                      title={
+                        row.productCode ||
+                        legacyProductCodeByName.get(row.productName.trim().toLowerCase()) ||
+                        ""
+                      }
+                    >
+                      {row.productCode ||
+                        legacyProductCodeByName.get(row.productName.trim().toLowerCase()) ||
+                        "-"}
                     </td>
                     <td
                       className="wl-product-name-cell"
