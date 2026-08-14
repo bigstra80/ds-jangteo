@@ -2110,12 +2110,12 @@ export default function WholesaleLedgerManager({ listOnly = false }: { listOnly?
 
           <Field label="전화 번호" className="wl-field-customer-phone">
             <input
-              type="tel"
+              type="text"
               value={form.customerPhone}
               onChange={(e) => changeForm("customerPhone", e.target.value)}
               placeholder="전화 번호 입력"
               style={inputStyle}
-              autoComplete="tel"
+              autoComplete="off"
             />
           </Field>
 
